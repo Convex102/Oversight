@@ -1,0 +1,10 @@
+{
+  "provider": "xero",
+  "last_updated": "2025-12-23",
+  "chart_of_accounts": {
+    "200": "Sales",
+    "310": "Direct Costs",
+    "400": "Overheads",
+    "820": "VAT Payable"
+  }
+}

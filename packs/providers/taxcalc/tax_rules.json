@@ -1,0 +1,8 @@
+{
+  "provider": "taxcalc",
+  "supported_returns": {
+    "CT600": "Corporation Tax Return",
+    "VAT100": "VAT Return",
+    "SA100": "Self Assessment"
+  }
+}

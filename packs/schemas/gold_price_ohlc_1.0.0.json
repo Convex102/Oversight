@@ -1,0 +1,109 @@
+{
+  "name": "gold_price_ohlc",
+  "version": "1.0.0",
+  "description": "Enterprise schema for gold OHLC price series used for ML forecasting.",
+  "fields": [
+    {
+      "key": "timestamp",
+      "type": "date",
+      "description": "Unified datetime timestamp ISO8601.",
+      "required": true,
+      "aliases": [
+        "Datetime",
+        "DateTime",
+        "Timestamp"
+      ]
+    },
+    {
+      "key": "date",
+      "type": "date",
+      "description": "Date portion if timestamp not available.",
+      "required": false,
+      "aliases": [
+        "Date"
+      ]
+    },
+    {
+      "key": "time",
+      "type": "string",
+      "description": "Time portion if timestamp not available.",
+      "required": false,
+      "aliases": [
+        "Time"
+      ]
+    },
+    {
+      "key": "open",
+      "type": "number",
+      "description": "Open price.",
+      "required": true,
+      "aliases": [
+        "Open Price",
+        "O"
+      ]
+    },
+    {
+      "key": "high",
+      "type": "number",
+      "description": "High price.",
+      "required": true,
+      "aliases": [
+        "High Price",
+        "H"
+      ]
+    },
+    {
+      "key": "low",
+      "type": "number",
+      "description": "Low price.",
+      "required": true,
+      "aliases": [
+        "Low Price",
+        "L"
+      ]
+    },
+    {
+      "key": "close",
+      "type": "number",
+      "description": "Close/Gold price.",
+      "required": true,
+      "aliases": [
+        "Close",
+        "Gold Price",
+        "Price",
+        "Last",
+        "C"
+      ]
+    },
+    {
+      "key": "timeframe",
+      "type": "string",
+      "description": "Period granularity e.g. 1m,5m,1h,1d.",
+      "required": false,
+      "aliases": [
+        "TF",
+        "Interval"
+      ]
+    },
+    {
+      "key": "symbol",
+      "type": "string",
+      "description": "Instrument symbol e.g. XAUUSD.",
+      "required": false,
+      "aliases": [
+        "Ticker",
+        "Instrument"
+      ]
+    },
+    {
+      "key": "source",
+      "type": "string",
+      "description": "Data source identifier.",
+      "required": false,
+      "aliases": [
+        "Provider",
+        "Feed"
+      ]
+    }
+  ]
+}

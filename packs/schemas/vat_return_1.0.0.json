@@ -1,0 +1,64 @@
+{
+  "name": "vat_return",
+  "version": "1.0.0",
+  "description": "VAT return boxes normalized.",
+  "fields": [
+    {
+      "key": "period_start",
+      "type": "date",
+      "description": "VAT period start.",
+      "required": true
+    },
+    {
+      "key": "period_end",
+      "type": "date",
+      "description": "VAT period end.",
+      "required": true
+    },
+    {
+      "key": "box1_vat_due_sales",
+      "type": "number",
+      "description": "VAT due on sales.",
+      "required": false,
+      "aliases": [
+        "Box 1"
+      ]
+    },
+    {
+      "key": "box4_vat_reclaimed",
+      "type": "number",
+      "description": "VAT reclaimed on purchases.",
+      "required": false,
+      "aliases": [
+        "Box 4"
+      ]
+    },
+    {
+      "key": "box5_net_vat",
+      "type": "number",
+      "description": "Net VAT to pay/reclaim.",
+      "required": true,
+      "aliases": [
+        "Box 5"
+      ]
+    },
+    {
+      "key": "box6_total_sales",
+      "type": "number",
+      "description": "Total sales ex VAT.",
+      "required": false,
+      "aliases": [
+        "Box 6"
+      ]
+    },
+    {
+      "key": "box7_total_purchases",
+      "type": "number",
+      "description": "Total purchases ex VAT.",
+      "required": false,
+      "aliases": [
+        "Box 7"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2025-12-28",
+  "framework": "UK GAAP (FRS 102) - Reviewer Guidance (Phase 1)",
+  "clauses": [
+    {
+      "id": "FRS102-OV-001",
+      "title": "FRS 102 Overview - True and fair view, consistency and disclosures",
+      "body": "Financial statements should present a true and fair view. Accounting policies should be applied consistently and disclosures should be sufficient for users to understand the entity’s financial position and performance.",
+      "tags": ["FRS102", "Overview", "Disclosure", "Policies", "Reviewer"],
+      "ref": "FRS 102 (overall)",
+      "url": ""
+    },
+    {
+      "id": "FRS102-3-002",
+      "title": "Section 3 - Financial Statement Presentation (general)",
+      "body": "Entities should present a complete set of financial statements with appropriate notes. Presentation and classification should be consistent from period to period unless a change is justified and disclosed.",
+      "tags": ["FRS102", "Presentation", "Consistency", "Classification"],
+      "ref": "FRS 102 Section 3",
+      "url": ""
+    },
+    {
+      "id": "FRS102-4-003",
+      "title": "Section 4 - Statement of Financial Position (general)",
+      "body": "Balance sheet items should be classified appropriately between current and non-current where relevant. Key line items should be supported by disclosures for material classes.",
+      "tags": ["FRS102", "BalanceSheet", "Classification", "Disclosure"],
+      "ref": "FRS 102 Section 4",
+      "url": ""
+    },
+    {
+      "id": "FRS102-5-004",
+      "title": "Section 5 - Statement of Comprehensive Income and Income Statement (general)",
+      "body": "Income and expense items should be presented and classified appropriately. Material items should be disclosed separately, and prior period comparatives included.",
+      "tags": ["FRS102", "P&L", "Classification", "Materiality", "Comparatives"],
+      "ref": "FRS 102 Section 5",
+      "url": ""
+    },
+    {
+      "id": "FRS102-7-005",
+      "title": "Section 7 - Statement of Cash Flows (when required)",
+      "body": "A cash flow statement is required for many entities under FRS 102 (subject to exemptions). Classification of cash flows into operating, investing and financing should be consistent and supported by disclosures.",
+      "tags": ["FRS102", "CashFlow", "Disclosure", "Exemptions"],
+      "ref": "FRS 102 Section 7",
+      "url": ""
+    },
+    {
+      "id": "FRS102-8-006",
+      "title": "Section 8 - Notes to the Financial Statements (completeness and clarity)",
+      "body": "Notes should provide information not presented elsewhere and include accounting policies, critical judgments, key estimates and supporting disclosures for material line items.",
+      "tags": ["FRS102", "Notes", "Policies", "Judgments", "Estimates", "Disclosure"],
+      "ref": "FRS 102 Section 8",
+      "url": ""
+    },
+    {
+      "id": "FRS102-10-007",
+      "title": "Section 10 - Accounting Policies, Estimates and Errors",
+      "body": "Material accounting policies should be disclosed. Changes in estimates and corrections of material prior period errors should be disclosed with sufficient detail for users to understand the impact.",
+      "tags": ["FRS102", "Policies", "Estimates", "Errors", "Disclosure"],
+      "ref": "FRS 102 Section 10",
+      "url": ""
+    },
+    {
+      "id": "FRS102-11-008",
+      "title": "Sections 11/12 - Financial Instruments (recognition, measurement, disclosure)",
+      "body": "Financial instruments should be recognised and measured in accordance with the relevant sections. Disclosures should explain the nature and extent of risks and the basis for measurement.",
+      "tags": ["FRS102", "FinancialInstruments", "Disclosure", "Risk"],
+      "ref": "FRS 102 Sections 11/12",
+      "url": ""
+    },
+    {
+      "id": "FRS102-13-009",
+      "title": "Section 13 - Inventories",
+      "body": "Inventories should be measured at the lower of cost and estimated selling price less costs to complete and sell. Disclosures should support material inventory classes and valuation policies.",
+      "tags": ["FRS102", "Inventory", "Valuation", "Disclosure"],
+      "ref": "FRS 102 Section 13",
+      "url": ""
+    },
+    {
+      "id": "FRS102-16-010",
+      "title": "Section 16 - Investment Property",
+      "body": "Investment property is generally measured at fair value with changes recognised in profit or loss (with specific exceptions). Disclosures should explain valuation basis and movements.",
+      "tags": ["FRS102", "InvestmentProperty", "FairValue", "Disclosure"],
+      "ref": "FRS 102 Section 16",
+      "url": ""
+    },
+    {
+      "id": "FRS102-17-011",
+      "title": "Section 17 - Property, Plant and Equipment (PPE)",
+      "body": "PPE should be recognised at cost (or revalued amount if policy chosen) less depreciation and impairment. Disclosures should support material classes, depreciation methods, and movements.",
+      "tags": ["FRS102", "PPE", "Depreciation", "Impairment", "Disclosure"],
+      "ref": "FRS 102 Section 17",
+      "url": ""
+    },
+    {
+      "id": "FRS102-18-012",
+      "title": "Section 18 - Intangible Assets other than Goodwill",
+      "body": "Intangibles should be recognised when criteria are met and amortised over their useful lives. Disclosures should include amortisation policy, useful lives, and movements for material classes.",
+      "tags": ["FRS102", "Intangibles", "Amortisation", "Disclosure"],
+      "ref": "FRS 102 Section 18",
+      "url": ""
+    },
+    {
+      "id": "FRS102-19-013",
+      "title": "Section 19 - Business Combinations and Goodwill",
+      "body": "Business combinations require identifiable assets and liabilities to be recognised at fair value at acquisition date. Goodwill is typically amortised. Disclosures should explain key assumptions and movements.",
+      "tags": ["FRS102", "BusinessCombinations", "Goodwill", "FairValue", "Disclosure"],
+      "ref": "FRS 102 Section 19",
+      "url": ""
+    },
+    {
+      "id": "FRS102-20-014",
+      "title": "Section 20 - Leases (classification and disclosures)",
+      "body": "Leases should be classified and accounted for in accordance with FRS 102. Disclosures should explain lease commitments and the basis for classification where material.",
+      "tags": ["FRS102", "Leases", "Classification", "Disclosure"],
+      "ref": "FRS 102 Section 20",
+      "url": ""
+    },
+    {
+      "id": "FRS102-21-015",
+      "title": "Section 21 - Provisions and Contingencies",
+      "body": "Provisions should be recognised when criteria are met and measured reliably. Contingent liabilities and assets should be disclosed where relevant. Disclosures should explain nature and uncertainties.",
+      "tags": ["FRS102", "Provisions", "Contingencies", "Disclosure"],
+      "ref": "FRS 102 Section 21",
+      "url": ""
+    },
+    {
+      "id": "FRS102-23-016",
+      "title": "Section 23 - Revenue (recognition and disclosure)",
+      "body": "Revenue should be recognised by reference to the stage of completion of the transaction (where applicable) and when probable economic benefits will flow. Disclosures should explain revenue recognition policies and material judgments.",
+      "tags": ["FRS102", "Revenue", "Judgments", "Disclosure"],
+      "ref": "FRS 102 Section 23",
+      "url": ""
+    },
+    {
+      "id": "FRS102-24-017",
+      "title": "Section 24 - Government Grants",
+      "body": "Government grants should be recognised in accordance with the chosen policy and disclosed appropriately. Disclosures should include nature and extent of grants and accounting treatment.",
+      "tags": ["FRS102", "Grants", "Disclosure", "Policies"],
+      "ref": "FRS 102 Section 24",
+      "url": ""
+    },
+    {
+      "id": "FRS102-25-018",
+      "title": "Section 25 - Borrowing Costs",
+      "body": "Borrowing costs are generally recognised as an expense unless capitalisation is permitted and selected. Disclosures should explain policy and material capitalisation amounts.",
+      "tags": ["FRS102", "BorrowingCosts", "Disclosure", "Policies"],
+      "ref": "FRS 102 Section 25",
+      "url": ""
+    },
+    {
+      "id": "FRS102-28-019",
+      "title": "Section 28 - Employee Benefits (pensions, accruals and disclosures)",
+      "body": "Employee benefit costs, including pension obligations, should be recognised appropriately. Disclosures should include significant plans and obligations where material.",
+      "tags": ["FRS102", "EmployeeBenefits", "Pensions", "Disclosure"],
+      "ref": "FRS 102 Section 28",
+      "url": ""
+    },
+    {
+      "id": "FRS102-29-020",
+      "title": "Section 29 - Income Tax (current and deferred tax)",
+      "body": "Current and deferred tax should be recognised and measured according to the section. Disclosures should explain tax charge composition, deferred tax movements and key reconciliations where required.",
+      "tags": ["FRS102", "Tax", "DeferredTax", "Disclosure"],
+      "ref": "FRS 102 Section 29",
+      "url": ""
+    },
+    {
+      "id": "FRS102-30-021",
+      "title": "Section 30 - Foreign Currency Translation",
+      "body": "Foreign currency transactions and balances should be translated and recognised consistently. Disclosures should be provided where material, including the effect of exchange differences.",
+      "tags": ["FRS102", "ForeignCurrency", "Disclosure"],
+      "ref": "FRS 102 Section 30",
+      "url": ""
+    },
+    {
+      "id": "FRS102-32-022",
+      "title": "Section 32 - Events after the end of the reporting period",
+      "body": "Adjusting events should be reflected in the financial statements; non-adjusting events may require disclosure. The reviewer should confirm significant events are considered and documented.",
+      "tags": ["FRS102", "EventsAfter", "Disclosure", "Reviewer"],
+      "ref": "FRS 102 Section 32",
+      "url": ""
+    },
+    {
+      "id": "FRS102-33-023",
+      "title": "Section 33 - Related Party Disclosures",
+      "body": "Related party relationships, transactions and balances should be disclosed where required. The reviewer should consider completeness and materiality of related party disclosures.",
+      "tags": ["FRS102", "RelatedParties", "Disclosure", "Materiality"],
+      "ref": "FRS 102 Section 33",
+      "url": ""
+    },
+    {
+      "id": "FRS102-GC-024",
+      "title": "Going concern - basis of preparation and disclosure (reviewer context)",
+      "body": "The reviewer should confirm that going concern has been assessed, the basis of preparation is appropriate, and disclosures are adequate where material uncertainties exist.",
+      "tags": ["FRS102", "GoingConcern", "Disclosure", "Reviewer"],
+      "ref": "FRS 102 + UK reporting practice (context)",
+      "url": ""
+    },
+    {
+      "id": "FRS102-DISC-025",
+      "title": "Disclosure completeness - material line items and narrative notes",
+      "body": "Material balances and transactions should have supporting disclosures. A reviewer should evaluate whether note disclosures and accounting policies provide adequate clarity and completeness for users.",
+      "tags": ["FRS102", "Disclosure", "Completeness", "Reviewer"],
+      "ref": "FRS 102 Sections 3/8 (context)",
+      "url": ""
+    }
+  ]
+}

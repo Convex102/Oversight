@@ -1,0 +1,14 @@
+{
+  "required_fields": [
+    "account_code",
+    "description",
+    "category"
+  ],
+  "categories": [
+    "Revenue",
+    "Expense",
+    "Asset",
+    "Liability",
+    "Equity"
+  ]
+}

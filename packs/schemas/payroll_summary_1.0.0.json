@@ -1,0 +1,79 @@
+{
+  "name": "payroll_summary",
+  "version": "1.0.0",
+  "description": "Payroll summary schema for pay periods.",
+  "fields": [
+    {
+      "key": "pay_period",
+      "type": "string",
+      "description": "Pay period identifier.",
+      "required": true,
+      "aliases": [
+        "Period"
+      ]
+    },
+    {
+      "key": "pay_date",
+      "type": "date",
+      "description": "Pay date.",
+      "required": false,
+      "aliases": [
+        "Date"
+      ]
+    },
+    {
+      "key": "gross_pay",
+      "type": "number",
+      "description": "Gross pay.",
+      "required": true,
+      "aliases": [
+        "Gross"
+      ]
+    },
+    {
+      "key": "net_pay",
+      "type": "number",
+      "description": "Net pay.",
+      "required": true,
+      "aliases": [
+        "Net"
+      ]
+    },
+    {
+      "key": "paye_tax",
+      "type": "number",
+      "description": "PAYE tax.",
+      "required": false,
+      "aliases": [
+        "Tax"
+      ]
+    },
+    {
+      "key": "ni_employee",
+      "type": "number",
+      "description": "Employee NI.",
+      "required": false,
+      "aliases": [
+        "NI Emp"
+      ]
+    },
+    {
+      "key": "ni_employer",
+      "type": "number",
+      "description": "Employer NI.",
+      "required": false,
+      "aliases": [
+        "NI Er"
+      ]
+    },
+    {
+      "key": "pension_employer",
+      "type": "number",
+      "description": "Employer pension.",
+      "required": false,
+      "aliases": [
+        "Er Pension"
+      ]
+    }
+  ]
+}

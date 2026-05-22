@@ -1,0 +1,19 @@
+{
+  "ASGL_Canonical_COA": {
+    "Revenue": [
+      "Sage:4000",
+      "Xero:200",
+      "FreeAgent:001"
+    ],
+    "Expenses": [
+      "Sage:7000",
+      "Xero:400",
+      "QuickBooks:2"
+    ],
+    "VAT_Control": [
+      "Sage:2100",
+      "Xero:820",
+      "FreeAgent:004"
+    ]
+  }
+}

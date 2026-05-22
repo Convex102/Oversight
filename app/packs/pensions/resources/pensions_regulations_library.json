@@ -1,0 +1,54 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2025-12-28",
+  "clauses": [
+    {
+      "id": "TPR-DC-CODE-2021-001",
+      "title": "The Pensions Regulator (TPR) - Code of Practice (DC) / Governance and Administration",
+      "body": "Trustees should maintain effective governance and administration, including data quality controls, record-keeping processes, and oversight of service providers. Evidence of controls and remediation actions should be retained and made available for audit.",
+      "tags": ["TPR", "Governance", "DataQuality", "Trustee", "Controls"],
+      "source": "TPR guidance / Code of Practice",
+      "url": ""
+    },
+    {
+      "id": "TPR-DATA-REQ-002",
+      "title": "TPR - Common and Conditional Data",
+      "body": "Trustees should understand and monitor common and conditional data requirements, including member identifiers, dates, status and benefit-related fields. Data completeness and accuracy should be assessed periodically and after significant events such as system migrations.",
+      "tags": ["TPR", "Data", "CommonData", "ConditionalData", "Remediation"],
+      "source": "TPR data guidance",
+      "url": ""
+    },
+    {
+      "id": "GMPe-LEGAL-003",
+      "title": "Guaranteed Minimum Pension equalisation (GMPe) - Legal context and audit trail expectations",
+      "body": "GMP equalisation projects require documented methodology, clear mapping from source data to calculations, and a defensible audit trail for decisions. Inputs, assumptions and calculation pathways should be recorded for trustee and auditor review.",
+      "tags": ["GMPe", "Equalisation", "AuditTrail", "Methodology", "Remediation"],
+      "source": "Industry guidance / legal context",
+      "url": ""
+    },
+    {
+      "id": "GMPe-DATA-004",
+      "title": "GMPe - Minimum input data and reconciliation controls",
+      "body": "Member identifiers, service dates, contracted-out history and benefit splits should be validated for completeness and consistency prior to running equalisation calculations. Exceptions should be queued for review and remediation.",
+      "tags": ["GMPe", "Reconciliation", "Validation", "Inputs", "ReviewQueue"],
+      "source": "Industry practice",
+      "url": ""
+    },
+    {
+      "id": "PENSIONS-ACT-1995-005",
+      "title": "Pensions Act - Records, reporting and trustee responsibility (general)",
+      "body": "Trustees are responsible for the proper administration of the scheme. Systems and processes supporting scheme administration should be controlled, evidence-based and capable of producing accurate reporting.",
+      "tags": ["Legislation", "Trustee", "Administration", "Reporting"],
+      "source": "UK pensions legislation (general)",
+      "url": ""
+    },
+    {
+      "id": "TPR-CYBER-006",
+      "title": "TPR - Cyber controls and operational resilience (pensions)",
+      "body": "Trustees should consider cyber risk and operational resilience, including access controls, monitoring, audit logging, and secure handling of member data. Data minimisation and segmentation support resilience and compliance.",
+      "tags": ["TPR", "Cyber", "Resilience", "AccessControl", "AuditLogging"],
+      "source": "TPR cyber guidance (general)",
+      "url": ""
+    }
+  ]
+}

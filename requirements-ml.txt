@@ -1,0 +1,7 @@
+# Optional ML / Explainability dependencies for ASGL DI + SHAP
+sentence-transformers>=2.7.0
+scikit-learn>=1.5.0
+shap>=0.46.0
+lime>=0.2.0.1
+matplotlib>=3.9.0
+torch>=2.2.0

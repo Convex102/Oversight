@@ -1,0 +1,89 @@
+{
+  "name": "sa302_hmrc",
+  "version": "1.0.0",
+  "description": "SA302 key fields normalized for review and reconciliation.",
+  "fields": [
+    {
+      "key": "tax_year",
+      "type": "string",
+      "description": "Tax year e.g. 2023-24.",
+      "required": true,
+      "aliases": [
+        "Year"
+      ]
+    },
+    {
+      "key": "taxpayer_name",
+      "type": "string",
+      "description": "Taxpayer name.",
+      "required": false,
+      "aliases": [
+        "Name"
+      ]
+    },
+    {
+      "key": "utr",
+      "type": "string",
+      "description": "Unique Taxpayer Reference.",
+      "required": false,
+      "aliases": [
+        "UTR"
+      ]
+    },
+    {
+      "key": "total_income",
+      "type": "number",
+      "description": "Total income.",
+      "required": false,
+      "aliases": [
+        "Income"
+      ]
+    },
+    {
+      "key": "taxable_income",
+      "type": "number",
+      "description": "Taxable income.",
+      "required": true,
+      "aliases": [
+        "Taxable"
+      ]
+    },
+    {
+      "key": "income_tax_due",
+      "type": "number",
+      "description": "Income tax due.",
+      "required": true,
+      "aliases": [
+        "Tax Due",
+        "Tax"
+      ]
+    },
+    {
+      "key": "national_insurance",
+      "type": "number",
+      "description": "National insurance due.",
+      "required": false,
+      "aliases": [
+        "NI"
+      ]
+    },
+    {
+      "key": "student_loan",
+      "type": "number",
+      "description": "Student loan repayments.",
+      "required": false,
+      "aliases": [
+        "Loan"
+      ]
+    },
+    {
+      "key": "payments_made",
+      "type": "number",
+      "description": "Payments on account made.",
+      "required": false,
+      "aliases": [
+        "Payments"
+      ]
+    }
+  ]
+}

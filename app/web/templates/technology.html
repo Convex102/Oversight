@@ -1,0 +1,97 @@
+{% set title = "Technology" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technology · Oversight AI Labs</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#F1F5F9;color:#1E293B;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;background:white;border-bottom:1px solid #E2E8F0;position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;color:#1E293B;text-decoration:none}
+.brand-icon{width:32px;height:32px;background:#1E293B;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:14px}
+nav{display:flex;align-items:center;gap:4px}
+nav a{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#475569;text-decoration:none;transition:all 0.15s}
+nav a:hover{background:#F1F5F9;color:#1E293B}
+.btn-nav{background:#1E293B;color:white!important;border-radius:8px;padding:8px 16px!important}
+.btn-nav:hover{background:#0F172A!important}
+.container{max-width:1100px;margin:0 auto;padding:2rem}
+.page-title{font-size:1.75rem;font-weight:800;color:#1E293B;margin-bottom:0.5rem}
+.page-sub{color:#64748B;font-size:0.95rem;line-height:1.6;max-width:680px;margin-bottom:2rem}
+.card{background:white;border:1px solid #E2E8F0;border-radius:16px;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1rem}
+.card h3{font-size:1rem;font-weight:700;margin-bottom:0.5rem;color:#1E293B}
+.card p{font-size:0.875rem;color:#64748B;line-height:1.6}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;border:1px solid #E2E8F0;color:#475569;background:white;cursor:pointer}
+.btn:hover{border-color:#CBD5E1;background:#F8FAFC}
+.btn-primary{background:#1E293B;color:white;border-color:#1E293B}
+.btn-primary:hover{background:#0F172A}
+.btn-blue{background:#2563EB;color:white;border-color:#2563EB}
+.btn-blue:hover{background:#1D4ED8}
+.input{width:100%;padding:10px 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;color:#1E293B;background:white;outline:none;transition:border 0.15s;margin-top:4px}
+.input:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,0.08)}
+label.lbl{font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:2px;margin-top:14px}
+.footer{background:white;border-top:1px solid #E2E8F0;padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#94A3B8;margin-top:4rem}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600}
+.badge-green{background:#D1FAE5;color:#065F46}
+.badge-amber{background:#FEF3C7;color:#92400E}
+.badge-red{background:#FEE2E2;color:#991B1B}
+.badge-blue{background:#DBEAFE;color:#1E40AF}
+.row{display:flex;gap:12px;align-items:center;margin-top:12px}
+table.data-table{width:100%;border-collapse:collapse;font-size:13px}
+table.data-table th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;border-bottom:2px solid #E2E8F0;background:#F8FAFC}
+table.data-table td{padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#334155}
+table.data-table tr:hover td{background:#F8FAFC}
+.status-pill{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
+.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:3rem;padding:4rem 0 2rem;align-items:start}
+.hero h1{font-size:3rem;font-weight:900;line-height:1.05;letter-spacing:-1px;margin-bottom:1rem}
+.hero-card{background:white;border:1px solid #E2E8F0;border-radius:20px;padding:1.5rem;box-shadow:0 4px 24px rgba(0,0,0,0.06)}
+.check-list{list-style:none;margin:1.25rem 0;display:flex;flex-direction:column;gap:10px}
+.check-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#475569}
+.check-list li::before{content:"✓";width:20px;height:20px;background:#DBEAFE;color:#2563EB;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:1px}
+@media(max-width:900px){.grid-3,.grid-2{grid-template-columns:1fr}.hero{grid-template-columns:1fr}}
+</style>
+
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/">
+    <div class="brand-icon">O</div>
+    OVERSIGHT
+  </a>
+  <nav>
+    <a href="/technology">Technology</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/demo">Demo</a>
+    <a href="/about">About</a>
+    <a href="/" class="btn-nav">Open Platform →</a>
+  </nav>
+</header>
+
+
+<div class="container">
+  <h1 class="page-title">Technology</h1>
+  <p class="page-sub">A secure workflow engine for document intelligence: ingestion, validation, comparison and reporting — delivered via API and console.</p>
+  <div class="grid-3">
+    <div class="card"><h3>📊 Ingestion</h3><p>Handles spreadsheets and evidence bundles with robust parsing, table detection and range selection.</p></div>
+    <div class="card"><h3>🧠 ASGL-C Normaliser</h3><p>Universal domain-agnostic normalisation engine with vertical adapters for accountancy, pensions, medical and defence.</p></div>
+    <div class="card"><h3>🎯 Decision Intelligence</h3><p>Clear statuses, severity scores and recommended actions for reviewers. SHAP attribution on every output.</p></div>
+    <div class="card"><h3>⚖️ Compare Engine</h3><p>Excel vs PDF, Excel vs Excel, CSV vs any format — structural and numeric delta analysis across all document types.</p></div>
+    <div class="card"><h3>🔄 Active Learning</h3><p>Flywheel learns from reviewer decisions to improve mapping confidence over time.</p></div>
+    <div class="card"><h3>📜 Governance</h3><p>Audit trails, metering, retention controls and tenant isolation. Evidence packs for sign-off.</p></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>Oversight AI Labs Limited · Co. No. 17145488</span>
+  <span>oversightlab.ai</span>
+  <span>© 2025 Oversight AI Labs</span>
+</footer>
+
+</body>
+</html>

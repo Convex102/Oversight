@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>{{ title }} • ASGL</title>
+    <link rel="stylesheet" href="/static/asgl.css"/>
+    <script defer src="/static/asgl.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">ASGL</div>
+          <div class="sub">Oversight • Enterprise</div>
+        </div>
+        <nav class="nav">
+          <a class="navitem {{'active' if active_nav=='workspace' else ''}}" href="/">Workspace</a>
+          <a class="navitem {{'active' if active_nav=='jobs' else ''}}" href="/jobs">Jobs</a>
+          <a class="navitem {{'active' if active_nav=='ingestion' else ''}}" href="/ingestion">Ingestion</a>
+          <a class="navitem {{'active' if active_nav=='mapping' else ''}}" href="/mapping">Mapping</a>
+          <a class="navitem {{'active' if active_nav=='review' else ''}}" href="/review-queue">Review Queue</a>
+          <a class="navitem {{'active' if active_nav=='templates' else ''}}" href="/templates">Templates</a>
+          <a class="navitem {{'active' if active_nav=='packs' else ''}}" href="/packs">Packs Marketplace</a>
+          <a class="navitem {{'active' if active_nav=='exports' else ''}}" href="/exports">Exports</a>
+          <a class="navitem {{'active' if active_nav=='metrics' else ''}}" href="/metrics">Metrics</a>
+          <a class="navitem {{'active' if active_nav=='audit' else ''}}" href="/audit">Audit / Trace</a>
+          <div class="divider"></div>
+          <a class="navitem {{'active' if active_nav=='settings' else ''}}" href="/settings">Settings</a>
+          <a class="navitem {{'active' if active_nav=='admin' else ''}}" href="/admin">Admin</a>
+        </nav>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <div class="top-left">
+            <h1>{{ title }}</h1>
+            <div class="pill">Tenant: {{ tenant_id }}</div>
+            <div class="pill">Vertical: {{ vertical }}</div>
+          </div>
+          <div class="top-right">
+            <input class="search" placeholder="Search jobs, templates, packs…"/>
+            <button class="btn">Help</button>
+            <div class="avatar">GN</div>
+          </div>
+        </header>
+        <section class="content">
+          {% block content %}{% endblock %}
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,1083 @@
+﻿from app.api.v1.compare_routes import router as compare_router
+from __future__ import annotations
+
+import hashlib
+import json
+import datetime as dt
+import os
+from typing import Optional, Dict, Any, List
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, UploadFile, File, Depends, Request, Header, Form, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.logging import configure_logging
+from app.ratelimit import limiter
+from app.db.session import get_db, engine, Base
+from app.db.models import Tenant, ApiKey, Upload, Job, Template, User, SessionToken
+from app.security import generate_api_key, hash_api_key
+from app.deps import get_tenant
+from app.storage import storage
+from app.di_learning import load_priors, save_priors, apply_resolution, record_signal
+from app.di_review_queue import resolve_item
+from app.tasks import run_job
+from app.web_auth import get_current_user, COOKIE_NAME
+from app.auth import hash_password, verify_password, new_session_token, token_expiry
+from app.usage import get_or_create_usage, assert_within_limits
+from app.stripe_service import create_checkout_session, create_portal_session, construct_event
+from app.services import template_picker
+from app.services.idempotency import get_existing_job_id, store_job_id
+from app.observability.job_events import read_events, stream_events
+from app.api.v1.routes import router as v1_router
+from app.api.v1.routes_addon import router as v1_addon_router
+from app.quality.routes import router as quality_router
+from app.reporting.report_routes import router as reports_router
+from app.analytics.routes import router as analytics_router
+
+logger = configure_logging()
+
+# -------------------------
+# Lifespan (modern replacement for @app.on_event)
+# -------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Shutdown (if any cleanup needed)
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    version="13.5.0",
+    lifespan=lifespan,
+)
+app.state.limiter = limiter
+
+# -------------------------
+# CORS (dev friendly – tighten for production)
+# -------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if settings.ENV == "dev" else [settings.PUBLIC_BASE_URL],
+    allow_headers=["*"],
+    allow_methods=["*"],
+    allow_credentials=True,
+)
+
+# Static / Templates
+app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
+templates = Jinja2Templates(directory="app/web/templates")
+
+# -------------------------
+# Global Exception Handler
+# -------------------------
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception")
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error"},
+    )
+
+# -------------------------
+# API Router Wiring (optional modules)
+# -------------------------
+def _mount_optional_router(router_obj):
+    try:
+        if router_obj is not None:
+            app.include_router(router_obj)
+    except Exception as e:
+        logger.warning("Optional router mount failed: %s", e)
+
+try:
+    from app.api.health_api import router as _health_router
+    _mount_optional_router(_health_router)
+except Exception as e:
+    logger.warning("health_api router import failed: %s", e)
+
+try:
+    from app.api.pensions_api import router as _pensions_api_router
+    _mount_optional_router(_pensions_api_router)
+except Exception as e:
+    logger.warning("pensions_api router import failed: %s", e)
+
+try:
+    from app.api.pensions_ui_api import router as _pensions_ui_router
+    _mount_optional_router(_pensions_ui_router)
+except Exception as e:
+    logger.warning("pensions_ui router import failed: %s", e)
+
+try:
+    from app.api.packs_api import router as _packs_api_router
+    _mount_optional_router(_packs_api_router)
+except Exception as e:
+    logger.warning("packs_api router import failed: %s", e)
+
+try:
+    from app.api.di_health_api import router as _di_health_router
+    _mount_optional_router(_di_health_router)
+except Exception as e:
+    logger.warning("di_health_api router import failed: %s", e)
+
+# (optional DI routers – kept commented per original)
+# if False:
+#     try:
+#         from app.api.di_admin_api import router as _di_admin_router
+#         _mount_optional_router(_di_admin_router)
+#     except Exception as e:
+#         logger.warning("di_admin_api router import failed: %s", e)
+#     try:
+#         from app.api.di_learning_api import router as _di_learning_router
+#         _mount_optional_router(_di_learning_router)
+#     except Exception as e:
+#         logger.warning("di_learning_api router import failed: %s", e)
+
+try:
+    from app.api.active_learning_routes import router as _active_learning_router
+    _mount_optional_router(_active_learning_router)
+except Exception as e:
+    logger.warning("active_learning_routes router import failed: %s", e)
+
+try:
+    from app.api.telemetry_routes import router as _telemetry_router
+    _mount_optional_router(_telemetry_router)
+except Exception as e:
+    logger.warning("telemetry_routes router import failed: %s", e)
+
+# -------------------------
+# Helper for templates
+# -------------------------
+def _ctx(request: Request, title: str = "") -> Dict[str, Any]:
+    return {"request": request, "year": dt.datetime.utcnow().year, "title": title or "Oversight AI Labs"}
+
+# -------------------------
+# Public website pages
+# -------------------------
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def root(request: Request):
+    return templates.TemplateResponse("Command Center.html", {"request": request})
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/technology", response_class=HTMLResponse)
+def technology(request: Request):
+    return templates.TemplateResponse("technology.html", _ctx(request, "Technology"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing(request: Request):
+    return templates.TemplateResponse("pricing.html", _ctx(request, "Pricing"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/about", response_class=HTMLResponse)
+def about(request: Request):
+    return templates.TemplateResponse("about.html", _ctx(request, "About"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/contact", response_class=HTMLResponse)
+def contact(request: Request):
+    return templates.TemplateResponse("contact.html", _ctx(request, "Contact"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/docs", response_class=HTMLResponse)
+def docs(request: Request):
+    return templates.TemplateResponse("docs.html", _ctx(request, "API Docs"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/demo", response_class=HTMLResponse)
+def demo(request: Request):
+    return templates.TemplateResponse("demo.html", _ctx(request, "Demo"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/runner", response_class=HTMLResponse)
+def runner(request: Request):
+    return templates.TemplateResponse("runner.html", _ctx(request, "Runner"))
+
+# -------------------------
+# Auth (web console)
+# -------------------------
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(request: Request):
+    return templates.TemplateResponse("signup.html", _ctx(request, "Create account"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/auth/register")
+def register(
+    request: Request,
+    tenant_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    plan: str = Form("standard"),
+    db: Session = Depends(get_db),
+):
+    email_n = (email or "").strip().lower()
+    if not email_n or "@" not in email_n:
+        raise HTTPException(400, "Invalid email")
+    if len(password or "") < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    tenant_name = (tenant_name or "").strip() or "Tenant"
+
+    existing = db.query(User).filter(User.email == email_n).first()
+    if existing:
+        raise HTTPException(400, "Account already exists")
+
+    tenant = Tenant(name=tenant_name, plan=plan, is_active=True)
+    db.add(tenant); db.commit(); db.refresh(tenant)
+
+    user = User(tenant_id=tenant.id, email=email_n, password_hash=hash_password(password), is_active=True, role="admin")
+    db.add(user); db.commit(); db.refresh(user)
+
+    raw, kh = generate_api_key(prefix="asgl")
+    db.add(ApiKey(tenant_id=tenant.id, key_hash=kh, name="default", is_active=True))
+    db.commit()
+
+    raw_tok, tok_hash = new_session_token()
+    sess = SessionToken(user_id=user.id, token_hash=tok_hash, expires_at=token_expiry())
+    db.add(sess); db.commit()
+
+    resp = RedirectResponse(url="/console", status_code=303)
+    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax")
+    resp.set_cookie("asgl_bootstrap_api_key", raw, httponly=False, samesite="lax", max_age=300)
+    return resp
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/signin", response_class=HTMLResponse)
+def signin_page(request: Request):
+    return templates.TemplateResponse("signin.html", _ctx(request, "Login"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/auth/login")
+def login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    email_n = (email or "").strip().lower()
+    user = db.query(User).filter(User.email == email_n, User.is_active == True).first()
+    if not user or not verify_password(password, user.password_hash):
+        raise HTTPException(401, "Invalid credentials")
+
+    raw_tok, tok_hash = new_session_token()
+    sess = SessionToken(user_id=user.id, token_hash=tok_hash, expires_at=token_expiry())
+    db.add(sess); db.commit()
+
+    resp = RedirectResponse(url="/console", status_code=303)
+    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax")
+    return resp
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/auth/logout")
+def logout(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    raw = request.cookies.get(COOKIE_NAME)
+    if raw:
+        th = hashlib.sha256(raw.encode()).hexdigest()
+        db.query(SessionToken).filter(SessionToken.token_hash == th).delete()
+        db.commit()
+    resp = RedirectResponse(url="/", status_code=303)
+    resp.delete_cookie(COOKIE_NAME)
+    return resp
+
+# -------------------------
+# Billing (Stripe)
+# -------------------------
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/billing/checkout")
+def billing_checkout(plan: str, email: str, tenant_name: str):
+    plan = (plan or "").lower().strip()
+    price_id = None
+    if plan in ("standard", "basic"):
+        price_id = settings.STRIPE_PRICE_BASIC
+    elif plan in ("pro",):
+        price_id = settings.STRIPE_PRICE_PRO
+
+    if not price_id:
+        raise HTTPException(400, "Stripe price id not configured for plan")
+
+    success = f"{settings.PUBLIC_BASE_URL}/console"
+    cancel = f"{settings.PUBLIC_BASE_URL}/pricing"
+    session = create_checkout_session(
+        price_id=price_id,
+        customer_email=email,
+        success_url=success,
+        cancel_url=cancel,
+        metadata={"tenant_name": tenant_name, "plan": plan},
+    )
+    return RedirectResponse(url=session.url, status_code=303)
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/billing/portal")
+def billing_portal_web(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
+    if not tenant or not tenant.stripe_customer_id:
+        raise HTTPException(400, "Billing portal not configured for this tenant")
+    session = create_portal_session(tenant.stripe_customer_id, return_url=f"{settings.PUBLIC_BASE_URL}/console")
+    return RedirectResponse(url=session.url, status_code=303)
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/v1/billing/portal")
+def billing_portal(payload: dict, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    t = db.query(Tenant).filter(Tenant.id == tenant.id).first()
+    if not t or not t.stripe_customer_id:
+        return {"error": "no stripe customer"}
+    session = create_portal_session(t.stripe_customer_id, return_url=settings.PUBLIC_BASE_URL)
+    return {"url": session.url}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/v1/billing/webhook")
+async def stripe_webhook(req: Request, stripe_signature: str = Header(None), db: Session = Depends(get_db)):
+    event = construct_event(await req.body(), stripe_signature)
+    et = event["type"]
+    obj = event["data"]["object"]
+
+    if et == "checkout.session.completed":
+        customer = obj.get("customer")
+        subscription = obj.get("subscription")
+        email = (obj.get("customer_details") or {}).get("email")
+        meta = obj.get("metadata") or {}
+        tenant_name = meta.get("tenant_name", "Tenant")
+        plan = meta.get("plan", "standard")
+
+        tenant = db.query(Tenant).filter(Tenant.stripe_customer_id == customer).first()
+        if not tenant:
+            tenant = Tenant(
+                name=tenant_name,
+                stripe_customer_id=customer,
+                stripe_subscription_id=subscription,
+                plan=plan,
+                is_active=True,
+            )
+            db.add(tenant); db.commit(); db.refresh(tenant)
+            raw, kh = generate_api_key()
+            db.add(ApiKey(tenant_id=tenant.id, key_hash=kh, name="default", is_active=True))
+            db.commit()
+            if email:
+                existing = db.query(User).filter(User.email == email).first()
+                if not existing:
+                    user = User(tenant_id=tenant.id, email=email, password_hash=hash_password(generate_api_key()[0]), is_active=True, role="admin")
+                    db.add(user); db.commit()
+        else:
+            tenant.stripe_subscription_id = subscription
+            tenant.plan = plan
+            tenant.is_active = True
+            db.commit()
+
+    if et in ("customer.subscription.updated", "customer.subscription.deleted"):
+        customer = obj.get("customer")
+        status = obj.get("status")
+        tenant = db.query(Tenant).filter(Tenant.stripe_customer_id == customer).first()
+        if tenant:
+            tenant.is_active = (status in ("active", "trialing"))
+            db.commit()
+
+    return {"ok": True}
+
+# -------------------------
+# Console (web, authenticated)
+# -------------------------
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/console", response_class=HTMLResponse)
+def console_home(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
+    usage = get_or_create_usage(db, user.tenant_id)
+    jobs = db.query(Job).filter(Job.tenant_id == user.tenant_id).order_by(Job.id.desc()).limit(25).all()
+    keys = db.query(ApiKey).filter(ApiKey.tenant_id == user.tenant_id, ApiKey.is_active == True).all()
+    return templates.TemplateResponse(
+        "console.html",
+        {**_ctx(request, "Console"), "user": user, "tenant": tenant, "usage": usage, "jobs": jobs, "keys": keys},
+    )
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/console/usage", response_class=HTMLResponse)
+def console_usage(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
+    usage = get_or_create_usage(db, user.tenant_id)
+    return templates.TemplateResponse(
+        "console_usage.html",
+        {**_ctx(request, "Usage"), "user": user, "tenant": tenant, "usage": usage},
+    )
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/console/jobs", response_class=HTMLResponse)
+def console_jobs(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    jobs = db.query(Job).filter(Job.tenant_id == user.tenant_id).order_by(Job.id.desc()).limit(50).all()
+    templates_rows = db.query(Template).filter(Template.tenant_id == user.tenant_id).order_by(Template.id.desc()).limit(50).all()
+    return templates.TemplateResponse(
+        "console_jobs.html",
+        {**_ctx(request, "Jobs"), "user": user, "jobs": jobs, "templates": templates_rows},
+    )
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/console/jobs/run", response_class=HTMLResponse)
+async def console_jobs_run(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    template_id: Optional[int] = Form(None),
+    selection: Optional[str] = Form(None),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    upload_ids: List[int] = []
+    for f in files:
+        data = await f.read()
+        sha = hashlib.sha256(data).hexdigest()
+        uri = storage.put(
+            f"tenants/{user.tenant_id}/uploads/{sha}_{f.filename}",
+            data,
+            f.content_type or "application/octet-stream",
+        )
+        up = Upload(
+            tenant_id=user.tenant_id,
+            filename=f.filename,
+            content_type=f.content_type or "",
+            size_bytes=len(data),
+            storage_uri=uri,
+            sha256=sha,
+        )
+        db.add(up); db.commit(); db.refresh(up)
+        upload_ids.append(up.id)
+
+    payload: Dict[str, Any] = {"upload_ids": upload_ids, "options": {}}
+    if template_id:
+        payload["template_id"] = int(template_id)
+    if selection:
+        payload["selection"] = {"address": selection}
+
+    job = Job(tenant_id=user.tenant_id, status="queued", request=payload)
+    db.add(job); db.commit(); db.refresh(job)
+    run_job.delay(job.id)
+
+    jobs = db.query(Job).filter(Job.tenant_id == user.tenant_id).order_by(Job.id.desc()).limit(50).all()
+    templates_rows = db.query(Template).filter(Template.tenant_id == user.tenant_id).order_by(Template.id.desc()).limit(50).all()
+    return templates.TemplateResponse(
+        "console_jobs.html",
+        {**_ctx(request, "Jobs"), "user": user, "jobs": jobs, "templates": templates_rows, "job_created": job},
+    )
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/console/jobs/{job_id}", response_class=HTMLResponse)
+def console_job_detail(job_id: int, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == user.tenant_id).first()
+    if not job:
+        raise HTTPException(404, "Job not found")
+    return templates.TemplateResponse(
+        "console_job_detail.html",
+        {**_ctx(request, f"Job {job_id}"), "user": user, "job": job},
+    )
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/console/jobs/{job_id}/artifact/report")
+def console_job_report(job_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == user.tenant_id).first()
+    if not job or not job.artifacts or "report_pdf" not in job.artifacts:
+        raise HTTPException(404, "Report not found")
+    data = storage.get(job.artifacts["report_pdf"])
+    return Response(content=data, media_type="application/pdf")
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/console/jobs/{job_id}/artifact/result")
+def console_job_result(job_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == user.tenant_id).first()
+    if not job or not job.artifacts or "result_json" not in job.artifacts:
+        raise HTTPException(404, "Result not found")
+    data = storage.get(job.artifacts["result_json"])
+    return Response(content=data, media_type="application/json")
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/console/api-keys", response_class=HTMLResponse)
+def console_keys(request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    keys = db.query(ApiKey).filter(ApiKey.tenant_id == user.tenant_id).order_by(ApiKey.id.desc()).all()
+    return templates.TemplateResponse("console_api_keys.html", {**_ctx(request, "API keys"), "user": user, "keys": keys})
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/console/api-keys/create", response_class=HTMLResponse)
+def console_keys_create(request: Request, name: str = Form("key"), user=Depends(get_current_user), db: Session = Depends(get_db)):
+    raw, kh = generate_api_key()
+    k = ApiKey(tenant_id=user.tenant_id, key_hash=kh, name=name, is_active=True)
+    db.add(k); db.commit(); db.refresh(k)
+    keys = db.query(ApiKey).filter(ApiKey.tenant_id == user.tenant_id).order_by(ApiKey.id.desc()).all()
+    return templates.TemplateResponse("console_api_keys.html", {**_ctx(request, "API keys"), "user": user, "keys": keys, "new_key": raw})
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/console/api-keys/revoke", response_class=HTMLResponse)
+def console_keys_revoke(request: Request, key_id: int = Form(...), user=Depends(get_current_user), db: Session = Depends(get_db)):
+    k = db.query(ApiKey).filter(ApiKey.id == key_id, ApiKey.tenant_id == user.tenant_id).first()
+    if k:
+        k.is_active = False
+        db.commit()
+    keys = db.query(ApiKey).filter(ApiKey.tenant_id == user.tenant_id).order_by(ApiKey.id.desc()).all()
+    return templates.TemplateResponse("console_api_keys.html", {**_ctx(request, "API keys"), "user": user, "keys": keys})
+
+# -------------------------
+# Public API (API key auth)
+# -------------------------
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post(
+    "/v1/uploads",
+    response_class=JSONResponse,
+    response_model=None
+)
+async def upload_file(
+    request: Request,
+    file: UploadFile = File(...),
+    tenant: Tenant = Depends(get_tenant),
+    db: Session = Depends(get_db),
+):
+    try:
+        if not file:
+            raise HTTPException(400, "No file uploaded")
+
+        data = await file.read()
+
+        if not data:
+            raise HTTPException(400, "Uploaded file is empty")
+
+        # Optional: MIME validation (recommended)
+        allowed_mimes = {
+            "application/pdf",
+            "text/csv",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }
+        if file.content_type not in allowed_mimes:
+            raise HTTPException(400, f"Invalid MIME type: {file.content_type}")
+
+        fname = (file.filename or "upload").strip()
+        ext = os.path.splitext(fname)[1].lower()
+
+        if ext and ext not in settings.allowed_upload_exts_set:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File type not allowed: {ext}"
+            )
+
+        if len(data) > settings.max_upload_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large (max {settings.MAX_UPLOAD_MB}MB)"
+            )
+
+        sha = hashlib.sha256(data).hexdigest()
+
+        existing = (
+            db.query(Upload)
+            .filter(
+                Upload.tenant_id == tenant.id,
+                Upload.sha256 == sha
+            )
+            .order_by(Upload.id.desc())
+            .first()
+        )
+
+        if existing:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "upload_id": existing.id,
+                    "sha256": sha,
+                    "filename": existing.filename,
+                    "dedup": True,
+                },
+            )
+
+        storage_path = f"tenants/{tenant.id}/uploads/{sha}_{fname}"
+        uri = storage.put(
+            storage_path,
+            data,
+            file.content_type or "application/octet-stream",
+        )
+
+        up = Upload(
+            tenant_id=tenant.id,
+            filename=fname,
+            content_type=file.content_type or "",
+            size_bytes=len(data),
+            storage_uri=uri,
+            sha256=sha,
+        )
+
+        db.add(up)
+        db.commit()
+        db.refresh(up)
+
+        return JSONResponse(
+            status_code=201,
+            content={
+                "upload_id": up.id,
+                "sha256": sha,
+                "filename": up.filename,
+                "dedup": False,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Upload failure")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Upload failed: {str(e)}"
+        )
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/v1/asgl-a/jobs")
+def create_job(
+    payload: dict,
+    idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
+    tenant=Depends(get_tenant),
+    db: Session = Depends(get_db),
+):
+    assert_within_limits(db, tenant.id, tenant.plan)
+
+    idem = (idempotency_key or payload.get("idempotency_key") or "").strip()
+    if idem:
+        existing_id = get_existing_job_id(tenant.id, idem)
+        if existing_id:
+            existing_job = db.query(Job).filter(Job.id == existing_id, Job.tenant_id == tenant.id).first()
+            if existing_job:
+                return {"job_id": existing_job.id, "status": existing_job.status, "idempotent_replay": True}
+
+    upload_ids = payload.get("upload_ids", [])
+    if not upload_ids:
+        raise HTTPException(400, "upload_ids required")
+
+    count = db.query(Upload).filter(Upload.id.in_(upload_ids), Upload.tenant_id == tenant.id).count()
+    if count != len(upload_ids):
+        raise HTTPException(400, "invalid upload_ids")
+
+    job = Job(tenant_id=tenant.id, status="queued", request=payload)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    run_job.delay(job.id)
+
+    if idem:
+        store_job_id(tenant.id, idem, job.id)
+
+    return {"job_id": job.id, "status": job.status}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}")
+def get_job(job_id: int, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job:
+        return {"error": "not found"}
+    return {"id": job.id, "status": job.status, "result": job.result, "artifacts": job.artifacts, "error": job.error}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}/artifact/report")
+def api_job_report(job_id: int, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job or not job.artifacts or "report_pdf" not in job.artifacts:
+        raise HTTPException(404, "Report not found")
+    data = storage.get(job.artifacts["report_pdf"])
+    return Response(content=data, media_type="application/pdf")
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}/artifact/result")
+def api_job_result(job_id: int, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job or not job.artifacts or "result_json" not in job.artifacts:
+        raise HTTPException(404, "Result not found")
+    data = storage.get(job.artifacts["result_json"])
+    return Response(content=data, media_type="application/json")
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}/artifact/canonical")
+def api_job_canonical(job_id: int, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job or not job.artifacts or "canonical_json" not in job.artifacts:
+        raise HTTPException(404, "Canonical artifact not found")
+    data = storage.get(job.artifacts["canonical_json"])
+    return Response(content=data, media_type="application/json")
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}/artifact/review-queue")
+def api_job_review_queue(job_id: int, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job or not job.artifacts or "review_queue_json" not in job.artifacts:
+        raise HTTPException(404, "Review queue not found")
+    data = storage.get(job.artifacts["review_queue_json"])
+    return Response(content=data, media_type="application/json")
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}/artifact/di-summary")
+def api_job_di_summary(job_id: int, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job or not job.artifacts or "di_summary_json" not in job.artifacts:
+        raise HTTPException(404, "DI summary not found")
+    data = storage.get(job.artifacts["di_summary_json"])
+    return Response(content=data, media_type="application/json")
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/v1/asgl-a/jobs/{job_id}/review-queue/{item_id}/resolve")
+async def api_resolve_review_queue_item(job_id: int, item_id: str, request: Request, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job or not job.artifacts or "review_queue_json" not in job.artifacts:
+        raise HTTPException(404, "Review queue not found")
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    corrected_value = body.get("corrected_value")
+    confirmed = body.get("confirmed", None)
+    notes = body.get("notes")
+
+    data = storage.get(job.artifacts["review_queue_json"])
+    items = json.loads(data.decode("utf-8")) if data else []
+    if not isinstance(items, list):
+        raise HTTPException(500, "Review queue data corrupted")
+
+    target = None
+    for it in items:
+        if str(it.get("item_id")) == str(item_id):
+            target = it
+            break
+    if not target:
+        raise HTTPException(404, "Review item not found")
+
+    if confirmed is None:
+        confirmed = (corrected_value is None) or (str(corrected_value) == str(target.get("proposed_value")))
+
+    resolution = {
+        "confirmed": bool(confirmed),
+        "corrected_value": corrected_value,
+        "notes": notes,
+        "resolved_by": "api_key",
+    }
+
+    items = resolve_item(items, item_id=item_id, resolution=resolution)
+
+    key = f"tenants/{tenant.id}/jobs/{job.id}/review_queue.json"
+    review_uri = storage.put(key, json.dumps(items, ensure_ascii=False, indent=2).encode("utf-8"), "application/json")
+    job.artifacts["review_queue_json"] = review_uri
+
+    pri = load_priors(int(tenant.id))
+    field = str(target.get("field") or "").strip()
+    pri2 = apply_resolution(pri, field, confirmed=bool(confirmed), weight=float(max(0.25, min(3.0, 1.0 - float(target.get("confidence", 0.0) or 0.0)))))
+    pri_uri = save_priors(int(tenant.id), pri2)
+
+    try:
+        record_signal(int(tenant.id), {
+            "kind": "review_resolution",
+            "job_id": int(job.id),
+            "item_id": str(item_id),
+            "field": field,
+            "confirmed": bool(confirmed),
+            "corrected_value": corrected_value,
+            "confidence": float(target.get("confidence", 0.0) or 0.0),
+            "notes": notes,
+        })
+    except Exception:
+        pass
+
+    db.add(job)
+    db.commit()
+
+    return {"ok": True, "review_queue_uri": review_uri, "priors_uri": pri_uri}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/di/priors")
+def api_get_di_priors(tenant=Depends(get_tenant)):
+    pri = load_priors(int(tenant.id))
+    return pri
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/v1/di/priors/reset")
+def api_reset_di_priors(tenant=Depends(get_tenant)):
+    pri = {"version": 1, "updated_at": None, "field_bias": {}, "notes": "reset"}
+    uri = save_priors(int(tenant.id), pri)
+    return {"ok": True, "priors_uri": uri, "priors": pri}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/di/signals")
+def api_list_di_signals(limit: int = 50, tenant=Depends(get_tenant)):
+    prefix = f"tenants/{tenant.id}/di/signals/"
+    uris = storage.list_uris(prefix)
+    uris = sorted(uris, reverse=True)[: int(limit)]
+    signals = []
+    for u in uris:
+        try:
+            raw = storage.get(u)
+            signals.append(json.loads(raw.decode("utf-8")))
+        except Exception:
+            continue
+    return {"count": len(signals), "signals": signals, "uris": uris}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}/events")
+def api_job_events(job_id: int, limit: int = 200, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job:
+        raise HTTPException(404, "not found")
+    return {"job_id": job.id, "events": read_events(tenant.id, job.id, limit=int(limit))}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/asgl-a/jobs/{job_id}/events/stream")
+def api_job_events_stream(job_id: int, from_index: int = 0, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    job = db.query(Job).filter(Job.id == job_id, Job.tenant_id == tenant.id).first()
+    if not job:
+        raise HTTPException(404, "not found")
+
+    gen = stream_events(tenant.id, job.id, from_index=int(from_index))
+    hdrs = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(gen, media_type="text/event-stream", headers=hdrs)
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/v1/usage")
+def usage(tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    row = get_or_create_usage(db, tenant.id)
+    return {"period_ym": row.period_ym, "packs_processed": row.packs_processed, "compute_seconds": row.compute_seconds}
+
+# -------------------------
+# Template picker API (API key auth)
+# -------------------------
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/template-picker", response_class=HTMLResponse)
+def template_picker_page(request: Request):
+    return templates.TemplateResponse("template_picker.html", _ctx(request, "Template Picker"))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/api/templates/upload")
+async def template_upload(request: Request, file: UploadFile = File(...), tenant=Depends(get_tenant)):
+    data = await file.read()
+    meta = template_picker.save_upload(data, file.filename, tenant_id=str(tenant.id))
+    return meta
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/api/templates/sheet")
+def template_sheet(upload_id: str, sheet: str, tenant=Depends(get_tenant)):
+    grid = template_picker.load_sheet_grid(upload_id, sheet, tenant_id=str(tenant.id))
+    return {"grid": grid}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/api/templates/preview")
+def template_preview(payload: dict, tenant=Depends(get_tenant)):
+    upload_id = payload.get("upload_id") or ""
+    mappings = payload.get("mappings") or []
+    return template_picker.preview_mappings(upload_id, mappings, tenant_id=str(tenant.id))
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.post("/api/templates/save")
+def template_save(payload: dict, tenant=Depends(get_tenant), db: Session = Depends(get_db)):
+    name = (payload.get("name") or "template").strip()
+    upload_id = payload.get("upload_id") or ""
+    mappings = payload.get("mappings") or []
+    local_template_id = template_picker.save_template(name, upload_id, mappings, tenant_id=str(tenant.id))
+
+    t = Template(tenant_id=tenant.id, name=name, payload={"upload_id": upload_id, "mappings": mappings, "local_template_id": local_template_id})
+    db.add(t); db.commit(); db.refresh(t)
+    return {"ok": True, "template_id": t.id, "local_template_id": local_template_id}
+
+app.include_router(v1_router, prefix="/api/v1")
+app.include_router(v1_addon_router, prefix="/api/v1")
+app.include_router(quality_router, prefix="")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+@app.get("/health")
+def health():
+    return {"ok": True, "version": "13.5.0"}
+@app.get("/command-center", response_class=HTMLResponse, include_in_schema=False)
+async def command_center(request: Request):
+    return templates.TemplateResponse("command_center.html", {"request": request})
+app.include_router(compare_router, prefix="/api/v1")

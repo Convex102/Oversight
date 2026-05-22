@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oversight Comparison Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F8FAFC; }
+        .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .header { background: #1A3C5E; color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; }
+        .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+        .file-input-label { display: block; text-align: center; border: 2px dashed #CBD5E1; border-radius: 10px; padding: 2rem; cursor: pointer; transition: all 0.2s; }
+        .file-input-label:hover { border-color: #2563EB; background: #EFF6FF; }
+        input[type="file"] { display: none; }
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #1A3C5E; color: white; }
+        .btn-primary:hover { background: #0F172A; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .spinner { border: 3px solid #E2E8F0; border-top: 3px solid #2563EB; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: #1E293B; color: white; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 10px 15px rgba(0,0,0,0.2); z-index: 100; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .result { background: #F8FAFC; border-radius: 10px; padding: 1.5rem; border-left: 4px solid #2563EB; }
+        .result.high { border-left-color: #DC2626; }
+        .result.medium { border-left-color: #F59E0B; }
+        .result.low { border-left-color: #10B981; }
+        .point { margin-bottom: 1rem; padding: 1rem; background: white; border-left: 4px solid #F59E0B; border-radius: 8px; }
+        .point.high { border-left-color: #DC2626; background: #FEF2F2; }
+        .point.low { border-left-color: #10B981; background: #F0FDF4; }
+        .point-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem; }
+        .point-desc { font-size: 0.875rem; color: #64748B; margin-bottom: 0.5rem; }
+        .point-ref { font-size: 0.75rem; color: #94A3B8; font-family: monospace; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>⚖️ Oversight Comparison Engine</h1>
+        <p>Upload two documents (Excel, CSV, or PDF) and Oversight will compare them against FRS 102 requirements, identify variances, and generate review points.</p>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="card">
+        <h2 style="font-weight: 700; margin-bottom: 1.5rem;">Step 1: Upload Documents</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <!-- File A -->
+            <div>
+                <label class="file-input-label" for="fileA">
+                    <input type="file" id="fileA" accept=".xlsx,.xlsm,.xls,.csv,.pdf">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                    <div style="font-weight: 600; color: #1E293B;">Working Papers</div>
+                    <div style="font-size: 0.875rem; color: #64748B; margin-top: 0.25rem;">Excel, CSV, or PDF</div>
+                </label>
+                <div id="fileAName" style="margin-top: 0.5rem; font-size: 0.875rem; color: #64748B;"></div>
+            </div>
+
+            <!-- File B -->
+            <div>
+                <label class="file-input-label" for="fileB">
+                    <input type="file" id="fileB" accept=".xlsx,.xlsm,.xls,.csv,.pdf">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📄</div>
+                    <div style="font-weight: 600; color: #1E293B;">Final Accounts</div>
+                    <div style="font-size: 0.875rem; color: #64748B; margin-top: 0.25rem;">Excel, CSV, or PDF</div>
+                </label>
+                <div id="fileBName" style="margin-top: 0.5rem; font-size: 0.875rem; color: #64748B;"></div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="font-size: 0.875rem; font-weight: 600; color: #64748B; display: block; margin-bottom: 0.5rem; text-transform: uppercase;">Regulatory Pack</label>
+                <select id="packSelect" style="width: 100%; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.5rem; font-size: 0.875rem;">
+                    <option value="frs102">FRS 102 — The Financial Reporting Standard</option>
+                    <option value="frs105">FRS 105 — Micro-entity Regime</option>
+                    <option value="ifrs16">IFRS 16 — Leases</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.875rem; font-weight: 600; color: #64748B; display: block; margin-bottom: 0.5rem; text-transform: uppercase;">Materiality %</label>
+                <input type="number" id="materiality" value="5" min="1" max="50" style="width: 100%; border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.5rem; font-size: 0.875rem;">
+            </div>
+        </div>
+
+        <!-- Run Button -->
+        <button id="runBtn" class="btn btn-primary" style="width: 100%; padding: 1rem;" disabled>
+            ▶ Run Comparison
+        </button>
+    </div>
+
+    <!-- Progress Section (hidden until running) -->
+    <div id="progressSection" class="card" style="display: none;">
+        <h2 style="font-weight: 700; margin-bottom: 1rem;">Running Analysis...</h2>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="spinner"></div>
+            <div id="progressText" style="color: #64748B;">Comparing documents...</div>
+        </div>
+        <div id="progressLog" style="margin-top: 1rem; font-size: 0.875rem; color: #94A3B8; line-height: 1.8;"></div>
+    </div>
+
+    <!-- Results Section (hidden until complete) -->
+    <div id="resultsSection" style="display: none;">
+        <div class="card">
+            <h2 style="font-weight: 700; margin-bottom: 1.5rem;">📊 Comparison Results</h2>
+            <div id="resultsSummary" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="result">
+                    <div style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; font-weight: 700;">Total Differences</div>
+                    <div id="totalDiffs" style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin-top: 0.5rem;">0</div>
+                </div>
+                <div class="result high">
+                    <div style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; font-weight: 700;">High Severity</div>
+                    <div id="highSev" style="font-size: 1.5rem; font-weight: 700; color: #DC2626; margin-top: 0.5rem;">0</div>
+                </div>
+                <div class="result medium">
+                    <div style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; font-weight: 700;">Medium Severity</div>
+                    <div id="medSev" style="font-size: 1.5rem; font-weight: 700; color: #F59E0B; margin-top: 0.5rem;">0</div>
+                </div>
+                <div class="result low">
+                    <div style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; font-weight: 700;">Low Severity</div>
+                    <div id="lowSev" style="font-size: 1.5rem; font-weight: 700; color: #10B981; margin-top: 0.5rem;">0</div>
+                </div>
+            </div>
+
+            <div id="pointsList" style="margin-top: 1.5rem;"></div>
+
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #E2E8F0;">
+                <button class="btn btn-primary" onclick="location.reload()">↻ New Comparison</button>
+            </div>
+        </div>
+
+        <!-- Raw JSON (for debugging) -->
+        <div class="card">
+            <details>
+                <summary style="cursor: pointer; font-weight: 600; color: #64748B;">Raw API Response (Debug)</summary>
+                <pre id="rawJSON" style="margin-top: 1rem; background: #F1F5F9; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.75rem; color: #334155;"></pre>
+            </details>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast" style="display: none;"></div>
+
+<script>
+const API_BASE = 'http://127.0.0.1:8000/api/v1';
+
+// File input handlers
+document.getElementById('fileA').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    document.getElementById('fileAName').textContent = f ? `✓ ${f.name}` : '';
+    checkCanRun();
+});
+
+document.getElementById('fileB').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    document.getElementById('fileBName').textContent = f ? `✓ ${f.name}` : '';
+    checkCanRun();
+});
+
+function checkCanRun() {
+    const hasA = document.getElementById('fileA').files.length > 0;
+    const hasB = document.getElementById('fileB').files.length > 0;
+    document.getElementById('runBtn').disabled = !(hasA && hasB);
+}
+
+// Show toast
+function showToast(msg, type = 'info') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = type === 'error' ? '#DC2626' : type === 'success' ? '#059669' : '#1E293B';
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 3500);
+}
+
+// Log progress
+function logProgress(msg) {
+    const log = document.getElementById('progressLog');
+    const div = document.createElement('div');
+    div.textContent = msg;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+// Run comparison
+document.getElementById('runBtn').addEventListener('click', async () => {
+    const fileA = document.getElementById('fileA').files[0];
+    const fileB = document.getElementById('fileB').files[0];
+    const pack = document.getElementById('packSelect').value;
+    const mat = parseInt(document.getElementById('materiality').value);
+
+    if (!fileA || !fileB) {
+        showToast('Select both files', 'error');
+        return;
+    }
+
+    // Hide upload, show progress
+    document.querySelector('.card').style.display = 'none';
+    document.getElementById('progressSection').style.display = 'block';
+    document.getElementById('resultsSection').style.display = 'none';
+
+    const form = new FormData();
+    form.append('file_a', fileA);
+    form.append('file_b', fileB);
+    form.append('label_a', 'Working Papers');
+    form.append('label_b', 'Final Accounts');
+    form.append('vertical', 'accountancy');
+    form.append('materiality_pct', mat);
+
+    // Simulate steps
+    const steps = [
+        'Parsing file formats...',
+        'Extracting tables from document A...',
+        'Extracting tables from document B...',
+        'Normalising to canonical schema...',
+        'Computing delta analysis...',
+        'Running FRS 102 validation...',
+        'Generating SHAP attribution...',
+        'Building review points...'
+    ];
+
+    let stepIdx = 0;
+    const stepTimer = setInterval(() => {
+        if (stepIdx < steps.length) {
+            logProgress('✓ ' + steps[stepIdx++]);
+        }
+    }, 800);
+
+    try {
+        const res = await fetch(`${API_BASE}/compare`, {
+            method: 'POST',
+            body: form
+        });
+
+        clearInterval(stepTimer);
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        logProgress('✓ Analysis complete');
+
+        // Display raw JSON
+        document.getElementById('rawJSON').textContent = JSON.stringify(data, null, 2);
+
+        // Parse results from new schema
+        const differences = data.differences || [];
+        const ds = data.delta_summary || {};
+        const mismatches    = ds.mismatches        || 0;
+        const reviews       = ds.reviews           || 0;
+        const missingPdf    = ds.missing_in_pdf    || 0;
+        const missingExcel  = ds.missing_in_excel  || 0;
+        const matches       = ds.matches           || 0;
+        const total         = ds.total_deltas      || differences.length;
+
+        // Summary cards: Total | Mismatches (high) | Reviews+Missing (medium) | Matches (low)
+        document.getElementById('totalDiffs').textContent = total;
+        document.getElementById('highSev').textContent    = mismatches;
+        document.getElementById('medSev').textContent     = reviews + missingPdf + missingExcel;
+        document.getElementById('lowSev').textContent     = matches;
+
+        // Status → severity class mapping
+        function severityClass(status) {
+            if (status === 'MISMATCH')         return 'high';
+            if (status === 'REVIEW')           return 'medium';
+            if (status === 'MISSING_IN_PDF')   return 'medium';
+            if (status === 'MISSING_IN_EXCEL') return 'medium';
+            return 'low'; // MATCH
+        }
+
+        function formatVal(v) {
+            if (v === null || v === undefined) return '—';
+            return '£' + Number(v).toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function formatPct(v) {
+            if (v === null || v === undefined) return '';
+            return ` (${Number(v).toFixed(1)}%)`;
+        }
+
+        // Build points list
+        const pointsList = document.getElementById('pointsList');
+        const exceptions = differences.filter(d => d.status !== 'MATCH');
+        const allRows    = [...exceptions, ...differences.filter(d => d.status === 'MATCH')];
+
+        if (differences.length === 0) {
+            pointsList.innerHTML = '<div style="text-align: center; color: #94A3B8; padding: 2rem;">No differences detected — documents are consistent.</div>';
+        } else {
+            // Header row
+            let html = `
+                <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr 1fr 1fr;gap:0.5rem;padding:0.5rem 1rem;background:#1E293B;color:white;border-radius:8px;font-size:0.75rem;font-weight:700;margin-bottom:0.5rem;">
+                    <div>Working Papers Key</div>
+                    <div>Final Accounts Key</div>
+                    <div style="text-align:right;">WP Value</div>
+                    <div style="text-align:right;">FA Value</div>
+                    <div style="text-align:right;">Delta £</div>
+                    <div style="text-align:right;">Delta %</div>
+                    <div style="text-align:center;">Status</div>
+                </div>`;
+
+            html += allRows.map((d, i) => {
+                const sc = severityClass(d.status);
+                const rowBg = sc === 'high' ? '#FEF2F2' : sc === 'medium' ? '#FFFBEB' : 'white';
+                const statusColor = sc === 'high' ? '#DC2626' : sc === 'medium' ? '#D97706' : '#059669';
+                return `
+                <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr 1fr 1fr;gap:0.5rem;padding:0.6rem 1rem;background:${rowBg};border-left:3px solid ${statusColor};border-radius:6px;font-size:0.8rem;margin-bottom:0.25rem;align-items:center;">
+                    <div style="font-weight:600;color:#1E293B;word-break:break-word;">${d.key_excel || '—'}</div>
+                    <div style="color:#475569;word-break:break-word;">${d.key_pdf || '—'}</div>
+                    <div style="text-align:right;font-family:monospace;">${formatVal(d.value_excel)}</div>
+                    <div style="text-align:right;font-family:monospace;">${formatVal(d.value_pdf)}</div>
+                    <div style="text-align:right;font-family:monospace;color:${d.delta && d.delta !== 0 ? '#DC2626' : '#64748B'};">${formatVal(d.delta)}</div>
+                    <div style="text-align:right;font-family:monospace;color:#64748B;">${formatPct(d.pct_delta)}</div>
+                    <div style="text-align:center;font-size:0.7rem;font-weight:700;color:${statusColor};">${d.status}</div>
+                </div>`;
+            }).join('');
+
+            pointsList.innerHTML = html;
+        }
+
+        // Update summary card labels to match new schema
+        document.querySelector('#resultsSummary .result.high div:first-child').textContent   = 'MISMATCHES';
+        document.querySelector('#resultsSummary .result.medium div:first-child').textContent = 'REVIEW / MISSING';
+        document.querySelector('#resultsSummary .result.low div:first-child').textContent    = 'MATCHES';
+
+        // Show results
+        document.getElementById('progressSection').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'block';
+        showToast(`Comparison complete — ${mismatches} mismatch(es), ${reviews} review(s)`, mismatches > 0 ? 'error' : 'success');
+
+    } catch (err) {
+        clearInterval(stepTimer);
+        logProgress(`❌ Error: ${err.message}`);
+        showToast(err.message, 'error');
+        console.error('Comparison error:', err);
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+This v3 patch expects v2 modules present (Config/Logger/Settings/Http/Json/FilePicker). Overlay over v2 patch or repo.

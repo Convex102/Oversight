@@ -1,0 +1,11 @@
+{
+  "provider": "sage",
+  "last_updated": "2025-12-23",
+  "chart_of_accounts": {
+    "4000": "Turnover",
+    "5000": "Cost of Sales",
+    "7000": "Administrative Expenses",
+    "2100": "VAT Control",
+    "3200": "Retained Earnings"
+  }
+}

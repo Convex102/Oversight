@@ -1,0 +1,67 @@
+{
+  "name": "cashflow_statement",
+  "version": "1.0.0",
+  "description": "Cashflow statement canonical schema.",
+  "fields": [
+    {
+      "key": "period_end",
+      "type": "date",
+      "description": "Period end.",
+      "required": true
+    },
+    {
+      "key": "net_cash_operating",
+      "type": "number",
+      "description": "Net cash from operating activities.",
+      "required": true,
+      "aliases": [
+        "Operating Cashflow"
+      ]
+    },
+    {
+      "key": "net_cash_investing",
+      "type": "number",
+      "description": "Net cash from investing activities.",
+      "required": false,
+      "aliases": [
+        "Investing Cashflow"
+      ]
+    },
+    {
+      "key": "net_cash_financing",
+      "type": "number",
+      "description": "Net cash from financing activities.",
+      "required": false,
+      "aliases": [
+        "Financing Cashflow"
+      ]
+    },
+    {
+      "key": "net_increase_cash",
+      "type": "number",
+      "description": "Net increase/decrease in cash.",
+      "required": true,
+      "aliases": [
+        "Net Change"
+      ]
+    },
+    {
+      "key": "opening_cash",
+      "type": "number",
+      "description": "Opening cash.",
+      "required": true,
+      "aliases": [
+        "Opening"
+      ]
+    },
+    {
+      "key": "closing_cash",
+      "type": "number",
+      "description": "Closing cash.",
+      "required": true,
+      "aliases": [
+        "Closing"
+      ]
+    }
+  ]
+}

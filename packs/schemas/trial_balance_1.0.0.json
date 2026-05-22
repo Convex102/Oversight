@@ -1,0 +1,86 @@
+{
+  "name": "trial_balance",
+  "version": "1.0.0",
+  "description": "Normalized Trial Balance lines for mapping to COA and accounts.",
+  "fields": [
+    {
+      "key": "period_end",
+      "type": "date",
+      "description": "Period end date.",
+      "required": true,
+      "aliases": [
+        "Year End",
+        "Period End"
+      ]
+    },
+    {
+      "key": "account_code",
+      "type": "string",
+      "description": "Ledger account code.",
+      "required": true,
+      "aliases": [
+        "Nominal Code",
+        "Code"
+      ]
+    },
+    {
+      "key": "account_name",
+      "type": "string",
+      "description": "Ledger account name.",
+      "required": true,
+      "aliases": [
+        "Description",
+        "Account"
+      ]
+    },
+    {
+      "key": "debit",
+      "type": "number",
+      "description": "Debit amount.",
+      "required": false,
+      "aliases": [
+        "Dr",
+        "Debit Value"
+      ]
+    },
+    {
+      "key": "credit",
+      "type": "number",
+      "description": "Credit amount.",
+      "required": false,
+      "aliases": [
+        "Cr",
+        "Credit Value"
+      ]
+    },
+    {
+      "key": "net",
+      "type": "number",
+      "description": "Net balance (debit-credit).",
+      "required": true,
+      "aliases": [
+        "Balance",
+        "Net"
+      ]
+    },
+    {
+      "key": "currency",
+      "type": "string",
+      "description": "Currency code.",
+      "required": false,
+      "aliases": [
+        "CCY"
+      ]
+    },
+    {
+      "key": "entity",
+      "type": "string",
+      "description": "Entity/company name.",
+      "required": false,
+      "aliases": [
+        "Company",
+        "Client"
+      ]
+    }
+  ]
+}

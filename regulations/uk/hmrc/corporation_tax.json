@@ -1,0 +1,6 @@
+{
+  "regulation": "Corporation Tax",
+  "main_rate": 0.25,
+  "small_profits_rate": 0.19,
+  "reference": "CTA 2010"
+}

@@ -1,0 +1,217 @@
+"""
+Oversight ASGL v13.5 – FastAPI Main Application
+===============================================
+Clean production entry point with proper router registration, middleware, and templates.
+No duplicates, no corruption, single source of truth.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import datetime as dt
+import os
+from typing import Optional, Dict, Any
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.logging import configure_logging
+from app.ratelimit import limiter
+from app.db.session import get_db, engine, Base
+from app.db.models import Tenant, ApiKey, Upload, Job, Template
+
+# ── Import routers ────────────────────────────────────────────────────────────
+from app.api.v1.routes import router as v1_router
+from app.api.v1.routes_addon import router as v1_addon_router
+from app.api.v1.compare_routes import router as compare_router
+from app.quality.routes import router as quality_router
+from app.reporting.report_routes import router as reports_router
+from app.analytics.routes import router as analytics_router
+
+logger = configure_logging()
+
+# ── Lifespan (startup/shutdown) ────────────────────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifecycle: startup and shutdown."""
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Cleanup on shutdown if needed
+
+# ── Create FastAPI app ─────────────────────────────────────────────────────────
+app = FastAPI(
+    title=settings.APP_NAME,
+    version="13.5.0",
+    lifespan=lifespan,
+)
+app.state.limiter = limiter
+
+# ── CORS Middleware ────────────────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if settings.ENV == "dev" else [settings.PUBLIC_BASE_URL],
+    allow_headers=["*"],
+    allow_methods=["*"],
+    allow_credentials=True,
+)
+
+# ── Static files & templates ───────────────────────────────────────────────────
+app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
+templates = Jinja2Templates(directory="app/web/templates")
+
+# ── Global exception handler ───────────────────────────────────────────────────
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception")
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error"},
+    )
+
+# ── Helper for templates ───────────────────────────────────────────────────────
+def _ctx(request: Request, title: str = "") -> Dict[str, Any]:
+    return {
+        "request": request,
+        "year": dt.datetime.utcnow().year,
+        "title": title or "Oversight AI Labs",
+    }
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ROUTER REGISTRATION (Single block — no duplicates)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+app.include_router(v1_router, prefix="/api/v1", tags=["v1"])
+app.include_router(v1_addon_router, prefix="/api/v1", tags=["v1"])
+app.include_router(compare_router, prefix="/api/v1", tags=["v1"])
+app.include_router(quality_router, prefix="", tags=["quality"])
+app.include_router(reports_router, prefix="/api/v1", tags=["reporting"])
+app.include_router(analytics_router, prefix="/api/v1", tags=["analytics"])
+
+# Optional routers (error-safe)
+def _mount_optional_router(router_obj):
+    try:
+        if router_obj is not None:
+            app.include_router(router_obj)
+    except Exception as e:
+        logger.warning("Optional router mount failed: %s", e)
+
+try:
+    from app.api.health_api import router as _health_router
+    _mount_optional_router(_health_router)
+except Exception as e:
+    logger.warning("health_api router import failed: %s", e)
+
+try:
+    from app.api.pensions_api import router as _pensions_api_router
+    _mount_optional_router(_pensions_api_router)
+except Exception as e:
+    logger.warning("pensions_api router import failed: %s", e)
+
+try:
+    from app.api.pensions_ui_api import router as _pensions_ui_router
+    _mount_optional_router(_pensions_ui_router)
+except Exception as e:
+    logger.warning("pensions_ui router import failed: %s", e)
+
+try:
+    from app.api.packs_api import router as _packs_api_router
+    _mount_optional_router(_packs_api_router)
+except Exception as e:
+    logger.warning("packs_api router import failed: %s", e)
+
+try:
+    from app.api.di_health_api import router as _di_health_router
+    _mount_optional_router(_di_health_router)
+except Exception as e:
+    logger.warning("di_health_api router import failed: %s", e)
+
+try:
+    from app.api.active_learning_routes import router as _active_learning_router
+    _mount_optional_router(_active_learning_router)
+except Exception as e:
+    logger.warning("active_learning_routes router import failed: %s", e)
+
+try:
+    from app.api.telemetry_routes import router as _telemetry_router
+    _mount_optional_router(_telemetry_router)
+except Exception as e:
+    logger.warning("telemetry_routes router import failed: %s", e)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# PUBLIC ROUTES (HTML pages)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def root(request: Request):
+    return templates.TemplateResponse("Command Center.html", {"request": request})
+
+@app.get("/technology", response_class=HTMLResponse)
+def technology(request: Request):
+    return templates.TemplateResponse("technology.html", _ctx(request, "Technology"))
+
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing(request: Request):
+    return templates.TemplateResponse("pricing.html", _ctx(request, "Pricing"))
+
+@app.get("/about", response_class=HTMLResponse)
+def about(request: Request):
+    return templates.TemplateResponse("about.html", _ctx(request, "About"))
+
+@app.get("/contact", response_class=HTMLResponse)
+def contact(request: Request):
+    return templates.TemplateResponse("contact.html", _ctx(request, "Contact"))
+
+@app.get("/demo", response_class=HTMLResponse)
+def demo(request: Request):
+    return templates.TemplateResponse("demo.html", _ctx(request, "Demo"))
+
+@app.get("/runner", response_class=HTMLResponse)
+def runner(request: Request):
+    return templates.TemplateResponse("runner.html", _ctx(request, "Runner"))
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup(request: Request):
+    return templates.TemplateResponse("signup.html", _ctx(request, "Create account"))
+
+@app.get("/signin", response_class=HTMLResponse)
+def signin(request: Request):
+    return templates.TemplateResponse("signin.html", _ctx(request, "Login"))
+
+@app.get("/console", response_class=HTMLResponse)
+def console(request: Request):
+    return templates.TemplateResponse("console.html", _ctx(request, "Console"))
+
+@app.get("/console/usage", response_class=HTMLResponse)
+def console_usage(request: Request):
+    return templates.TemplateResponse("console_usage.html", _ctx(request, "Usage"))
+
+@app.get("/console/jobs", response_class=HTMLResponse)
+def console_jobs(request: Request):
+    return templates.TemplateResponse("console_jobs.html", _ctx(request, "Jobs"))
+
+@app.get("/console/jobs/{job_id}", response_class=HTMLResponse)
+def console_job_detail(request: Request, job_id: int):
+    return templates.TemplateResponse("console_job_detail.html", {**_ctx(request, "Job"), "job_id": job_id})
+
+@app.get("/console/api-keys", response_class=HTMLResponse)
+def console_api_keys(request: Request):
+    return templates.TemplateResponse("console_api_keys.html", _ctx(request, "API Keys"))
+
+@app.get("/template-picker", response_class=HTMLResponse)
+def template_picker(request: Request):
+    return templates.TemplateResponse("template_picker.html", _ctx(request, "Template Picker"))
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# HEALTH CHECK
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@app.get("/health", tags=["system"], include_in_schema=False)
+@app.head("/health", include_in_schema=False)
+async def health():
+    return {"ok": True, "ts": dt.datetime.utcnow().isoformat() + "Z"}

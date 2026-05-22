@@ -1,0 +1,100 @@
+{
+  "name": "coa_canonical",
+  "version": "1.0.0",
+  "description": "Enterprise COA schema for normalizing ledger COAs and mapping working papers/TB lines.",
+  "fields": [
+    {
+      "key": "account_code",
+      "type": "string",
+      "description": "Primary ledger account code.",
+      "required": true,
+      "aliases": [
+        "Account",
+        "Account Code",
+        "Code",
+        "Nominal Code"
+      ]
+    },
+    {
+      "key": "account_name",
+      "type": "string",
+      "description": "Human readable account name.",
+      "required": true,
+      "aliases": [
+        "Description",
+        "Account Name"
+      ]
+    },
+    {
+      "key": "category",
+      "type": "string",
+      "description": "Top-level bucket.",
+      "required": true,
+      "aliases": [
+        "Class",
+        "Type",
+        "Bucket"
+      ]
+    },
+    {
+      "key": "subcategory",
+      "type": "string",
+      "description": "Optional subcategory.",
+      "required": false,
+      "aliases": [
+        "Sub Category",
+        "Subcategory"
+      ]
+    },
+    {
+      "key": "provider",
+      "type": "string",
+      "description": "Source ledger provider.",
+      "required": false,
+      "aliases": [
+        "System",
+        "Source"
+      ]
+    },
+    {
+      "key": "provider_account_id",
+      "type": "string",
+      "description": "Provider internal account id.",
+      "required": false,
+      "aliases": [
+        "External ID",
+        "Account ID"
+      ]
+    },
+    {
+      "key": "is_active",
+      "type": "boolean",
+      "description": "Whether account is active.",
+      "required": false,
+      "aliases": [
+        "Active",
+        "Enabled"
+      ]
+    },
+    {
+      "key": "normal_balance",
+      "type": "string",
+      "description": "Expected sign convention debit/credit.",
+      "required": false,
+      "aliases": [
+        "Debit/Credit",
+        "Balance Type"
+      ]
+    },
+    {
+      "key": "hierarchy_path",
+      "type": "string",
+      "description": "Hierarchy grouping path.",
+      "required": false,
+      "aliases": [
+        "Hierarchy",
+        "Group Path"
+      ]
+    }
+  ]
+}

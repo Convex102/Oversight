@@ -1,0 +1,911 @@
+from __future__ import annotations
+
+"""
+ASGL v13.5 — Integrated Pipeline
+--------------------------------
+This module is the single orchestration surface used by the cloud worker.
+
+Design goals:
+- End-to-end: ingestion → template mapping → canonicalization → validation → DI → compare → report artifacts.
+- Defensive: gracefully degrades when optional ML/SHAP deps are not installed.
+- Deterministic outputs: always returns a JSON-serializable dict.
+
+NOTE:
+- This repo intentionally contains *all* subsystem packages (asgl, asgl_a, asgl_c, asgl_di, asgla_compare).
+- Real client deployments should harden adapters and validation packs per vertical.
+"""
+
+import io
+import json
+import os
+import tempfile
+import datetime as dt
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Callable
+
+import pandas as pd
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+
+# --- Optional imports (kept robust) ---
+try:
+    from asgl.core.spreadsheet_ingest_advanced import AdvancedSpreadsheetIngestor
+except Exception:
+    AdvancedSpreadsheetIngestor = None  # type: ignore
+
+try:
+    from asgl.utils.data_quality import DataQualityEngine
+except Exception:
+    DataQualityEngine = None  # type: ignore
+
+try:
+    from asgl.validation.loader import load_rules
+    from asgl.validation.engine import validate_rows
+except Exception:
+    load_rules = None  # type: ignore
+    validate_rows = None  # type: ignore
+
+try:
+    from asgl_a.config import ASGLAConfig
+    from asgl_a.engine import ASGLAEngine
+except Exception:
+    ASGLAConfig = None  # type: ignore
+    ASGLAEngine = None  # type: ignore
+
+try:
+    from asgl_c.config import ASGLCConfig
+    from asgl_c.integration import compile_semantic_graph
+    from asgl_c.inferencer import SchemaInferencer
+    from asgl_c.registry import AdapterRegistry
+    from asgl_c.canonical_runtime import canonicalize as asglc_canonicalize
+except Exception:
+    ASGLCConfig = None  # type: ignore
+    compile_semantic_graph = None  # type: ignore
+    SchemaInferencer = None  # type: ignore
+    AdapterRegistry = None  # type: ignore
+    asglc_canonicalize = None  # type: ignore
+
+try:
+    from asgl_di.engine import DecisionIntelligenceEngine
+except Exception:
+    DecisionIntelligenceEngine = None  # type: ignore
+
+try:
+    from asgl_v13.hub import ASGLV13DecisionHub
+except Exception:
+    ASGLV13DecisionHub = None  # type: ignore
+
+try:
+    from asgla_compare.pipeline.run_compare import run as run_compare
+except Exception:
+    run_compare = None  # type: ignore
+
+
+def _now_slug() -> str:
+    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+
+def _load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _pick_schema(pack_dir: Path, preferred: List[str]) -> dict:
+    """Pick the first schema file that exists from preferred list."""
+    for name in preferred:
+        p = pack_dir / name
+        if p.exists():
+            return _load_json(p)
+    # fallback: any json
+    for p in sorted(pack_dir.glob("*.json")):
+        return _load_json(p)
+    return {"name": "unknown", "version": "0.0.0", "fields": {}}
+
+
+def _safe_float(x: Any, default: float = 0.0) -> float:
+    try:
+        return float(x)
+    except Exception:
+        return default
+
+
+def _summarize_table(df: pd.DataFrame, max_rows: int = 10) -> Dict[str, Any]:
+    try:
+        preview = df.head(max_rows).fillna("").astype(str).to_dict(orient="records")
+    except Exception:
+        preview = []
+    emit("pipeline_done", 89.0, "Pipeline complete")
+    return {
+        "rows": int(getattr(df, "shape", [0, 0])[0]),
+        "cols": int(getattr(df, "shape", [0, 0])[1]),
+        "columns": [str(c) for c in getattr(df, "columns", [])][:50],
+        "preview": preview,
+    }
+
+
+def run_pipeline(
+    files: List[Tuple[str, bytes]],
+    options: Dict[str, Any],
+    selection: Optional[Dict[str, Any]] = None,
+    template_payload: Optional[Dict[str, Any]] = None,
+    progress_cb: Optional[Callable[[Dict[str, Any]], None]] = None,
+) -> Dict[str, Any]:
+    """
+    Orchestrate an ASGL-A run from raw uploaded files.
+
+    `files`: list of (filename, bytes).
+    `template_payload`: saved template from DB (may include mappings / overrides).
+    """
+    started = dt.datetime.utcnow()
+    options = options or {}
+
+    def emit(stage: str, progress: Optional[float], message: str, **meta: Any) -> None:
+        if not progress_cb:
+            return
+        try:
+            progress_cb({"stage": stage, "progress": progress, "message": message, "meta": meta})
+        except Exception:
+            # progress must never break the pipeline
+            return
+
+    emit("pipeline_start", 0.0, "Pipeline started")
+
+    packs_dir = Path(__file__).resolve().parents[2] / "packs"
+    schemas_dir = packs_dir / "schemas"
+    rules_path = packs_dir / "validation_rules" / "rules_v1.json"
+
+    # classify inputs
+    excel_files = [(n, b) for n, b in files if n.lower().endswith((".xlsx", ".xlsm", ".xls"))]
+    pdf_files = [(n, b) for n, b in files if n.lower().endswith(".pdf")]
+    other_files = [(n, b) for n, b in files if (n, b) not in excel_files + pdf_files]
+    emit(
+        "inputs_classified",
+        2.0,
+        "Inputs classified",
+        excel_count=len(excel_files),
+        pdf_count=len(pdf_files),
+        other_count=len(other_files),
+        excel_names=[n for n,_ in excel_files],
+        pdf_names=[n for n,_ in pdf_files],
+    )
+
+    tmp_root = Path(tempfile.mkdtemp(prefix=f"asgl_v13_5_{_now_slug()}_"))
+    tmp_root.mkdir(parents=True, exist_ok=True)
+
+    # Persist main artifacts to files for subsystems that operate on paths
+    excel_path = None
+    pdf_path = None
+    if excel_files:
+        excel_path = tmp_root / excel_files[0][0]
+        excel_path.write_bytes(excel_files[0][1])
+    if pdf_files:
+        pdf_path = tmp_root / pdf_files[0][0]
+        pdf_path.write_bytes(pdf_files[0][1])
+
+    emit("ingestion_start", 5.0, "Spreadsheet ingestion starting")
+    # --- 1) Advanced spreadsheet ingestion ---
+    tables: List[Dict[str, Any]] = []
+    table_dfs: List[pd.DataFrame] = []
+
+    if excel_path is not None:
+        try:
+            if AdvancedSpreadsheetIngestor is not None:
+                ing = AdvancedSpreadsheetIngestor()
+                cands = ing.ingest(str(excel_path))
+                # take top N by score
+                for cand in cands[: int(options.get("max_tables", 3))]:
+                    df = cand.df  # type: ignore
+                    table_dfs.append(df)
+                    tables.append({
+                        "sheet": cand.sheet,
+                        "range": cand.a1_range,
+                        "score": float(cand.score),
+                        "header_rows": int(cand.header_rows),
+                        "meta": cand.meta,
+                        "summary": _summarize_table(df),
+                    })
+            else:
+                # fallback: sheetnames only
+                xls = pd.ExcelFile(str(excel_path))
+                for s in xls.sheet_names[:3]:
+                    df = xls.parse(s)
+                    table_dfs.append(df)
+                    tables.append({"sheet": s, "range": None, "score": None, "summary": _summarize_table(df)})
+        except Exception as e:
+            tables.append({"error": "spreadsheet_ingestion_failed", "detail": str(e)})
+
+    # --- 2) Template mapping payload (cell selections / labels) ---
+    template_info: Dict[str, Any] = {"provided": bool(template_payload)}
+    field_selections: Optional[Dict[str, Any]] = None
+    if template_payload:
+        # store the raw payload for audit trail
+        template_info.update({
+            "template_id": template_payload.get("id"),
+            "template_name": template_payload.get("name"),
+        })
+        # common patterns: mappings under "mappings" or "payload.mappings"
+        mappings = template_payload.get("mappings")
+        if mappings is None and isinstance(template_payload.get("payload"), dict):
+            mappings = template_payload["payload"].get("mappings")
+        if mappings:
+            field_selections = {"mappings": mappings}
+            template_info["mappings_count"] = len(mappings)
+
+        # Extract mapped values from workbook (if mappings present)
+    template_values: Optional[Dict[str, Any]] = None
+    if excel_path is not None and field_selections and isinstance(field_selections.get("mappings"), list):
+        try:
+            from app.services import template_picker  # local service; no external deps
+            template_values = template_picker.apply_mappings_to_path(str(excel_path), field_selections["mappings"])
+            template_info["extracted_values"] = int(len(template_values))
+        except Exception as e:
+            template_info["extract_error"] = str(e)
+
+# --- 3) Load schema (canonical target) ---
+    schema = _pick_schema(
+        schemas_dir,
+        preferred=[
+            "working_papers_summary_1.0.0.json",
+            "trial_balance_1.0.0.json",
+            "statutory_accounts_pl_1.0.0.json",
+            "statutory_accounts_bs_1.0.0.json",
+        ],
+    )
+
+    # --- 4) ASGL-A analysis layer ---
+    asgl_a_out: Dict[str, Any] = {}
+    emit("asgl_a_start", 33.0, "ASGL-A analysis running")
+    if table_dfs and ASGLAConfig is not None and ASGLAEngine is not None:
+        try:
+            cfg = ASGLAConfig(output_root=tmp_root, enable_ml=bool(options.get("enable_ml", False)))
+            # default to enable_llm False in product builds unless explicitly set
+            cfg.enable_llm = bool(options.get("enable_llm", False))
+            engine = ASGLAEngine(cfg)
+            asgl_a_out = engine.run(
+                table_dfs[0],
+                asglc_schema=schema,
+                meta={"source_excel": str(excel_path) if excel_path else None},
+                tenant_id=str(options.get("tenant_id", "default")),
+                field_selections=field_selections,
+            )
+        except Exception as e:
+            asgl_a_out = {"status": "failed", "error": str(e)}
+    else:
+        asgl_a_out = {"status": "skipped", "reason": "no_table_data_or_engine_unavailable"}
+
+    # --- 5) Validation pack ---
+    validation: Dict[str, Any] = {"status": "skipped"}
+    emit("validation_start", 48.0, "Validation running")
+    if load_rules is not None and validate_rows is not None and rules_path.exists():
+        try:
+            rules = load_rules(str(rules_path))
+            # validate a single-row record derived from KPIs if available, else basic stats
+            row = {}
+            try:
+                row.update((asgl_a_out.get("kpis") or {}))
+            except Exception:
+                pass
+            if not row and table_dfs:
+                row = {"rows": len(table_dfs[0]), "cols": len(table_dfs[0].columns)}
+            violations = validate_rows([row], rules)
+            validation = {
+                "status": "ok",
+                "ruleset": "rules_v1",
+                "violations": violations,
+                "violations_count": len(violations),
+            }
+        except Exception as e:
+            validation = {"status": "failed", "error": str(e)}
+    else:
+        validation = {"status": "skipped", "reason": "validation_engine_or_rules_missing"}
+
+    # --- 5b) ASGL-C canonical layer (packs schema → canonical facts / rows) ---
+    asgl_c_canonical: Dict[str, Any] = {"status": "skipped"}
+    emit("asgl_c_canonical_start", 55.0, "ASGL-C canonical layer running")
+    if asglc_canonicalize is not None:
+        try:
+            asgl_c_canonical = asglc_canonicalize(
+                table_dfs[0] if table_dfs else None,
+                schema,
+                template_values=template_values,
+                asgl_a_out=asgl_a_out,
+                priors=options.get("confidence_priors"),
+                max_rows_sample=int(options.get("asglc_max_rows_sample", 200)),
+            )
+        except Exception as e:
+            asgl_c_canonical = {"status": "failed", "error": str(e)}
+    emit("asgl_c_canonical_complete", 60.0, "ASGL-C canonical layer complete")    # --- 6) ASGL-C semantic graph + schema inference per table (if available) ---
+    asgl_c_tables: List[Dict[str, Any]] = []
+    emit("asgl_c_start", 61.0, "ASGL-C semantic graph & schema inference")
+    if table_dfs and ASGLCConfig is not None and compile_semantic_graph is not None:
+        try:
+            c_cfg = ASGLCConfig.from_env(output_root=tmp_root)  # type: ignore
+            registry = AdapterRegistry(c_cfg.registry_path) if AdapterRegistry is not None and getattr(c_cfg, "registry_path", None) is not None else None  # type: ignore
+            inferencer = SchemaInferencer(c_cfg, registry=registry) if SchemaInferencer is not None else None  # type: ignore
+        except Exception:
+            c_cfg = None
+            inferencer = None
+        for i, df in enumerate(table_dfs[: int(options.get("max_tables", 3))]):
+            try:
+                if c_cfg is None:
+                    raise RuntimeError("asgl_c config unavailable")
+
+                inferred_summary: Dict[str, Any] | None = None
+                if inferencer is not None:
+                    try:
+                        inf = inferencer.infer(df)  # type: ignore
+                        sc = getattr(inf, "schema", None)
+                        inferred_summary = {
+                            "fingerprint": getattr(sc, "fingerprint", None),
+                            "domain_hint": getattr(sc, "domain_hint", None),
+                            "time_column": getattr(getattr(sc, "time_column", None), "column", None),
+                            "ids_count": int(len(getattr(sc, "ids", []) or [])),
+                            "text_count": int(len(getattr(sc, "text", []) or [])),
+                            "measures_count": int(len(getattr(sc, "measures", []) or [])),
+                            "dimensions_count": int(len(getattr(sc, "dimensions", []) or [])),
+                            "flows_count": int(len(getattr(sc, "flows", []) or [])),
+                            "warnings": getattr(inf, "warnings", []) or [],
+                            "debug": getattr(inf, "debug", {}) or {},
+                        }
+                    except Exception:
+                        inferred_summary = None
+
+                graph, X = compile_semantic_graph(df, c_cfg, table_id=f"table_{i}")  # type: ignore
+
+                asgl_c_tables.append({
+                    "table_id": f"table_{i}",
+                    "status": "ok",
+                    "inferred": inferred_summary,
+                    "nodes": len(getattr(graph, "nodes", {}) or {}),
+                    "edges": len(getattr(graph, "edges", []) or []),
+                    "features_dim": int(getattr(X, "shape", [0, 0])[1] if hasattr(X, "shape") else 0),
+                })
+            except Exception as e:
+                asgl_c_tables.append({"table_id": f"table_{i}", "status": "failed", "error": str(e)})
+    else:
+        asgl_c_tables = []
+    emit("asgl_c_complete", 66.0, "ASGL-C complete")
+
+    emit("di_start", 68.0, "Decision Intelligence running")
+    # --- 7) Decision Intelligence (DI) + aggregation hub ---
+    di_tables: List[Dict[str, Any]] = []
+    di_summary: Dict[str, Any] = {"status": "skipped"}
+
+    if DecisionIntelligenceEngine is not None and ASGLV13DecisionHub is not None and table_dfs:
+        try:
+            di_engine = DecisionIntelligenceEngine.from_env(tmp_root)  # type: ignore
+            hub = ASGLV13DecisionHub(output_root=tmp_root)  # type: ignore
+
+            dq_engine = DataQualityEngine() if DataQualityEngine is not None else None
+
+            for i, df in enumerate(table_dfs[: int(options.get("max_tables", 3))]):
+                dq = dq_engine.score(df) if dq_engine else {}
+                meta = {"table_id": f"table_{i}", "adapter": "spreadsheet_ingest_advanced", "ts": _now_slug()}
+                # Keep asgl_c graph out of the payload for size; supply a minimal graph_for_rag hint
+                di_payload = di_engine.run(  # type: ignore
+                    gold_df=df,
+                    asgl_a=asgl_a_out if i == 0 else {"flags": [], "kpis": {}},
+                    dq=dq,
+                    asgl_c={"tables": asgl_c_tables, "canonical": asgl_c_canonical if i == 0 else None},
+                    ocr={"status": "n/a"},
+                    meta=meta,
+                    graph_for_rag={"nodes": asgl_c_tables[i].get("nodes", 0) if i < len(asgl_c_tables) else 0},
+                )
+                di_tables.append(di_payload)
+                hub.add_table_result(di_payload)
+
+            di_summary = hub.summarize()  # type: ignore
+        except Exception as e:
+            di_summary = {"status": "failed", "error": str(e)}
+    else:
+        di_summary = {"status": "skipped", "reason": "di_engine_or_tables_missing"}
+
+    emit("compare_start", 80.0, "Compare engine running")
+    # --- 8) Compare engine (excel vs pdf) ---
+    compare: Dict[str, Any] = {"status": "skipped"}
+    compare_pdf_path: Optional[str] = None
+    compare_csv_path: Optional[str] = None
+
+    if excel_path is not None and pdf_path is not None and run_compare is not None:
+        try:
+            out_dir = tmp_root / "compare"
+            out_dir.mkdir(parents=True, exist_ok=True)
+
+            # The compare module expects a logger-like object; supply a minimal shim
+            class _Logger:
+                def info(self, *a, **k): pass
+                def warning(self, *a, **k): pass
+                def error(self, *a, **k): pass
+
+            summary = run_compare(
+                excel_path=str(excel_path),
+                pdf_path=str(pdf_path),
+                out_dir=str(out_dir),
+                logger=_Logger(),
+                abs_tolerance=float(options.get("abs_tolerance", 0.5)),
+                pct_tolerance=float(options.get("pct_tolerance", 0.5)),
+            )
+            compare_pdf_path = summary.get("pdf")
+            compare_csv_path = summary.get("csv")
+            compare = {"status": "ok", **summary}
+        except Exception as e:
+            compare = {"status": "failed", "error": str(e)}
+    else:
+        compare = {"status": "skipped", "reason": "missing_excel_pdf_or_compare_engine"}
+
+    emit("explainability_start", 86.0, "Explainability bundle building")
+    # --- 9) Explainability bundle (SHAP-like drivers) ---
+    explain = {
+        "status": "ok",
+        "shap": [],
+        "narrative": "",
+    }
+    # derive shap-like drivers from DI and validation
+    drivers: List[Dict[str, Any]] = []
+    try:
+        if di_summary.get("status") == "ok":
+            sev = _safe_float(di_summary.get("overall_severity"), 0.0)
+            score = _safe_float(di_summary.get("overall_decision_score"), 1.0)
+            drivers.append({"feature": "overall_severity", "impact": round(sev, 4)})
+            drivers.append({"feature": "decision_score", "impact": round(1.0 - score, 4)})
+        if validation.get("status") == "ok":
+            drivers.append({"feature": "validation_violations", "impact": round(min(1.0, validation.get("violations_count", 0)/10.0), 4)})
+        if compare.get("status") == "ok":
+            drivers.append({"feature": "compare_diff_rows", "impact": round(min(1.0, compare.get("diff_rows", 0)/20.0), 4)})
+        # flags
+        flags = (asgl_a_out.get("flags") or []) if isinstance(asgl_a_out, dict) else []
+        drivers.append({"feature": "review_flags", "impact": round(min(1.0, len(flags)/15.0), 4)})
+    except Exception:
+        pass
+    # sort descending
+    drivers = sorted(drivers, key=lambda d: float(d.get("impact", 0.0)), reverse=True)[:8]
+    explain["shap"] = drivers
+    explain["narrative"] = (
+        "The recommendation is driven by evidence consistency, validation outcome, and comparative variances across the engagement pack."
+        if drivers else
+        "Explainability drivers are unavailable for this run."
+    )
+
+    # --- 10) Final status + recommendation ---
+    status = "ok"
+    severity = 0.0
+    confidence = 0.75
+    recommended_actions: List[str] = []
+
+    if di_summary.get("status") == "ok":
+        severity = _safe_float(di_summary.get("overall_severity"), 0.0)
+        # map decision_score into confidence
+        decision_score = _safe_float(di_summary.get("overall_decision_score"), 1.0)
+        confidence = max(0.05, min(0.98, decision_score))
+        recommended_actions = di_summary.get("recommended_actions") or di_summary.get("recommendations") or []
+    else:
+        # fallback rules
+        if compare.get("status") == "failed" or validation.get("status") == "failed":
+            status = "needs_review"
+            severity = 0.65
+            confidence = 0.55
+            recommended_actions = ["Hold sign-off and resolve pipeline errors.", "Re-run with corrected files or template mapping."]
+
+    if not recommended_actions:
+        if severity >= 0.7:
+            recommended_actions = ["Hold sign-off. Escalate to senior reviewer.", "Confirm template mapping and rerun OCR if required."]
+        elif severity >= 0.4:
+            recommended_actions = ["Proceed with caution. Verify key totals and variances.", "Check flagged sections and confirm mapping."]
+        else:
+            recommended_actions = ["Proceed. Perform standard reviewer checks."]
+
+    finished = dt.datetime.utcnow()
+    return {
+        "version": "13.5.0",
+        "timestamp": finished.isoformat() + "Z",
+        "duration_seconds": round((finished - started).total_seconds(), 3),
+        "inputs": {
+            "excel_files": [n for n, _ in excel_files],
+            "pdf_files": [n for n, _ in pdf_files],
+            "other_files": [n for n, _ in other_files],
+        },
+        "template": template_info,
+        "ingestion": {
+            "status": "ok" if tables else ("skipped" if excel_path is None else "failed"),
+            "tables_detected": len(tables),
+            "tables": tables[:5],
+        },
+        "asgl_a": asgl_a_out,
+        "validation": validation,
+        "asgl_c": {"tables": asgl_c_tables, "canonical": asgl_c_canonical},
+        "review_queue": (asgl_c_canonical.get("review_queue_suggestions") or []),
+        "di": {"tables": di_tables[:3], "summary": di_summary},
+        "compare": compare,
+        "explainability": explain,
+        "status": status,
+        "severity": round(float(severity), 4),
+        "confidence": round(float(confidence), 4),
+        "recommended_actions": recommended_actions,
+        "artifacts_local": {
+            "tmp_root": str(tmp_root),
+            "compare_pdf_path": compare_pdf_path,
+            "compare_csv_path": compare_csv_path,
+        },
+    }
+
+
+def build_pdf(result: Dict[str, Any]) -> bytes:
+    """Generate a professional multi-section PDF report.
+
+    This is intentionally deterministic and self-contained (no external services).
+    """
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=16 * mm,
+        bottomMargin=16 * mm,
+        title="ASGL-A Report",
+    )
+
+    styles = getSampleStyleSheet()
+    H1 = styles["Heading1"]
+    H2 = styles["Heading2"]
+    H3 = styles["Heading3"]
+    N = styles["BodyText"]
+
+    mono = ParagraphStyle("mono", parent=N, fontName="Courier", fontSize=9, leading=11)
+
+    def p(txt: str, style=N) -> Paragraph:
+        return Paragraph(txt, style)
+
+    def kv_table(rows: List[Tuple[str, Any]]) -> Table:
+        data = []
+        for k, v in rows:
+            if v is None:
+                v = ""
+            data.append([p(f"<b>{k}</b>"), p(str(v))])
+        t = Table(data, colWidths=[45 * mm, 125 * mm])
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
+        return t
+
+    # -----------------------
+    # Header / summary
+    # -----------------------
+    version = result.get("version", "13.5.x")
+    ts = result.get("timestamp", "")
+    status = result.get("status", "")
+    severity = result.get("severity", "")
+    confidence = result.get("confidence", "")
+    actions = result.get("recommended_actions") or []
+
+    story: List[Any] = []
+    story.append(p("ASGL‑A Review Intelligence Report", H1))
+    story.append(p("Automated working‑paper ingestion, validation, comparison and explainability.", N))
+    story.append(Spacer(1, 6 * mm))
+
+    story.append(
+        kv_table(
+            [
+                ("Version", version),
+                ("Timestamp", ts),
+                ("Outcome", status),
+                ("Severity", severity),
+                ("Confidence", confidence),
+            ]
+        )
+    )
+    story.append(Spacer(1, 6 * mm))
+
+    excel_files = result.get("excel_files") or []
+    pdf_files = result.get("pdf_files") or []
+
+    story.append(p("Inputs", H2))
+    story.append(p(f"<b>Workbooks:</b> {', '.join([str(x) for x in excel_files]) or '—'}", N))
+    story.append(p(f"<b>PDFs:</b> {', '.join([str(x) for x in pdf_files]) or '—'}", N))
+    story.append(Spacer(1, 4 * mm))
+
+    story.append(p("Executive summary", H2))
+    if actions:
+        bullets = "<br/>".join([f"• {str(a)}" for a in actions[:8]])
+        story.append(p(bullets, N))
+    else:
+        story.append(p("No explicit recommended actions were produced. Review the findings sections below.", N))
+    story.append(Spacer(1, 6 * mm))
+
+    # -----------------------
+    # Findings: Validation
+    # -----------------------
+    validation = result.get("validation") or {}
+    violations = validation.get("violations") or []
+    story.append(p("Validation findings", H2))
+    if not violations:
+        story.append(p("No validation rule violations were detected (or validation was skipped).", N))
+    else:
+        rows = [["Rule", "Field", "Severity", "Message"]]
+        for v in violations[:25]:
+            rows.append([str(v.get("rule") or ""), str(v.get("field") or ""), str(v.get("severity") or ""), str(v.get("message") or v.get("detail") or "")])
+        t = Table(rows, colWidths=[38 * mm, 32 * mm, 22 * mm, 78 * mm])
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
+        story.append(t)
+
+    story.append(Spacer(1, 6 * mm))
+
+    # -----------------------
+    # Findings: Canonical layer (ASGL-C)
+    # -----------------------
+    asgl_c = result.get("asgl_c") or {}
+    canonical = (asgl_c.get("canonical") or {}) if isinstance(asgl_c, dict) else {}
+    story.append(p("Canonical layer (ASGL-C)", H2))
+    if not canonical or canonical.get("status") in (None, "skipped"):
+        story.append(p("Canonical layer output was not available for this run.", N))
+    else:
+        q = canonical.get("quality") or {}
+        v = canonical.get("validation") or {}
+        story.append(
+            kv_table(
+                [
+                    ("Mode", str(canonical.get("mode") or "")),
+                    ("Schema", f"{(canonical.get('schema') or {}).get('name','')} {(canonical.get('schema') or {}).get('version','')}"),
+                    ("Avg confidence", str(q.get("avg_fact_confidence") or q.get("avg_mapping_confidence") or "")),
+                    ("Low confidence", str(q.get("low_confidence_count") or "")),
+                    ("Violations", str(v.get("violations_count") or "")),
+                    ("Status", str(v.get("status") or canonical.get("status") or "")),
+                ]
+            )
+        )
+        story.append(Spacer(1, 3 * mm))
+
+        mode = canonical.get("mode")
+        if mode == "fact":
+            facts = canonical.get("facts") or {}
+            if facts:
+                rows = [["Field", "Value", "Confidence"]]
+                for k, fv in list(facts.items())[:18]:
+                    rows.append([str(k), str((fv or {}).get("value")), f"{float((fv or {}).get('confidence', 0.0) or 0.0):.2f}"])
+                t = Table(rows, colWidths=[40 * mm, 90 * mm, 25 * mm])
+                t.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                            ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                            ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ]
+                    )
+                )
+                story.append(t)
+            else:
+                story.append(p("No canonical facts were produced.", N))
+        else:
+            mp = (canonical.get("mapping") or {}).get("entries") or []
+            if mp:
+                rows = [["Field", "Source", "Method", "Conf."]]
+                for it in mp[:18]:
+                    rows.append([
+                        str(it.get("key") or ""),
+                        str(it.get("source") or ""),
+                        str(it.get("method") or ""),
+                        f"{float(it.get('confidence', 0.0) or 0.0):.2f}",
+                    ])
+                t = Table(rows, colWidths=[38 * mm, 55 * mm, 28 * mm, 20 * mm])
+                t.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                            ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                            ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ]
+                    )
+                )
+                story.append(t)
+            else:
+                story.append(p("No canonical column mapping was produced.", N))
+
+        rq = result.get("review_queue") or []
+        story.append(Spacer(1, 4 * mm))
+        story.append(p("Review queue (suggested)", H3))
+        if not rq:
+            story.append(p("No low-confidence items were suggested for review.", N))
+        else:
+            rows = [["Field", "Proposed value", "Confidence", "Reason"]]
+            for it in rq[:18]:
+                rows.append([
+                    str(it.get("field") or ""),
+                    str(it.get("proposed_value") or ""),
+                    f"{float(it.get('confidence', 0.0) or 0.0):.2f}",
+                    str(it.get("reason") or ""),
+                ])
+            t = Table(rows, colWidths=[38 * mm, 70 * mm, 22 * mm, 40 * mm])
+            t.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                        ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ]
+                )
+            )
+            story.append(t)
+
+    story.append(Spacer(1, 6 * mm))
+
+    # -----------------------
+    # Findings: Decision Intelligence
+    # -----------------------
+    di = result.get("di") or {}
+    summary = di.get("summary") or {}
+    story.append(p("Decision Intelligence (DI)", H2))
+    if not summary or summary.get("status") != "ok":
+        story.append(p("DI summary not available (engine skipped or failed).", N))
+    else:
+        gating = summary.get("gating") or {}
+        story.append(
+            kv_table(
+                [
+                    ("Overall decision score", str(summary.get("overall_decision_score") or "")),
+                    ("Overall severity", str(summary.get("overall_severity") or "")),
+                    ("Tables analysed", str(summary.get("table_count") or "")),
+                    ("Confidence blocks", str((gating or {}).get("block_tables") or 0)),
+                    ("Warnings", str((gating or {}).get("warn_tables") or 0)),
+                    ("Exceptions", str(summary.get("exceptions_count") or 0)),
+                ]
+            )
+        )
+        story.append(Spacer(1, 3 * mm))
+        acts = summary.get("recommended_actions") or []
+        story.append(p("Recommended actions", H3))
+        for a in acts[:10]:
+            story.append(p(f"• {a}", N))
+
+    story.append(Spacer(1, 6 * mm))
+
+    # -----------------------
+    # Findings: Compare
+    # -----------------------
+    compare = result.get("compare") or {}
+    story.append(p("Comparison (Excel vs PDF)", H2))
+    if compare.get("status") != "ok":
+        story.append(p(f"Compare status: <b>{compare.get('status','')}</b>. {compare.get('error','')}", N))
+    else:
+        summary = compare.get("summary") or {}
+        story.append(
+            kv_table(
+                [
+                    ("Rows compared", summary.get("rows_compared")),
+                    ("Differences found", summary.get("diff_count")),
+                    ("Match rate", summary.get("match_rate")),
+                ]
+            )
+        )
+        diffs = compare.get("diffs") or []
+        if diffs:
+            story.append(Spacer(1, 3 * mm))
+            rows = [["Item", "Excel", "PDF", "Δ", "Note"]]
+            for d in diffs[:20]:
+                rows.append([
+                    str(d.get("label") or d.get("item") or ""),
+                    str(d.get("excel") or ""),
+                    str(d.get("pdf") or ""),
+                    str(d.get("delta") or d.get("diff") or ""),
+                    str(d.get("note") or ""),
+                ])
+            t = Table(rows, colWidths=[36 * mm, 34 * mm, 34 * mm, 18 * mm, 48 * mm])
+            t.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                        ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ]
+                )
+            )
+            story.append(t)
+        else:
+            story.append(Spacer(1, 2 * mm))
+            story.append(p("No material differences were surfaced by the compare module.", N))
+
+    story.append(PageBreak())
+
+    # -----------------------
+    # Explainability
+    # -----------------------
+    story.append(p("Explainability (SHAP-style drivers)", H2))
+    exp = result.get("explainability") or {}
+    drivers = exp.get("drivers") or exp.get("shap") or []
+    if isinstance(drivers, dict):
+        drivers = drivers.get("drivers") or []
+    if not drivers:
+        story.append(p("No explainability drivers were produced (or ML/explainability is disabled).", N))
+    else:
+        rows = [["Feature", "Impact", "Direction", "Notes"]]
+        for d in drivers[:20]:
+            rows.append([
+                str(d.get("feature") or d.get("name") or ""),
+                str(d.get("impact") or d.get("value") or ""),
+                str(d.get("direction") or d.get("sign") or ""),
+                str(d.get("note") or ""),
+            ])
+        t = Table(rows, colWidths=[55 * mm, 28 * mm, 25 * mm, 62 * mm])
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
+        story.append(t)
+
+    story.append(Spacer(1, 6 * mm))
+
+    # -----------------------
+    # ASGL-A details (flags + KPIs)
+    # -----------------------
+    story.append(p("ASGL‑A outputs", H2))
+    asgl_a = result.get("asgl_a") or {}
+    flags = asgl_a.get("flags") or []
+    kpis = asgl_a.get("kpis") or {}
+    if flags:
+        story.append(p("<b>Flags</b>", H3))
+        story.append(p("<br/>".join([f"• {escape(str(f))}" for f in flags[:20]]), N))
+        story.append(Spacer(1, 3 * mm))
+    if kpis:
+        story.append(p("<b>KPIs</b>", H3))
+        rows = [["Metric", "Value"]]
+        for k, v in list(kpis.items())[:40]:
+            rows.append([str(k), str(v)])
+        t = Table(rows, colWidths=[70 * mm, 100 * mm])
+        t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.25, colors.lightgrey), ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")), ("FONTSIZE", (0, 0), (-1, -1), 9)]))
+        story.append(t)
+    if not flags and not kpis:
+        story.append(p("No ASGL‑A flags or KPIs were returned.", N))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+def escape(s: str) -> str:
+    return (
+        (s or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )

@@ -1,0 +1,10 @@
+{
+  "provider": "quickbooks",
+  "last_updated": "2025-12-23",
+  "chart_of_accounts": {
+    "1": "Income",
+    "2": "Expenses",
+    "3": "Assets",
+    "4": "Liabilities"
+  }
+}

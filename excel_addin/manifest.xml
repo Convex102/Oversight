@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xsi:type="TaskPaneApp"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Id>3f2a3e1a-0000-4b0c-9cfe-000000000001</Id>
+  <Version>2.0.0.0</Version>
+  <ProviderName>Servination</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="ASGL-A Runner"/>
+  <Description DefaultValue="Run ASGL-A cloud reviews from Excel."/>
+  <Hosts><Host Name="Workbook"/></Hosts>
+  <DefaultSettings><SourceLocation DefaultValue="https://localhost:8000/static/taskpane.html"/></DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+</OfficeApp>

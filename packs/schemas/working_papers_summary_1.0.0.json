@@ -1,0 +1,93 @@
+{
+  "name": "working_papers_summary",
+  "version": "1.0.0",
+  "description": "Working papers extracted lines with review flags and references.",
+  "fields": [
+    {
+      "key": "client",
+      "type": "string",
+      "description": "Client identifier.",
+      "required": false,
+      "aliases": [
+        "Entity",
+        "Company"
+      ]
+    },
+    {
+      "key": "period_end",
+      "type": "date",
+      "description": "Period end.",
+      "required": true,
+      "aliases": [
+        "Year End"
+      ]
+    },
+    {
+      "key": "section",
+      "type": "string",
+      "description": "WP section/category.",
+      "required": false,
+      "aliases": [
+        "Tab",
+        "Area"
+      ]
+    },
+    {
+      "key": "line_item",
+      "type": "string",
+      "description": "Line item description.",
+      "required": true,
+      "aliases": [
+        "Description",
+        "Item"
+      ]
+    },
+    {
+      "key": "amount",
+      "type": "number",
+      "description": "Line amount.",
+      "required": true,
+      "aliases": [
+        "Value",
+        "Balance"
+      ]
+    },
+    {
+      "key": "note_ref",
+      "type": "string",
+      "description": "Note/reference.",
+      "required": false,
+      "aliases": [
+        "Note",
+        "Ref"
+      ]
+    },
+    {
+      "key": "account_code_suggested",
+      "type": "string",
+      "description": "Suggested mapping account code.",
+      "required": false,
+      "aliases": [
+        "Suggested Code"
+      ]
+    },
+    {
+      "key": "confidence",
+      "type": "number",
+      "description": "Mapping confidence 0-1.",
+      "required": false,
+      "aliases": [
+        "Score"
+      ]
+    },
+    {
+      "key": "review_status",
+      "type": "string",
+      "description": "Status e.g. ok/exception/pending.",
+      "required": false,
+      "aliases": [
+        "Status"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+provider: quickbooks
+base_api_url: https://developer.intuit.com/app/developer/qbo/docs/api/accounting
+auth: OAuth2
+asgl_pipeline:
+  ingestion: ASGL-A.document_ingest
+  normalisation: ASGL-C.schema_mapper
+  validation: ASGL-C.validation_engine
+  explainability: ASGL-A.explainability_layer
+  forecasting: ASGL-DI.forecast_engine

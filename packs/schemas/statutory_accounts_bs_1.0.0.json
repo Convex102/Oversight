@@ -1,0 +1,97 @@
+{
+  "name": "statutory_accounts_bs",
+  "version": "1.0.0",
+  "description": "Balance Sheet canonical schema for statutory accounts.",
+  "fields": [
+    {
+      "key": "period_end",
+      "type": "date",
+      "description": "Period end.",
+      "required": true,
+      "aliases": [
+        "Year End"
+      ]
+    },
+    {
+      "key": "fixed_assets",
+      "type": "number",
+      "description": "Fixed assets.",
+      "required": false,
+      "aliases": [
+        "Non-current assets"
+      ]
+    },
+    {
+      "key": "current_assets",
+      "type": "number",
+      "description": "Current assets.",
+      "required": false,
+      "aliases": [
+        "CA"
+      ]
+    },
+    {
+      "key": "cash",
+      "type": "number",
+      "description": "Cash at bank and in hand.",
+      "required": false,
+      "aliases": [
+        "Cash at bank"
+      ]
+    },
+    {
+      "key": "current_liabilities",
+      "type": "number",
+      "description": "Current liabilities.",
+      "required": false,
+      "aliases": [
+        "CL"
+      ]
+    },
+    {
+      "key": "net_current_assets",
+      "type": "number",
+      "description": "Net current assets.",
+      "required": false,
+      "aliases": [
+        "NCA"
+      ]
+    },
+    {
+      "key": "total_assets_less_liabilities",
+      "type": "number",
+      "description": "Total assets less current liabilities.",
+      "required": false,
+      "aliases": [
+        "TALCL"
+      ]
+    },
+    {
+      "key": "creditors_gt_1y",
+      "type": "number",
+      "description": "Creditors: amounts falling due after >1 year.",
+      "required": false,
+      "aliases": [
+        "Long-term creditors"
+      ]
+    },
+    {
+      "key": "net_assets",
+      "type": "number",
+      "description": "Net assets.",
+      "required": true,
+      "aliases": [
+        "NA"
+      ]
+    },
+    {
+      "key": "equity",
+      "type": "number",
+      "description": "Total equity.",
+      "required": true,
+      "aliases": [
+        "Capital and reserves"
+      ]
+    }
+  ]
+}

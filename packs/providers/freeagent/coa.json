@@ -1,0 +1,10 @@
+{
+  "provider": "freeagent",
+  "last_updated": "2025-12-23",
+  "chart_of_accounts": {
+    "001": "Sales",
+    "002": "Cost of Sales",
+    "003": "Expenses",
+    "004": "VAT Control"
+  }
+}

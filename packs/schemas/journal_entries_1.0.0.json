@@ -1,0 +1,79 @@
+{
+  "name": "journal_entries",
+  "version": "1.0.0",
+  "description": "Normalized journal entry lines for review and audit trail.",
+  "fields": [
+    {
+      "key": "journal_id",
+      "type": "string",
+      "description": "Journal identifier.",
+      "required": true,
+      "aliases": [
+        "Entry ID"
+      ]
+    },
+    {
+      "key": "date",
+      "type": "date",
+      "description": "Journal date.",
+      "required": true,
+      "aliases": [
+        "Posting Date"
+      ]
+    },
+    {
+      "key": "account_code",
+      "type": "string",
+      "description": "Account code.",
+      "required": true,
+      "aliases": [
+        "Nominal Code"
+      ]
+    },
+    {
+      "key": "description",
+      "type": "string",
+      "description": "Line description.",
+      "required": false,
+      "aliases": [
+        "Narrative"
+      ]
+    },
+    {
+      "key": "debit",
+      "type": "number",
+      "description": "Debit amount.",
+      "required": false,
+      "aliases": [
+        "Dr"
+      ]
+    },
+    {
+      "key": "credit",
+      "type": "number",
+      "description": "Credit amount.",
+      "required": false,
+      "aliases": [
+        "Cr"
+      ]
+    },
+    {
+      "key": "tax_code",
+      "type": "string",
+      "description": "Tax/VAT code.",
+      "required": false,
+      "aliases": [
+        "VAT Code"
+      ]
+    },
+    {
+      "key": "source",
+      "type": "string",
+      "description": "Source system.",
+      "required": false,
+      "aliases": [
+        "System"
+      ]
+    }
+  ]
+}

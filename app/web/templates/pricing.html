@@ -1,0 +1,134 @@
+{% set title = "Pricing" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing · Oversight AI Labs</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#F1F5F9;color:#1E293B;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;background:white;border-bottom:1px solid #E2E8F0;position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;color:#1E293B;text-decoration:none}
+.brand-icon{width:32px;height:32px;background:#1E293B;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:14px}
+nav{display:flex;align-items:center;gap:4px}
+nav a{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;color:#475569;text-decoration:none;transition:all 0.15s}
+nav a:hover{background:#F1F5F9;color:#1E293B}
+.btn-nav{background:#1E293B;color:white!important;border-radius:8px;padding:8px 16px!important}
+.btn-nav:hover{background:#0F172A!important}
+.container{max-width:1100px;margin:0 auto;padding:2rem}
+.page-title{font-size:1.75rem;font-weight:800;color:#1E293B;margin-bottom:0.5rem}
+.page-sub{color:#64748B;font-size:0.95rem;line-height:1.6;max-width:680px;margin-bottom:2rem}
+.card{background:white;border:1px solid #E2E8F0;border-radius:16px;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1rem}
+.card h3{font-size:1rem;font-weight:700;margin-bottom:0.5rem;color:#1E293B}
+.card p{font-size:0.875rem;color:#64748B;line-height:1.6}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.15s;border:1px solid #E2E8F0;color:#475569;background:white;cursor:pointer}
+.btn:hover{border-color:#CBD5E1;background:#F8FAFC}
+.btn-primary{background:#1E293B;color:white;border-color:#1E293B}
+.btn-primary:hover{background:#0F172A}
+.btn-blue{background:#2563EB;color:white;border-color:#2563EB}
+.btn-blue:hover{background:#1D4ED8}
+.input{width:100%;padding:10px 14px;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;color:#1E293B;background:white;outline:none;transition:border 0.15s;margin-top:4px}
+.input:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,0.08)}
+label.lbl{font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:2px;margin-top:14px}
+.footer{background:white;border-top:1px solid #E2E8F0;padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#94A3B8;margin-top:4rem}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600}
+.badge-green{background:#D1FAE5;color:#065F46}
+.badge-amber{background:#FEF3C7;color:#92400E}
+.badge-red{background:#FEE2E2;color:#991B1B}
+.badge-blue{background:#DBEAFE;color:#1E40AF}
+.row{display:flex;gap:12px;align-items:center;margin-top:12px}
+table.data-table{width:100%;border-collapse:collapse;font-size:13px}
+table.data-table th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;border-bottom:2px solid #E2E8F0;background:#F8FAFC}
+table.data-table td{padding:10px 12px;border-bottom:1px solid #F1F5F9;color:#334155}
+table.data-table tr:hover td{background:#F8FAFC}
+.status-pill{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
+.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:3rem;padding:4rem 0 2rem;align-items:start}
+.hero h1{font-size:3rem;font-weight:900;line-height:1.05;letter-spacing:-1px;margin-bottom:1rem}
+.hero-card{background:white;border:1px solid #E2E8F0;border-radius:20px;padding:1.5rem;box-shadow:0 4px 24px rgba(0,0,0,0.06)}
+.check-list{list-style:none;margin:1.25rem 0;display:flex;flex-direction:column;gap:10px}
+.check-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#475569}
+.check-list li::before{content:"✓";width:20px;height:20px;background:#DBEAFE;color:#2563EB;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;margin-top:1px}
+@media(max-width:900px){.grid-3,.grid-2{grid-template-columns:1fr}.hero{grid-template-columns:1fr}}
+</style>
+
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/">
+    <div class="brand-icon">O</div>
+    OVERSIGHT
+  </a>
+  <nav>
+    <a href="/technology">Technology</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/demo">Demo</a>
+    <a href="/about">About</a>
+    <a href="/" class="btn-nav">Open Platform →</a>
+  </nav>
+</header>
+
+
+<div class="container">
+  <h1 class="page-title">Pricing</h1>
+  <p class="page-sub">Usage-based plans for ASGL-A Cloud. Includes console access, API access, report exports, audit logs and secure tenant isolation.</p>
+  <div class="grid-3">
+    <div class="card" style="border:2px solid #E2E8F0">
+      <div class="badge badge-blue" style="margin-bottom:12px">Standard</div>
+      <div style="font-size:2rem;font-weight:900;margin:8px 0">£200<span style="font-size:1rem;font-weight:500;color:#64748B">/mo</span></div>
+      <p style="margin-bottom:16px">Solo / small practice</p>
+      <ul style="list-style:none;font-size:13px;color:#475569;line-height:2">
+        <li>✓ 1 seat</li><li>✓ 20 runs / month</li><li>✓ Compare + validate</li><li>✓ PDF + JSON exports</li>
+      </ul>
+      <a class="btn btn-primary" href="/signup?plan=standard" style="width:100%;margin-top:16px;justify-content:center">Get started</a>
+    </div>
+    <div class="card" style="border:2px solid #2563EB;position:relative">
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#2563EB;color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:999px">Most popular</div>
+      <div class="badge badge-blue" style="margin-bottom:12px">Pro</div>
+      <div style="font-size:2rem;font-weight:900;margin:8px 0">£500<span style="font-size:1rem;font-weight:500;color:#64748B">/mo</span></div>
+      <p style="margin-bottom:16px">Growing team</p>
+      <ul style="list-style:none;font-size:13px;color:#475569;line-height:2">
+        <li>✓ Up to 5 seats</li><li>✓ 80 runs / month</li><li>✓ Priority queue</li><li>✓ Priority support</li>
+      </ul>
+      <a class="btn btn-blue" href="/signup?plan=pro" style="width:100%;margin-top:16px;justify-content:center">Get started</a>
+    </div>
+    <div class="card" style="border:2px solid #E2E8F0">
+      <div class="badge badge-blue" style="margin-bottom:12px">Business</div>
+      <div style="font-size:2rem;font-weight:900;margin:8px 0">£1,200<span style="font-size:1rem;font-weight:500;color:#64748B">/mo</span></div>
+      <p style="margin-bottom:16px">High throughput</p>
+      <ul style="list-style:none;font-size:13px;color:#475569;line-height:2">
+        <li>✓ Up to 15 seats</li><li>✓ 250 runs / month</li><li>✓ Team controls + audit</li><li>✓ SLA option</li>
+      </ul>
+      <a class="btn btn-primary" href="/signup?plan=business" style="width:100%;margin-top:16px;justify-content:center">Get started</a>
+    </div>
+  </div>
+  <div class="grid-2" style="margin-top:1rem">
+    <div class="card">
+      <div class="badge badge-blue" style="margin-bottom:12px">Scale</div>
+      <div style="font-size:2rem;font-weight:900;margin:8px 0">£2,500<span style="font-size:1rem;font-weight:500;color:#64748B">/mo</span></div>
+      <ul style="list-style:none;font-size:13px;color:#475569;line-height:2">
+        <li>✓ Up to 40 seats</li><li>✓ 600 runs / month</li><li>✓ Dedicated support</li><li>✓ Quarterly review</li>
+      </ul>
+      <a class="btn btn-primary" href="/signup?plan=scale" style="width:100%;margin-top:16px;justify-content:center">Get started</a>
+    </div>
+    <div class="card">
+      <h3>🏢 Enterprise</h3>
+      <p style="margin:8px 0 16px">Private cloud/VPC, SSO, offline deployments, custom validation packs, dedicated SLAs and procurement support.</p>
+      <a class="btn btn-primary" href="/contact" style="width:100%;justify-content:center">Contact us</a>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>Oversight AI Labs Limited · Co. No. 17145488</span>
+  <span>oversightlab.ai</span>
+  <span>© 2025 Oversight AI Labs</span>
+</footer>
+
+</body>
+</html>

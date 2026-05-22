@@ -1,0 +1,98 @@
+{
+  "name": "statutory_accounts_pl",
+  "version": "1.0.0",
+  "description": "Profit & Loss canonical schema for statutory accounts.",
+  "fields": [
+    {
+      "key": "period_end",
+      "type": "date",
+      "description": "Period end.",
+      "required": true,
+      "aliases": [
+        "Year End"
+      ]
+    },
+    {
+      "key": "turnover",
+      "type": "number",
+      "description": "Revenue/turnover.",
+      "required": false,
+      "aliases": [
+        "Revenue",
+        "Sales"
+      ]
+    },
+    {
+      "key": "cost_of_sales",
+      "type": "number",
+      "description": "Cost of sales.",
+      "required": false,
+      "aliases": [
+        "COS"
+      ]
+    },
+    {
+      "key": "gross_profit",
+      "type": "number",
+      "description": "Gross profit.",
+      "required": false,
+      "aliases": [
+        "GP"
+      ]
+    },
+    {
+      "key": "admin_expenses",
+      "type": "number",
+      "description": "Administrative expenses.",
+      "required": false,
+      "aliases": [
+        "Admin"
+      ]
+    },
+    {
+      "key": "operating_profit",
+      "type": "number",
+      "description": "Operating profit.",
+      "required": false,
+      "aliases": [
+        "OP"
+      ]
+    },
+    {
+      "key": "interest",
+      "type": "number",
+      "description": "Net interest.",
+      "required": false,
+      "aliases": [
+        "Finance"
+      ]
+    },
+    {
+      "key": "profit_before_tax",
+      "type": "number",
+      "description": "PBT.",
+      "required": true,
+      "aliases": [
+        "PBT"
+      ]
+    },
+    {
+      "key": "tax",
+      "type": "number",
+      "description": "Tax charge.",
+      "required": false,
+      "aliases": [
+        "Corporation Tax"
+      ]
+    },
+    {
+      "key": "profit_after_tax",
+      "type": "number",
+      "description": "PAT.",
+      "required": true,
+      "aliases": [
+        "Net Profit"
+      ]
+    }
+  ]
+}

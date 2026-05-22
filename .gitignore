@@ -1,0 +1,26 @@
+
+# --- Generated/patch artifacts (keep out of runtime tree) ---
+conversation_patches/
+*.patch
+*_repo.zip
+*_merged.zip
+*.zip
+# --- Python ---
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+
+# Build / caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Artifact archives should not live in the runtime repo
+conversation_patches/
+docs/artifacts/conversation_patches/
+*.patch
+*_repo.zip
+*_merged.zip

@@ -1,0 +1,239 @@
+{
+  "coa_canonical": [
+    {
+      "id": "coa_required_fields",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "account_code",
+        "account_name",
+        "category"
+      ]
+    },
+    {
+      "id": "coa_category_enum",
+      "level": "warn",
+      "type": "enum",
+      "field": "category",
+      "allowed": [
+        "Revenue",
+        "Expense",
+        "Asset",
+        "Liability",
+        "Equity"
+      ]
+    }
+  ],
+  "gold_price_ohlc": [
+    {
+      "id": "ohlc_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ]
+    },
+    {
+      "id": "ohlc_high_low_consistency",
+      "level": "error",
+      "type": "ohlc_consistency",
+      "open": "open",
+      "high": "high",
+      "low": "low",
+      "close": "close"
+    },
+    {
+      "id": "ohlc_positive",
+      "level": "warn",
+      "type": "min_value",
+      "fields": [
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "min": 0
+    }
+  ],
+  "trial_balance": [
+    {
+      "id": "tb_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "period_end",
+        "account_code",
+        "account_name",
+        "net"
+      ]
+    },
+    {
+      "id": "tb_balance_recon",
+      "level": "warn",
+      "type": "tb_balance",
+      "net_field": "net",
+      "tolerance": 0.01
+    }
+  ],
+  "working_papers_summary": [
+    {
+      "id": "wps_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "period_end",
+        "line_item",
+        "amount"
+      ]
+    }
+  ],
+  "sa302_hmrc": [
+    {
+      "id": "sa302_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "tax_year",
+        "taxable_income",
+        "income_tax_due"
+      ]
+    },
+    {
+      "id": "sa302_non_negative",
+      "level": "warn",
+      "type": "min_value",
+      "fields": [
+        "taxable_income",
+        "income_tax_due"
+      ],
+      "min": 0
+    }
+  ],
+  "statutory_accounts_pl": [
+    {
+      "id": "pl_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "period_end",
+        "profit_before_tax",
+        "profit_after_tax"
+      ]
+    },
+    {
+      "id": "pl_pat_relation",
+      "level": "warn",
+      "type": "approx_relation",
+      "lhs": "profit_after_tax",
+      "rhs": "profit_before_tax - tax",
+      "tolerance": 0.1
+    }
+  ],
+  "statutory_accounts_bs": [
+    {
+      "id": "bs_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "period_end",
+        "net_assets",
+        "equity"
+      ]
+    },
+    {
+      "id": "bs_net_assets_equals_equity",
+      "level": "error",
+      "type": "approx_equal",
+      "a": "net_assets",
+      "b": "equity",
+      "tolerance": 0.1
+    }
+  ],
+  "cashflow_statement": [
+    {
+      "id": "cf_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "period_end",
+        "net_cash_operating",
+        "opening_cash",
+        "closing_cash"
+      ]
+    },
+    {
+      "id": "cf_open_close_relation",
+      "level": "warn",
+      "type": "approx_relation",
+      "lhs": "closing_cash",
+      "rhs": "opening_cash + net_increase_cash",
+      "tolerance": 0.1
+    }
+  ],
+  "journal_entries": [
+    {
+      "id": "je_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "journal_id",
+        "date",
+        "account_code"
+      ]
+    },
+    {
+      "id": "je_debit_credit_one",
+      "level": "warn",
+      "type": "xor_fields",
+      "fields": [
+        "debit",
+        "credit"
+      ]
+    }
+  ],
+  "vat_return": [
+    {
+      "id": "vat_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "period_start",
+        "period_end",
+        "box5_net_vat"
+      ]
+    },
+    {
+      "id": "vat_net_relation",
+      "level": "warn",
+      "type": "approx_relation",
+      "lhs": "box5_net_vat",
+      "rhs": "box1_vat_due_sales - box4_vat_reclaimed",
+      "tolerance": 0.1
+    }
+  ],
+  "payroll_summary": [
+    {
+      "id": "pay_required",
+      "level": "error",
+      "type": "required_fields",
+      "fields": [
+        "pay_period",
+        "gross_pay",
+        "net_pay"
+      ]
+    },
+    {
+      "id": "pay_non_negative",
+      "level": "warn",
+      "type": "min_value",
+      "fields": [
+        "gross_pay",
+        "net_pay"
+      ],
+      "min": 0
+    }
+  ]
+}

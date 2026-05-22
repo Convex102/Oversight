@@ -1,0 +1,601 @@
+﻿import io
+import json
+import shutil
+import tempfile
+import datetime as dt
+import logging
+import asyncio
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import pandas as pd
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+)
+from reportlab.lib.styles import getSampleStyleSheet
+
+# ──────────────────────────────────────────────────────────────────────────
+# Structured logging setup
+# ──────────────────────────────────────────────────────────────────────────
+logger = logging.getLogger("SOTA.Pipeline")
+if not logging.getLogger().hasHandlers():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(asctime)s] %(levelname)s %(name)s: %(message)s'
+    )
+
+# ──────────────────────────────────────────────────────────────────────────
+# External dependencies with fallback
+# ──────────────────────────────────────────────────────────────────────────
+try:
+    from asgl.core.spreadsheet_ingest_advanced import AdvancedSpreadsheetIngestor
+except ImportError:
+    AdvancedSpreadsheetIngestor = None
+    logger.warning("AdvancedSpreadsheetIngestor unavailable — fallback to pandas.")
+
+try:
+    from asgl.utils.data_quality import DataQualityEngine
+except ImportError:
+    DataQualityEngine = None
+
+try:
+    from asgl.validation.loader import load_rules
+    from asgl.validation.engine import validate_rows
+except ImportError:
+    load_rules = None
+    validate_rows = None
+
+try:
+    from asgl_a.config import ASGLAConfig
+    from asgl_a.engine import ASGLAEngine
+except ImportError:
+    ASGLAConfig = None
+    ASGLAEngine = None
+
+try:
+    from asgl_c.canonical_runtime import canonicalize as asglc_c_canonicalize
+except ImportError:
+    asglc_c_canonicalize = None
+
+try:
+    from asgl_di.engine import DecisionIntelligenceEngine
+except ImportError:
+    DecisionIntelligenceEngine = None
+
+try:
+    from asgl_v13.hub import ASGLV13DecisionHub
+except ImportError:
+    ASGLV13DecisionHub = None
+
+try:
+    from asgla_compare.pipeline.run_compare import run as run_compare
+except ImportError:
+    run_compare = None
+
+try:
+    from app.di.ocr_engines import ocr_fallback
+except ImportError:
+    ocr_fallback = None
+    logger.warning("OCR fallback not available.")
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Utility functions & classes
+# ──────────────────────────────────────────────────────────────
+def get_utc_now() -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc)
+
+def get_now_slug() -> str:
+    return get_utc_now().strftime("%Y%m%dT%H%M%SZ")
+
+def load_json(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text(encoding='utf-8'))
+    except Exception:
+        logger.exception(f"Failed to load JSON from {path}")
+        return {}
+
+def safe_basename(name: str) -> str:
+    return Path(name).name or "untitled"
+
+def pick_schema(pack_dir: Path, preferred: List[str]) -> dict:
+    for filename in preferred:
+        candidate = pack_dir / filename
+        if candidate.is_file():
+            return load_json(candidate)
+    for p in sorted(pack_dir.glob("*.json")):
+        return load_json(p)
+    return {"name": "unknown", "version": "0.0.0", "fields": []}
+
+def safe_float(value: Any, default: float=0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+def summarize_table(df: pd.DataFrame, max_rows: int=10) -> dict:
+    try:
+        preview = df.head(max_rows).fillna("").astype(str).to_dict(orient='records')
+    except Exception:
+        preview = []
+    return {
+        'rows': int(df.shape[0]),
+        'cols': int(df.shape[1]),
+        'columns': [str(c) for c in df.columns][:50],
+        'preview': preview,
+    }
+
+def classify_files(files: List[Tuple[str, bytes]]) -> Tuple[List, List, List]:
+    ext_map = {
+        "tabular": {"xlsx", "xlsm", "xls", "csv"},
+        "pdf": {"pdf"},
+        "images": {"png", "jpg", "jpeg", "tiff", "bmp"},
+    }
+    tabular, ocrables, others = [], [], []
+
+    for name, blob in files:
+        ext = Path(name).suffix.lower().lstrip('.')
+        if ext in ext_map["tabular"]:
+            tabular.append((name, blob))
+        elif ext in ext_map["pdf"] or ext in ext_map["images"]:
+            ocrables.append((name, blob))
+        else:
+            others.append((name, blob))
+    return tabular, ocrables, others
+
+async def run_ocr_on_path(path: Path) -> Optional[pd.DataFrame]:
+    if ocr_fallback is None:
+        logger.warning("OCR engine not available.")
+        return None
+    try:
+        result = await asyncio.get_event_loop().run_in_executor(None, ocr_fallback, str(path))
+        if result.get("ok") and result.get("text"):
+            lines = result["text"].split("\n")
+            df = pd.DataFrame([{"line": idx, "text": line} for idx, line in enumerate(lines) if line.strip()])
+            logger.info("OCR extracted %d lines from %s", len(df), path.name)
+            return df
+        logger.warning("OCR returned no text for %s: %s", path.name, result.get("error"))
+        return None
+    except Exception:
+        logger.exception("OCR error for %s", path.name)
+        return None
+
+# ──────────────────────────────────────────────────────────────────────────
+# Core pipeline class
+# ──────────────────────────────────────────────────────────────
+class Pipeline:
+    def __init__(
+        self,
+        files: List[Tuple[str, bytes]],
+        options: Optional[Dict[str, Any]] = None,
+        progress_cb: Optional[Callable[[Dict[str, Any]], None]] = None,
+        template_payload: Optional[Dict[str, Any]] = None,
+    ):
+        self.files = files
+        self.options = options or {}
+        self.progress_cb = progress_cb
+        self.template_payload = template_payload
+        self.repo_root = Path(__file__).resolve().parents[2]
+        self.packs_dir = self.repo_root / "packs"
+        self.schemas_dir = self.packs_dir / "schemas"
+        self.rules_path = self.packs_dir / "validation_rules" / "rules_v1.json"
+        self.tmp_dir = Path(tempfile.mkdtemp(prefix=f"asgl_v13_5_{get_now_slug()}"))
+        self.tabular_files: List[Tuple[str, bytes]] = []
+        self.ocr_files: List[Tuple[str, bytes]] = []
+        self.other_files: List[Tuple[str, bytes]] = []
+        self.excel_path: Optional[Path] = None
+        self.pdf_path: Optional[Path] = None
+        self.tables: List[Dict[str, Any]] = []
+        self.table_dfs: List[pd.DataFrame] = []
+        self.schema: dict = {}
+        self.template_values: Optional[dict] = None
+        self.field_selections: Optional[dict] = None
+        self.asgl_a_output: dict = {}
+        self.asgl_canonical: dict = {}
+        self.validation_result: dict = {}
+        self.di_summary: dict = {}
+        self.compare_result: dict = {}
+
+    def emit(self, stage: str, progress: float, message: str, **meta):
+        if self.progress_cb:
+            try:
+                self.progress_cb({
+                    "stage": stage,
+                    "progress": progress,
+                    "message": message,
+                    "meta": meta,
+                })
+            except Exception:
+                pass
+        logger.info(f"[{stage}] {message} ({progress:.1f}%)")
+
+    def cleanup(self):
+        try:
+            shutil.rmtree(self.tmp_dir, ignore_errors=True)
+            logger.info("Temporary directory cleaned up: %s", self.tmp_dir)
+        except Exception:
+            logger.debug("Failed to clean temp dir: %s", self.tmp_dir, exc_info=True)
+
+    async def run(self):
+        started = get_utc_now()
+        await self.prepare_files()
+        self.load_schema()
+
+        await self.ingest_spreadsheets()
+        await self.run_ocr_if_needed()
+        self.run_analysis()
+        self.canonicalize()
+        self.validate()
+        self.run_decision()
+        await self.compare()
+        self.generate_explainability()
+        result = self.assemble_result(started)
+        self.emit("pipeline_complete", 100, "Pipeline finished")
+        self.cleanup()
+        return result
+
+    async def prepare_files(self):
+        self.tabular_files, self.ocr_files, self.other_files = classify_files(self.files)
+        self.emit("classification", 2.0, "Files classified", tabular=len(self.tabular_files), ocr=len(self.ocr_files))
+        if self.tabular_files:
+            filename, blob = self.tabular_files[0]
+            safe_name = safe_basename(filename)
+            self.excel_path = self.tmp_dir / safe_name
+            self.excel_path.write_bytes(blob)
+        if self.ocr_files:
+            filename, blob = self.ocr_files[0]
+            safe_name = safe_basename(filename)
+            self.pdf_path = self.tmp_dir / safe_name
+            self.pdf_path.write_bytes(blob)
+
+    async def ingest_spreadsheets(self):
+        if not self.excel_path:
+            return
+        self.emit("ingestion_start", 5.0, "Starting spreadsheet ingestion")
+        try:
+            if AdvancedSpreadsheetIngestor:
+                ingestor = AdvancedSpreadsheetIngestor()
+                candidates = await asyncio.get_event_loop().run_in_executor(None, ingestor.ingest, str(self.excel_path))
+                for cand in candidates[:int(self.options.get('max_tables', 3))]:
+                    df = cand.df
+                    self.table_dfs.append(df)
+                    self.tables.append({
+                        "sheet": cand.sheet,
+                        "range": cand.a1_range,
+                        "score": float(cand.score),
+                        "header_rows": int(cand.header_rows),
+                        "meta": cand.meta,
+                        "summary": summarize_table(df),
+                    })
+            else:
+                # fallback to pandas
+                with pd.ExcelFile(str(self.excel_path)) as xls:
+                    for sheet in xls.sheet_names[:int(self.options.get('max_tables', 3))]:
+                        df = xls.parse(sheet)
+                        self.table_dfs.append(df)
+                        self.tables.append({
+                            "sheet": sheet,
+                            "range": None,
+                            "score": None,
+                            "summary": summarize_table(df),
+                        })
+            self.emit("ingestion_complete", 8.0, f"Ingested {len(self.table_dfs)} tables")
+        except Exception:
+            self.emit("error", 10.0, "Spreadsheet ingestion failed")
+            logger.exception("Spreadsheet ingestion error")
+
+    async def run_ocr_if_needed(self):
+        if self.pdf_path:
+            self.emit("ocr_start", 10.0, "Running OCR on PDF/Image")
+            ocr_df = await run_ocr_on_path(self.pdf_path)
+            if ocr_df is not None:
+                self.emit("ocr_complete", 15.0, f"OCR extracted {len(ocr_df)} lines")
+                # Append OCR as an additional source, even if data exists
+                self.table_dfs.append(ocr_df)
+                self.tables.append({
+                    "sheet": "OCR",
+                    "range": None,
+                    "score": 0.5,
+                    "header_rows": 0,
+                    "meta": {"method": "ocr", "file": self.pdf_path.name},
+                    "summary": summarize_table(ocr_df),
+                })
+            else:
+                self.emit("ocr_failed", 15.0, "OCR extraction failed")
+
+    def load_schema(self):
+        self.schema = pick_schema(
+            self.schemas_dir,
+            preferred=[
+                "working_papers_summary_1.0.0.json",
+                "trial_balance_1.0.0.json",
+                "statutory_accounts_pl_1.0.0.json",
+                "statutory_accounts_bs_1.0.0.json",
+            ],
+        )
+        self.emit("schema_loaded", 25.0, "Loaded canonical schema")
+        # Extract template values if mappings are present
+        if self.template_payload:
+            mappings = self.template_payload.get("mappings")
+            if not mappings:
+                payload_obj = self.template_payload.get("payload")
+                if isinstance(payload_obj, dict):
+                    mappings = payload_obj.get("mappings")
+            if mappings and self.excel_path:
+                try:
+                    from app.services import template_picker  # noqa: local
+                    self.template_values = template_picker.apply_mappings_to_path(str(self.excel_path), mappings)
+                except Exception:
+                    logger.warning("Failed to extract template values from mappings.")
+
+    def run_analysis(self):
+        self.emit("asgl_a_start", 30.0, "Running ASGL-A analysis")
+        if ASGLAConfig and ASGLAEngine:
+            try:
+                cfg = ASGLAConfig(
+                    output_root=self.tmp_dir,
+                    enable_ml=bool(self.options.get('enable_ml', False))
+                )
+                cfg.enable_llm = bool(self.options.get('enable_llm', False))
+                engine = ASGLAEngine(cfg)
+                # Pass field_selections derived from template if available
+                self.asgl_a_output = engine.run(
+                    self.table_dfs[0],
+                    asglc_schema=self.schema,
+                    meta={"source_excel": str(self.excel_path) if self.excel_path else "ocr"},
+                    tenant_id=str(self.options.get("tenant_id", "default")),
+                    field_selections=self.field_selections,
+                )
+            except Exception:
+                self.emit("error", 35.0, "ASGL-A analysis failed")
+                logger.exception("ASGL-A analysis error")
+                self.asgl_a_output = {"status": "failed"}
+        else:
+            self.asgl_a_output = {"status": "skipped"}
+
+        # If template has mappings, extract template_values
+        if self.template_payload:
+            mappings = self.template_payload.get("mappings")
+            if not mappings:
+                payload_obj = self.template_payload.get("payload")
+                if isinstance(payload_obj, dict):
+                    mappings = payload_obj.get("mappings")
+            if mappings and self.excel_path:
+                try:
+                    from app.services import template_picker  # noqa: local
+                    self.template_values = template_picker.apply_mappings_to_path(str(self.excel_path), mappings)
+                except Exception:
+                    logger.warning("Failed to extract template values from mappings.")
+
+    def canonicalize(self):
+        self.emit("asgl_c_start", 45.0, "Running ASGL-C canonicalization")
+        if asglc_c_canonicalize:
+            try:
+                self.asgl_canonical = asglc_c_canonicalize(
+                    self.table_dfs[0],
+                    self.schema,
+                    template_values=self.template_values,
+                    asgl_a_out=self.asgl_a_output,
+                    priors=self.options.get("confidence_priors"),
+                    max_rows_sample=int(self.options.get("asglc_max_rows_sample", 200)),
+                )
+            except Exception:
+                self.emit("error", 50.0, "ASGL-C canonicalization failed")
+                logger.exception("ASGL-C canonicalization error")
+                self.asgl_canonical = {"status": "failed"}
+        else:
+            self.asgl_canonical = {"status": "skipped"}
+
+    def validate(self):
+        self.emit("validation_start", 60.0, "Running validation")
+        if load_rules and validate_rows:
+            try:
+                if self.asgl_canonical.get("status") == "ok":
+                    facts = self.asgl_canonical.get("facts", {})
+                    mode = self.asgl_canonical.get("mode")
+                    rows = []
+                    if mode == "row":
+                        rows = self.asgl_canonical.get("rows", {}).get("sample", [])[:500]
+                    else:
+                        row = {
+                            k: (v.get("value") if isinstance(v, dict) and "value" in v else v)
+                            for k, v in facts.items()
+                        }
+                        rows = [row]
+                    rules = load_rules(str(self.rules_path))
+                    violations = validate_rows(rows, rules) if rows else []
+                    self.validation_result = {
+                        "status": "ok",
+                        "schema_name": self.schema.get("name", "unknown"),
+                        "ruleset": "rules_v1",
+                        "violations_count": len(violations),
+                        "violations": violations[:250],
+                    }
+                else:
+                    self.validation_result = {"status": "skipped"}
+            except Exception:
+                self.emit("error", 65.0, "Validation failed")
+                logger.exception("Validation error")
+                self.validation_result = {"status": "failed"}
+        else:
+            self.validation_result = {"status": "skipped"}
+
+    def run_decision(self):
+        self.emit("di_start", 68.0, "Running Decision Intelligence")
+        if DecisionIntelligenceEngine and ASGLV13DecisionHub:
+            try:
+                di_engine = DecisionIntelligenceEngine.from_env(self.tmp_dir)
+                hub = ASGLV13DecisionHub(output_root=self.tmp_dir)
+                dq_engine = DataQualityEngine() if DataQualityEngine else None
+
+                for idx, df in enumerate(self.table_dfs[:int(self.options.get('max_tables', 3))]):
+                    dq = dq_engine.score(df) if dq_engine else {}
+                    meta = {
+                        "table_id": f"table_{idx}",
+                        "adapter": "pipeline",
+                        "ts": get_now_slug(),
+                    }
+                    di_payload = di_engine.run(
+                        gold_df=df,
+                        asgl_a=self.asgl_a_output if idx == 0 else {"flags": [], "kpis": {}},
+                        dq=dq,
+                        asgl_c={"canonical": self.asgl_canonical if idx == 0 else None},
+                        ocr={"status": "ok" if self.pdf_path else "n/a"},
+                        meta=meta,
+                        graph_for_rag=None,
+                    )
+                    hub.add_table_result(di_payload)
+                self.di_summary = hub.summarize()
+            except Exception:
+                self.emit("error", 70.0, "DI step failed")
+                logger.exception("DI error")
+                self.di_summary = {"status": "failed"}
+        else:
+            self.di_summary = {"status": "skipped"}
+
+    def compare(self):
+        self.emit("compare", 80.0, "Running comparison")
+        if self.excel_path and self.pdf_path and run_compare:
+            try:
+                out_dir = self.tmp_dir / "compare"
+                out_dir.mkdir(parents=True, exist_ok=True)
+                logger.info("Comparison output dir: %s", out_dir)
+                summary = run_compare(
+                    excel_path=str(self.excel_path),
+                    pdf_path=str(self.pdf_path),
+                    out_dir=str(out_dir),
+                    logger=logging.getLogger("Comparison"),
+                    abs_tolerance=float(self.options.get("abs_tolerance", 0.5)),
+                    pct_tolerance=float(self.options.get("pct_tolerance", 0.5)),
+                )
+                self.compare_result = {"status": "ok", **summary}
+            except Exception:
+                self.emit("error", 85.0, "Comparison failed")
+                logger.exception("Comparison error")
+                self.compare_result = {"status": "failed"}
+        else:
+            reasons = []
+            if self.excel_path is None:
+                reasons.append("no tabular file")
+            if self.pdf_path is None:
+                reasons.append("no PDF/image file")
+            if run_compare is None:
+                reasons.append("compare engine unavailable")
+            self.compare_result = {"status": "skipped", "reason": "; ".join(reasons)}
+
+    def generate_explainability(self):
+        self.emit("explainability", 90.0, "Computing explainability drivers")
+        drivers = []
+        try:
+            if self.di_summary.get("status") == "ok":
+                severity = safe_float(self.di_summary.get("overall_severity"), 0)
+                score = safe_float(self.di_summary.get("overall_decision_score"), 1)
+                drivers.append({"feature": "overall_severity", "impact": round(severity, 4)})
+                drivers.append({"feature": "decision_score", "impact": round(1 - score, 4)})
+
+            if self.validation_result.get("status") == "ok":
+                v_count = self.validation_result.get("violations_count", 0)
+                drivers.append({
+                    "feature": "validation_violations",
+                    "impact": round(min(1, v_count / 10), 4),
+                })
+
+            if self.compare_result.get("status") == "ok":
+                diff_rows = self.compare_result.get("diff_rows", 0)
+                drivers.append({
+                    "feature": "compare_diff_rows",
+                    "impact": round(min(1, diff_rows / 20), 4),
+                })
+
+            flags = self.asgl_a_output.get("flags", []) if isinstance(self.asgl_a_output, dict) else []
+            drivers.append({
+                "feature": "review_flags",
+                "impact": round(min(1, len(flags) / 15), 4),
+            })
+
+            # Impact-based ranking
+            drivers = sorted(drivers, key=lambda d: d["impact"], reverse=True)[:8]
+            top_features = ", ".join(d["feature"] for d in drivers[:3])
+            narrative = (
+                f"The analysis is primarily driven by {top_features}. "
+                "Evidence, validation, and comparison variances were all considered."
+            )
+        except Exception:
+            logger.exception("Error computing explainability drivers")
+            drivers = []
+
+        return {
+            "shap": drivers,
+            "narrative": narrative,
+        }
+
+    def assemble_result(self, started: dt.datetime) -> dict:
+        severity = safe_float(self.di_summary.get("overall_severity", 0))
+        confidence = safe_float(self.di_summary.get("overall_decision_score", 1))
+        status = "ok" if severity < 0.6 else "needs_review"
+        recommendations = (
+            self.di_summary.get("recommended_actions")
+            or self.di_summary.get("recommendations")
+            or []
+        )
+
+        # Final decision logic
+        if not recommendations:
+            if severity >= 0.7:
+                recommendations = [
+                    "Hold sign-off. Escalate to senior reviewer.",
+                    "Verify template mapping and rerun OCR if needed.",
+                ]
+            elif severity >= 0.4:
+                recommendations = [
+                    "Proceed with caution. Verify totals and variances.",
+                    "Check flagged sections and confirm mappings.",
+                ]
+            else:
+                recommendations = ["Proceed. Perform standard checks."]
+
+        duration = (dt.datetime.now(dt.timezone.utc) - started).total_seconds()
+        result = {
+            "version": "13.5.0",
+            "timestamp": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "duration_seconds": round(duration, 3),
+            "status": status,
+            "severity": round(severity, 4),
+            "confidence": round(confidence, 4),
+            "recommended_actions": recommendations,
+            "artifacts": {
+                "tmp_dir": str(self.tmp_dir),
+                "compare_pdf": getattr(self, "compare_result", {}).get("pdf"),
+                "compare_csv": getattr(self, "compare_result", {}).get("csv"),
+            },
+            # Include all relevant details
+            "inputs": {
+                "files": [n for n, _ in self.files],
+            },
+            "ingestion": {
+                "tables_detected": len(self.tables),
+                "tables": self.tables[:5],
+                "status": "ok" if self.tables else ("skipped" if self.excel_path is None else "failed"),
+            },
+            "asgl_a": getattr(self, "asgl_a_output", {}),
+            "asgl_c": {"canonical": getattr(self, "asgl_canonical", {})},
+            "validation": getattr(self, "validation_result", {}),
+            "di": {"summary": getattr(self, "di_summary", {})},
+            "compare": getattr(self, "compare_result", {}),
+            "explainability": self.generate_explainability(),
+        }
+        self.emit("pipeline_finished", 100, "Pipeline completed")
+        return result
+
+# ──────────────────────────────────────────────────────────────────────────
+# Example execution
+# ──────────────────────────────────────────────────────────────
+async def run_full_pipeline(files, options=None, progress_cb=None, template_payload=None):
+    pipeline = Pipeline(files, options, progress_cb, template_payload)
+    return await pipeline.run()
+
+# Usage:
+# asyncio.run(run_full_pipeline(files, options, progress_cb, template_payload))
