@@ -174,7 +174,7 @@ def extract_pdf_kv(path: str, logger=None) -> PdfExtractionResult:
     items: Dict[str, float] = {}
 
     try:
-        text = _extract_text_pdfplumber(path, logger=logger)
+        text = _safe_extract_text(path, logger=logger)
     except Exception as e:
         warnings.append(str(e))
         if logger: logger.exception("PDF extraction failed")
@@ -204,3 +204,36 @@ def extract_pdf_kv(path: str, logger=None) -> PdfExtractionResult:
     return PdfExtractionResult(items=items, meta=meta, warnings=warnings)
 
 
+
+
+def _extract_text_zip_pdf(path: str, logger=None) -> str:
+    """Extract text from a ZIP-archive PDF (Anthropic/delivery format: ZIP of per-page .txt+.jpg)."""
+    import zipfile
+    text_parts = []
+    with zipfile.ZipFile(path, "r") as zf:
+        txt_members = sorted(
+            [m for m in zf.namelist() if m.lower().endswith(".txt")],
+            key=lambda n: n
+        )
+        for member in txt_members:
+            with zf.open(member) as f:
+                try:
+                    text_parts.append(f.read().decode("utf-8", errors="replace"))
+                except Exception:
+                    pass
+    if logger:
+        logger.info("ZIP-PDF text extracted. txt_pages=%d", len(text_parts))
+    return "\n".join(text_parts)
+
+
+def _safe_extract_text(path: str, logger=None) -> str:
+    """Try pdfplumber first; fall back to ZIP-archive reader if not a true PDF."""
+    import zipfile
+    try:
+        return _extract_text_pdfplumber(path, logger=logger)
+    except Exception as primary_err:
+        if zipfile.is_zipfile(path):
+            if logger:
+                logger.info("PDF rejected by pdfplumber (%s) — trying ZIP fallback", primary_err)
+            return _extract_text_zip_pdf(path, logger=logger)
+        raise

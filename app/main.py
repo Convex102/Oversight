@@ -1,5 +1,5 @@
-"""
-Oversight ASGL v13.5 — FastAPI Main Application
+﻿"""
+Oversight ASGL v13.5 â€” FastAPI Main Application
 ================================================
 Production entry point. All routers wired at correct prefixes.
 Fixes applied:
@@ -29,14 +29,14 @@ from app.db.session import engine, Base
 logger = configure_logging()
 
 
-# ── Lifespan ──────────────────────────────────────────────────────────────────
+# â”€â”€ Lifespan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     yield
 
 
-# ── App ───────────────────────────────────────────────────────────────────────
+# â”€â”€ App â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app = FastAPI(
     title=settings.APP_NAME,
     version="13.5.0",
@@ -56,36 +56,36 @@ app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
 templates = Jinja2Templates(directory="app/web/templates")
 
 
-# ── Global exception handler ───────────────────────────────────────────────────
+# â”€â”€ Global exception handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return JSONResponse(status_code=500, content={"error": "Internal server error"})
 
 
-# ── Template context helper ────────────────────────────────────────────────────
+# â”€â”€ Template context helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def _ctx(request: Request, title: str = "") -> Dict[str, Any]:
     return {"request": request, "year": dt.datetime.utcnow().year,
             "title": title or "Oversight"}
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SAFE ROUTER MOUNT HELPER
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def _mount(router, prefix: str = "", tags=None):
     try:
         app.include_router(router, prefix=prefix, tags=tags or [])
-        logger.info("✓ Router mounted: %s", prefix or "(root)")
+        logger.info("âœ“ Router mounted: %s", prefix or "(root)")
     except Exception as exc:
-        logger.error("✗ Router mount failed [%s]: %s", prefix or "(root)", exc)
+        logger.error("âœ— Router mount failed [%s]: %s", prefix or "(root)", exc)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# CORE v1 ROUTERS — ordered by dependency
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# CORE v1 ROUTERS â€” ordered by dependency
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-# 1. Core pipeline, normalise, flywheel, governance, DI — the main v1 router
+# 1. Core pipeline, normalise, flywheel, governance, DI â€” the main v1 router
 from app.api.v1.routes import router as v1_router
 _mount(v1_router, prefix="/api/v1", tags=["v1"])
 
@@ -93,7 +93,7 @@ _mount(v1_router, prefix="/api/v1", tags=["v1"])
 from app.api.v1.routes_addon import router as v1_addon_router
 _mount(v1_addon_router, prefix="/api/v1", tags=["v1"])
 
-# 3. Compare — canonical implementation (asgla_compare pipeline, full DiffRow output)
+# 3. Compare â€” canonical implementation (asgla_compare pipeline, full DiffRow output)
 try:
     from app.api.v1.compare_routes import router as compare_router
     _mount(compare_router, prefix="/api/v1", tags=["comparison"])
@@ -119,24 +119,25 @@ _mount(schemas_router, prefix="/api/v1", tags=["schemas"])
 from app.api.v1.dq_routes import router as dq_router
 _mount(dq_router, prefix="/api/v1", tags=["dq"])
 
-# 8. Quality — prefix /quality (router has prefix="/quality", mounted at /api/v1)
+# 8. Quality â€” prefix /quality (router has prefix="/quality", mounted at /api/v1)
 from app.quality.routes import router as quality_router
 _mount(quality_router, prefix="/api/v1", tags=["quality"])
 
-# 5. Reporting — evidence packs
+# 5. Reporting â€” evidence packs
 from app.reporting.report_routes import router as reports_router
 _mount(reports_router, prefix="/api/v1", tags=["reporting"])
 
-# 6. Analytics — prefix /analytics (router has prefix="/analytics", mounted at /api/v1)
+# 6. Analytics â€” prefix /analytics (router has prefix="/analytics", mounted at /api/v1)
 from app.analytics.routes import router as analytics_router
 _mount(analytics_router, prefix="/api/v1", tags=["analytics"])
 
 
-# ── OPTIONAL ROUTERS (defensive — failure doesn't crash startup) ──────────────
+# â”€â”€ OPTIONAL ROUTERS (defensive â€” failure doesn't crash startup) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _optional = [
     ("app.api.health_api",            "router", None),
     ("app.api.pensions_api",          "router", None),
+    ("app.packs.pensions.pension_batch_task", "pension_batch_router", None),
     ("app.api.pensions_ui_api",       "router", None),
     ("app.api.packs_api",             "router", None),
     ("app.api.di_health_api",         "router", None),
@@ -158,9 +159,9 @@ for _mod, _attr, _prefix in _optional:
         logger.debug("Optional router [%s] skipped: %s", _mod, _exc)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SYSTEM ENDPOINTS
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @app.get("/health", tags=["system"], include_in_schema=False)
 @app.head("/health", include_in_schema=False)
@@ -168,13 +169,13 @@ async def health():
     return {"ok": True, "ts": dt.datetime.utcnow().isoformat() + "Z", "version": "13.5.0"}
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # HTML PAGES
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def root(request: Request):
-    for name in ["Command_Center_v9.html", "templates/Command Center.html", "Command Center.html", "index.html"]:
+    for name in ["Command_Center_v14.html", "Command_Center_v13.html", "Command_Center_v12.html", "Command_Center_v11.html", "Command_Center_v9.html", "templates/Command Center.html", "Command Center.html", "index.html"]:
         try:
             return templates.TemplateResponse(name, {"request": request})
         except Exception:
@@ -229,3 +230,4 @@ def console_api_keys(request: Request): return templates.TemplateResponse("conso
 
 @app.get("/template-picker", response_class=HTMLResponse, include_in_schema=False)
 def template_picker(request: Request): return templates.TemplateResponse("template_picker.html", _ctx(request, "Template Picker"))
+

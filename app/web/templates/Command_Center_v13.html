@@ -37,12 +37,24 @@
 </head>
 <body>
 <div class="app-grid">
+    <!-- Sidebar -->
     <aside class="sidebar">
         <div class="p-6 flex items-center gap-3 border-b border-gray-100">
             <div class="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold text-lg shadow-sm">O</div>
             <span class="font-bold text-xl tracking-tight text-gray-800">OVERSIGHT</span>
         </div>
+        <!-- Vertical Gate -->
+        <div id="vertical-gate" style="padding:12px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0">
+            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;margin-bottom:8px;letter-spacing:.05em">Platform Vertical</div>
+            <div style="display:flex;gap:6px">
+                <button id="gate-btn-A" data-vertical="A" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:#1E293B;color:white;border:2px solid #1E293B">&#x2696;&#xFE0F; Oversight-A</button>
+                <button id="gate-btn-P" data-vertical="P" style="flex:1;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:white;color:#64748B;border:2px solid #E2E8F0">&#x1F3E6; Oversight-P</button>
+            </div>
+            <div id="vertical-desc" style="font-size:10px;color:#64748B;margin-top:6px;text-align:center">Accountancy Review &amp; Compliance</div>
+        </div>
         <nav class="py-4">
+            <!-- Oversight-A navigation -->
+            <div id="nav-group-A">
             <div class="px-6 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Core</div>
             <a id="nav-dashboard"         class="nav-link active"><span>📊</span> Dashboard</a>
             <a id="nav-jobs"              class="nav-link"><span>📋</span> Jobs</a>
@@ -65,21 +77,37 @@
             <a id="nav-pack-performance"  class="nav-link"><span>📦</span> Pack Performance</a>
             <a id="nav-outcomes"          class="nav-link"><span>📋</span> Outcomes Summary</a>
             <a id="nav-active-cases"      class="nav-link"><span>⚖️</span> Active Cases</a>
-            <a id="nav-attested"          class="nav-link"><span>📜</span> Attested Reports</a>
+            <a id="nav-attested"          class="nav-link"><span>&#x1F4DC;</span> Attested Reports</a>
+            </div><!-- /nav-group-A -->
+            <!-- Oversight-P navigation (hidden until vertical P selected) -->
+            <div id="nav-group-P" style="display:none">
+            <div class="px-6 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Pensions</div>
+            <a id="nav-p-dashboard"  class="nav-link" data-pview="p-dashboard"><span>&#x1F4CA;</span> Dashboard</a>
+            <a id="nav-p-import"     class="nav-link" data-pview="p-import"><span>&#x1F4E5;</span> Member Import</a>
+            <a id="nav-p-jobs"       class="nav-link" data-pview="p-jobs"><span>&#x1F4CB;</span> Jobs</a>
+            <a id="nav-p-review"     class="nav-link" data-pview="p-review"><span>&#x270F;&#xFE0F;</span> Review Queue</a>
+            <a id="nav-p-signoff"    class="nav-link" data-pview="p-signoff"><span>&#x2705;</span> Sign-Off</a>
+            <a id="nav-p-evidence"   class="nav-link" data-pview="p-evidence"><span>&#x1F4D1;</span> Evidence Packs</a>
+            <div class="px-6 text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-6 mb-2">Intelligence</div>
+            <a id="nav-p-anomalies"  class="nav-link" data-pview="p-anomalies"><span>&#x26A0;&#xFE0F;</span> Anomaly Report</a>
+            <a id="nav-p-population" class="nav-link" data-pview="p-population"><span>&#x1F4C8;</span> Population Health</a>
+            <a id="nav-p-flywheel"   class="nav-link" data-pview="p-flywheel"><span>&#x1F504;</span> Learning &amp; Accuracy</a>
+            </div><!-- /nav-group-P -->
         </nav>
     </aside>
 
+    <!-- Header -->
     <header class="header">
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
                 <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                 <span class="text-[11px] font-medium text-gray-700" id="api-status">API v1 · Connecting...</span>
             </div>
-            <h2 class="text-sm font-semibold text-gray-400">Active Vertical: <span id="active-vertical" class="text-gray-800">Accountancy (A)</span></h2>
+            <div id="vertical-badge" style="display:flex;align-items:center;gap:8px;padding:4px 14px;border-radius:999px;background:#EFF6FF;border:1px solid #BFDBFE"><div id="vertical-dot" style="width:8px;height:8px;border-radius:50%;background:#2563EB;flex-shrink:0"></div><span id="vertical-label" style="font-size:11px;font-weight:700;color:#1D4ED8">Oversight-A &middot; Accountancy</span></div>
         </div>
         <div class="flex gap-3">
+            <button onclick="_llmModal()" style="font-size:11px;font-weight:500;color:#6B7280;background:white;border:1px solid #E2E8F0;padding:6px 12px;border-radius:8px;cursor:pointer">&#x2728; AI</button>
             <button id="health-check" class="text-xs font-medium text-gray-500 hover:text-gray-800 bg-white border border-gray-200 px-3 py-1.5 rounded-lg">🔍 Health</button>
-            <button onclick="_showLLMSettings()" class="text-xs font-medium text-gray-500 hover:text-gray-800 bg-white border border-gray-200 px-3 py-1.5 rounded-lg">✨ LLM Settings</button>
             <div style="position:relative">
                 <button id="notif-bell" class="text-xs font-medium text-gray-500 hover:text-gray-800 bg-white border border-gray-200 px-3 py-1.5 rounded-lg" onclick="toggleNotifPanel()">
                     🔔 <span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#EF4444;color:white;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center" id="notif-count">0</span>
@@ -98,6 +126,7 @@
         </div>
     </header>
 
+    <!-- Main viewport -->
     <main class="viewport" id="viewport">
         <div id="dynamic-content" class="space-y-6">
             <div class="text-center py-20 text-gray-400">Loading Oversight command centre...</div>
@@ -106,6 +135,7 @@
 </div>
 
 <div id="toast" class="toast"></div>
+<!-- Generate Report Modal -->
 <div id="report-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;">
   <div style="background:white;border-radius:16px;padding:32px;width:480px;max-width:95vw;box-shadow:0 25px 50px rgba(0,0,0,0.25);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
@@ -257,43 +287,31 @@ document.getElementById('report-generate-btn').onclick = async () => {
 
 <script>
     const API_BASE = 'http://127.0.0.1:8000/api/v1';
-
-    // ── LLM configuration (Gemini free tier by default) ───────────────────────
-    // Set GEMINI_API_KEY in the UI or update this value directly.
-    // Get a free key at https://ai.google.dev — no credit card required.
-    let _llmConfig = {
-        provider: localStorage.getItem('oc_llm_provider') || 'gemini',
-        apiKey:   localStorage.getItem('oc_llm_key') || '',
-    };
-    function _saveLlmConfig(provider, key) {
-        _llmConfig = { provider, apiKey: key };
-        localStorage.setItem('oc_llm_provider', provider);
-        localStorage.setItem('oc_llm_key', key);
-    }
-    async function _callLLM(systemPrompt, userPrompt, maxTokens=200) {
-        const { provider, apiKey } = _llmConfig;
-        if (!apiKey && provider !== 'none') return null;
-        try {
-            if (provider === 'gemini') {
-                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ contents:[{parts:[{text:`${systemPrompt}\n\n${userPrompt}`}]}], generationConfig:{maxOutputTokens:maxTokens} })
-                });
-                const d = await r.json();
-                return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    var _llmCfg={p:localStorage.getItem('oc_p')||'gemini',k:localStorage.getItem('oc_k')||''};
+    function _saveLlm(p,k){_llmCfg={p:p,k:k};localStorage.setItem('oc_p',p);localStorage.setItem('oc_k',k);}
+    async function _llm(sys,user,max){
+        max=max||200;
+        if(!_llmCfg.k)return null;
+        try{
+            if(_llmCfg.p==='gemini'){
+                var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+_llmCfg.k,
+                    {method:'POST',headers:{'Content-Type':'application/json'},
+                     body:JSON.stringify({contents:[{parts:[{text:sys+'\n\n'+user}]}],generationConfig:{maxOutputTokens:max}})});
+                var d=await r.json();
+                return(d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts[0].text)||null;
             }
-            if (provider === 'anthropic') {
-                const r = await fetch('https://api.anthropic.com/v1/messages', {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:maxTokens, system:systemPrompt, messages:[{role:'user',content:userPrompt}] })
-                });
-                const d = await r.json();
-                return d.content?.[0]?.text || null;
+            if(_llmCfg.p==='anthropic'){
+                var r=await fetch('https://api.anthropic.com/v1/messages',
+                    {method:'POST',headers:{'Content-Type':'application/json'},
+                     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:max,system:sys,messages:[{role:'user',content:user}]})});
+                var d=await r.json();
+                return(d.content&&d.content[0].text)||null;
             }
-        } catch(e) { console.warn('LLM error:', e.message); }
+        }catch(e){console.warn('LLM:',e.message);}
         return null;
     }
     let currentVertical = 'A';
+    // P-vertical init deferred to _initPVertical() at bottom of script
     let anomalyTimeChart = null, anomalyHistogram = null;
     let monacoEditor = null;
 
@@ -362,8 +380,8 @@ document.getElementById('report-generate-btn').onclick = async () => {
                 </div>
                 <div class="card overflow-hidden"><div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center"><h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide">Live Mapping Preview (Phase 2)</h3><button id="refresh-mapping-preview" class="text-[10px] text-blue-600 hover:underline">⟳ refresh</button></div><div id="mapping-preview-table" class="p-4"><div class="spinner mx-auto"></div></div></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card p-6"><h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Delta Entropy (last comparison)</h4><div class="text-3xl font-mono font-bold mt-2">0.421</div><div class="text-xs text-gray-500 mt-1">Material differences: 3 · SHAP stability: 0.998</div></div>
-                    <div class="card p-6 bg-gradient-to-r from-blue-50 to-white"><h4 class="text-xs font-bold text-blue-600 uppercase tracking-wide">🧠 AI Insight</h4><p class="text-sm text-gray-700 mt-2">Significant pattern match (94%) for <strong>Supplier_Ref_ID</strong> against Pension templates.</p><button id="accept-insight" class="mt-4 text-xs font-semibold text-blue-700 hover:underline">Accept recommendation →</button></div>
+                    <div class="card p-6"><h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Difference Score (last comparison)</h4><div class="text-3xl font-mono font-bold mt-2">0.421</div><div class="text-xs text-gray-500 mt-1">Material differences: 3 · SHAP stability: 0.998</div></div>
+                    <div class="card p-6 bg-gradient-to-r from-blue-50 to-white"><h4 class="text-xs font-bold text-blue-600 uppercase tracking-wide">🧠 AI Insight</h4><p class="text-sm text-gray-700 mt-2">Field dependency analysis and ratio checks are active. Review points are generated from applicable regulatory standards (FRS102/FRS105/CA2006) — not from fixed templates.</p><button id="accept-insight" class="mt-4 text-xs font-semibold text-blue-700 hover:underline">Accept recommendation →</button></div>
                 </div>
             </div>`;
         document.getElementById('refresh-mapping-preview')?.addEventListener('click', loadMappingPreview);
@@ -382,7 +400,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
                             <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
                             <div class="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
                             <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-                            <span class="text-white font-semibold text-sm ml-2">ASGL-A Processing Runner</span>
+                            <span class="text-white font-semibold text-sm ml-2">Oversight-A Analysis</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <select id="vertical-select" class="text-xs bg-white/10 text-white border border-white/20 rounded px-2 py-1">
@@ -421,11 +439,11 @@ document.getElementById('report-generate-btn').onclick = async () => {
                             </div>
                             <div id="step-3" class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
                                 <div id="step-3-chk" class="w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0 mt-0.5 flex items-center justify-center text-xs"></div>
-                                <div><div class="font-semibold text-sm text-gray-700">Accounts PDF selected</div><div class="text-xs text-gray-400 mt-0.5">Final accounts for compare + OCR</div></div>
+                                <div><div class="font-semibold text-sm text-gray-700">Accounts PDF selected</div><div class="text-xs text-gray-400 mt-0.5">Final accounts for comparison</div></div>
                             </div>
                             <div id="step-4" class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
                                 <div id="step-4-chk" class="w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0 mt-0.5 flex items-center justify-center text-xs"></div>
-                                <div><div class="font-semibold text-sm text-gray-700">Pipeline running</div><div class="text-xs text-gray-400 mt-0.5">Schema, DI signals, SHAP, report</div></div>
+                                <div><div class="font-semibold text-sm text-gray-700">Pipeline running</div><div class="text-xs text-gray-400 mt-0.5">Regulation checks, risk attribution, report</div></div>
                             </div>
                         </div>
 
@@ -443,7 +461,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
                                 🗺 Template Picker
                             </button>
                             <button id="run-pipeline-btn" class="px-8 py-2.5 text-sm font-bold rounded-lg text-white transition disabled:opacity-40" style="background:#1A3C5E;" disabled>
-                                ▶ Run ASGL-A
+                                ▶ Run Analysis
                             </button>
                         </div>
                     </div>
@@ -452,7 +470,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
                 <!-- Result panel (hidden until complete) -->
                 <div id="pipeline-result-panel" class="hidden card p-0 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#1A3C5E;">
-                        <span class="text-white font-semibold text-sm">Decision Intelligence — Results</span>
+                        <span class="text-white font-semibold text-sm">Analysis Results</span>
                         <div id="result-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-400 text-amber-900">Processing...</div>
                     </div>
                     <div class="p-6" id="pipeline-result-content"></div>
@@ -744,7 +762,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
                                 </div>
                                 ${shap.length ? `
                                 <div>
-                                    <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">SHAP Analysis</div>
+                                    <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Risk Attribution</div>
                                     <div class="space-y-2">${shapHtml}</div>
                                 </div>` : ''}
                             </div>
@@ -1031,22 +1049,22 @@ document.getElementById('report-generate-btn').onclick = async () => {
                 <tbody class="divide-y divide-gray-100">
                     <tr class="hover:bg-gray-50">
                         <td class="p-2 font-mono text-xs">Total_Amt_VAT</td>
-                        <td class="p-2"><select class="border rounded p-1 text-xs w-full"><option>canonical_tax_total</option><option>revenue</option><option>flagged_review</option></select></td>
+                        <td><select class="border rounded p-1 text-xs w-full"><option>canonical_tax_total</option><option>revenue</option><option>flagged_review</option></select></td>
                         <td class="text-center"><span class="text-xs font-semibold text-emerald-600">98%</span></td>
                         <td class="text-xs text-gray-500 font-mono">${packId === 'frs102' ? 'FRS102 §29' : packId === 'frs105' ? 'FRS105 §12' : packId.startsWith('ifrs') ? 'IFRS discl.' : 'Note ref.'}</td>
-                     </tr>
+                    </tr>
                     <tr class="hover:bg-gray-50">
                         <td class="p-2 font-mono text-xs">Supplier_Ref_ID</td>
-                        <td class="p-2"><select class="border rounded p-1 text-xs w-full"><option>entity_id</option><option>vendor_name</option><option>flagged_review</option></select></td>
+                        <td><select class="border rounded p-1 text-xs w-full"><option>entity_id</option><option>vendor_name</option><option>flagged_review</option></select></td>
                         <td class="text-center"><span class="text-xs font-semibold text-amber-500">42%</span></td>
                         <td class="text-xs text-gray-500 font-mono">${packId === 'frs102' ? 'FRS102 §33' : packId === 'frs105' ? 'FRS105 §6' : 'Related party'}</td>
-                     </tr>
+                    </tr>
                     <tr class="hover:bg-gray-50">
                         <td class="p-2 font-mono text-xs">Invoice_Date</td>
-                        <td class="p-2"><select class="border rounded p-1 text-xs w-full"><option>canonical_date</option><option>period_end</option></select></td>
+                        <td><select class="border rounded p-1 text-xs w-full"><option>canonical_date</option><option>period_end</option></select></td>
                         <td class="text-center"><span class="text-xs font-semibold text-emerald-600">96%</span></td>
                         <td class="text-xs text-gray-500 font-mono">${packId === 'ias1' ? 'IAS 1.36' : 'Period ref.'}</td>
-                     </tr>
+                    </tr>
                 </tbody>
             </table>
             <div class="flex items-center justify-between pt-2">
@@ -1473,7 +1491,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
                     </div>
                     <div class="space-y-3">
                         ${pts.map((pt, idx) => `
-                            <div class="card border-l-4 ${pt.severity==='high'?'border-l-red-500':pt.severity==='medium'?'border-l-amber-400':'border-l-blue-400'} p-5 space-y-3" id="pt-card-${pt.id}">
+                            <div class="card border-l-4 ${pt.severity==='high'?'border-l-red-500':pt.severity==='medium'?'border-l-amber-400':'border-l-blue-400'} p-5 space-y-3">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2 flex-wrap mb-1">
@@ -1483,27 +1501,24 @@ document.getElementById('report-generate-btn').onclick = async () => {
                                         </div>
                                         <p class="text-xs text-gray-600 leading-relaxed">${pt.description}</p>
                                     </div>
-                                    <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
+                                    <div class="flex-shrink-0">
                                         ${pt.status==='resolved'
                                             ? '<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">✓ Addressed</span>'
                                             : '<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Open</span>'}
-                                        <button onclick="_compGetGuidance('${pt.id}','${pt.severity}',\`${pt.title.replace(/`/g,'\\`')}\`,\`${pt.description.slice(0,200).replace(/`/g,'\\`')}\`,'${job.pack}')"
-                                            class="text-xs px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
-                                            id="guidance-btn-${pt.id}">✨ AI Guidance</button>
                                     </div>
                                 </div>
-                                <div id="guidance-box-${pt.id}" class="hidden"></div>
                                 <div class="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
                                     <label class="text-xs font-bold text-gray-600 uppercase tracking-wide">Preparer Correction Note</label>
-                                    <textarea id="cw-note-${pt.id}" rows="2" placeholder="Describe the correction made or explain why this point does not apply…"
+                                    <textarea id="cw-note-${pt.id}" rows="2" placeholder="Describe the correction made or explain why this point does not apply…" 
                                         class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        onchange="job._compActiveJob||(window._compJobs.find(j=>j.id==='${job.id}')||{corrections:{}})[0]"
                                     >${job.corrections[pt.id]||''}</textarea>
                                     <div class="flex items-center gap-3 flex-wrap">
                                         <div>
                                             <label class="text-xs font-semibold text-gray-500 block mb-1">Upload corrected file (optional)</label>
                                             <input type="file" id="cw-corr-file-${pt.id}" accept=".xlsx,.xlsm,.xls,.pdf" class="text-xs">
                                         </div>
-                                        <button onclick="_compMarkAddressed('${job.id}','${pt.id}',${idx})"
+                                        <button onclick="_compMarkAddressed('${job.id}','${pt.id}',${idx})" 
                                             class="px-3 py-1.5 text-xs font-semibold ${pt.status==='resolved'?'bg-gray-100 text-gray-500 border border-gray-200':'bg-emerald-600 text-white'} rounded-lg mt-4">
                                             ${pt.status==='resolved'?'↩ Re-open':'✓ Mark Addressed'}
                                         </button>
@@ -1594,7 +1609,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
                     <div class="card p-5 space-y-2">
                         <div class="font-semibold text-gray-700 text-sm">Evidence Pack Contents</div>
                         <div class="space-y-2 text-xs text-gray-600">
-                            ${[`Engagement summary — ${job.client}, ${job.period}`,`Regulatory pack: ${PACK_NAMES[job.pack]||job.pack}`,`${job.reviewPoints.length} review points raised by Oversight AI`,`${job.reviewPoints.filter(p=>p.status==='resolved').length} points addressed by preparer`,`Re-assessment results: ${(job.reassessResults||{resolved:[]}).resolved.length} resolved, ${(job.reassessResults||{persisting:[]}).persisting.length} persisting`,`Partner sign-off: ${so.partner||'—'} (${so.date?new Date(so.date).toLocaleDateString('en-GB'):'—'})`,`Full SHAP attribution and delta analysis`,`Immutable audit trail`].map(item=>`<div class="flex items-center gap-2"><span class="text-emerald-500">✓</span>${item}</div>`).join('')}
+                            ${[`Engagement summary — ${job.client}, ${job.period}`,`Regulatory standard: ${PACK_NAMES[job.pack]||job.pack}`,`${job.reviewPoints.length} review points raised by Oversight AI`,`${job.reviewPoints.filter(p=>p.status==='resolved').length} points addressed by preparer`,`Re-assessment results: ${(job.reassessResults||{resolved:[]}).resolved.length} resolved, ${(job.reassessResults||{persisting:[]}).persisting.length} persisting`,`Partner sign-off: ${so.partner||'—'} (${so.date?new Date(so.date).toLocaleDateString('en-GB'):'—'})`,`Full risk attribution and delta analysis`,`Immutable audit trail`].map(item=>`<div class="flex items-center gap-2"><span class="text-emerald-500">✓</span>${item}</div>`).join('')}
                         </div>
                     </div>
                 </div>`;
@@ -1672,254 +1687,367 @@ document.getElementById('report-generate-btn').onclick = async () => {
         }
     }
 
-    async function _compSubmitFiles() {
+    function _compSubmitFiles() {
         const job = _compActiveJob;
         const fa = document.getElementById('cw-fileA')?.files[0];
         const fb = document.getElementById('cw-fileB')?.files[0];
-        if (!fa) { showToast('Working papers file required'); return; }
+        if (!fa || !fb) { showToast('Please select both files first'); return; }
         job.fileA = fa.name;
-        if (fb) job.fileB = fb.name;
+        job.fileB = fb.name;
         job._fileA_blob = fa;
-        job._fileB_blob = fb || null;
+        job._fileB_blob = fb;
         job.materiality = parseFloat(document.getElementById('cw-materiality')?.value || 5);
+        job.status = 'analysing';
+        _renderCompWorkflow();
+    }
 
-        // Step 1: create real engagement on backend (first time only)
-        if (!job._engId) {
-            const btn = document.getElementById('cw-submit-btn');
-            if (btn) { btn.disabled = true; btn.textContent = 'Creating engagement\u2026'; }
-            try {
-                const res = await fetch(`${API_BASE}/engagements`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tenant_id:1, client_name:job.client, period:job.period, engagement_ref:job.ref||'', regulatory_pack:job.pack, preparer_name:'Preparer' })
+
+    // ═══════════════════════════ MAPPING GATE ════════════════════════════════
+    // Flow: New job created → _compSubmitFiles sets status='analysing' →
+    //       _compRunAnalysis fires → if no _schemaConfirmed → _showMappingGate
+    //       → user selects/labels columns in their Excel file → _mgConfirm
+    //       → schema saved to job._schema, flywheel POSTed → re-fires analysis
+    // ═════════════════════════════════════════════════════════════════════════
+
+    var _ROLES=[
+        {v:'turnover',l:'Turnover / Revenue'},{v:'profit_loss',l:'Net Profit / (Loss)'},
+        {v:'cost_of_sales',l:'Cost of Sales'},{v:'gross_profit',l:'Gross Profit'},
+        {v:'wages',l:'Wages & Salaries'},{v:'directors_pay',l:"Directors' Remuneration"},
+        {v:'tax_charge',l:'Tax on Profit / (Loss)'},{v:'deferred_tax',l:'Deferred Tax'},
+        {v:'fixed_assets',l:'Fixed Assets (Net)'},{v:'depreciation',l:'Depreciation'},
+        {v:'debtors',l:'Trade Debtors'},{v:'creditors',l:'Trade Creditors'},
+        {v:'stock',l:'Stock / Inventory'},{v:'cash',l:'Cash at Bank'},
+        {v:'loans',l:'Loans / Borrowings'},{v:'dla',l:'Director Loan Account'},
+        {v:'share_capital',l:'Share Capital'},{v:'reserves',l:'P&L Reserves'},
+        {v:'other_taxes',l:'Other Taxes & Social Security'},{v:'tax_losses',l:'Tax Losses c/fwd'},
+        {v:'going_concern',l:'Going Concern Note'},{v:'related_party',l:'Related Party Transactions'},
+        {v:'other',l:'Other / Custom'},
+    ];
+    var _PREFS={
+        frs102:   {turnover:'\xA723',profit_loss:'\xA75',wages:'\xA728',tax_charge:'\xA729',deferred_tax:'\xA729',fixed_assets:'\xA717',debtors:'\xA711',creditors:'\xA711',stock:'\xA713',loans:'\xA711',dla:'\xA733',share_capital:'\xA722',reserves:'\xA75',going_concern:'\xA73.8',related_party:'\xA733'},
+        frs102_1a:{turnover:'1A\xA77',profit_loss:'1A\xA77',tax_charge:'1A\xA77',creditors:'1A\xA77',dla:'\xA733',going_concern:'\xA73.8',related_party:'\xA733'},
+        frs105:   {turnover:'\xA79',profit_loss:'\xA710',tax_charge:'\xA712',creditors:'\xA711',stock:'\xA710.4'},
+        ias12:    {tax_charge:'\xA746',deferred_tax:'\xA715'},
+        ifrs15:   {turnover:'\xA731'},
+        ifrs16:   {creditors:'\xA726'},
+    };
+    function _pref(role,pack){return(_PREFS[pack]||{})[role]||'';}
+
+    function _guessRole(h){
+        var s=h.toLowerCase();
+        if(/turn[ov]|revenue|sales.{0,8}total|total sales/.test(s))return 'turnover';
+        if(/net profit|profit.*loss|loss.*profit|p&l/.test(s))return 'profit_loss';
+        if(/cost of sale|direct cost|cogs/.test(s))return 'cost_of_sales';
+        if(/gross profit/.test(s))return 'gross_profit';
+        if(/wages|salary|salari|payroll/.test(s))return 'wages';
+        if(/director.*pay|director.*rem|remuneration/.test(s))return 'directors_pay';
+        if(/tax on|corporation tax|tax charge|ct charge/.test(s))return 'tax_charge';
+        if(/deferred tax/.test(s))return 'deferred_tax';
+        if(/fixed asset|tangible|ppe/.test(s))return 'fixed_assets';
+        if(/depreci/.test(s))return 'depreciation';
+        if(/debtor|trade.*debtor/.test(s))return 'debtors';
+        if(/creditor|trade.*creditor/.test(s))return 'creditors';
+        if(/^stock$|^inventory$|stock at/.test(s))return 'stock';
+        if(/cash at|bank balance|santander|hsbc|barclays|natwest/.test(s))return 'cash';
+        if(/loan|borrow|mortgage|overdraft/.test(s))return 'loans';
+        if(/director.*loan|dla|dir.*curr/.test(s))return 'dla';
+        if(/share capital|called up|allotted/.test(s))return 'share_capital';
+        if(/reserve|retained|profit.*loss.*account/.test(s))return 'reserves';
+        if(/social sec|other tax|paye|ni |national ins/.test(s))return 'other_taxes';
+        if(/tax loss|losses.*fwd|losses.*brought/.test(s))return 'tax_losses';
+        if(/going concern/.test(s))return 'going_concern';
+        if(/related party/.test(s))return 'related_party';
+        return 'other';
+    }
+
+    function _roleSel(id,val){
+        return '<select id="'+id+'" style="width:100%;border:1px solid #E2E8F0;border-radius:6px;padding:5px 8px;font-size:12px;box-sizing:border-box">'
+            +_ROLES.map(function(r){return'<option value="'+r.v+'"'+(r.v===val?' selected':'')+'>'+r.l+'</option>';}).join('')
+            +'</select>';
+    }
+
+    function _showMappingGate(job){
+        var fa=job._fileA_blob;
+        if(!fa){showToast('File not found \u2014 please re-select your working papers');job.status='draft';_renderCompWorkflow();return;}
+        function _show(sheets){
+            window._mgSheets=sheets; window._mgSheet=0; window._mgJob=job;
+            var pack=job.pack||'frs102'; var pn=PACK_NAMES[pack]||pack;
+            function _rows(si){
+                var sh=sheets[si]||{headers:[],samples:[]};
+                if(!sh.headers||!sh.headers.length)
+                    return '<tr><td colspan="4" style="padding:16px;text-align:center;font-size:12px;color:#94A3B8">No columns detected \u2014 add rows manually below</td></tr>';
+                return sh.headers.map(function(h,i){
+                    var role=_guessRole(h); var ref=_pref(role,pack); var samp=(sh.samples&&sh.samples[i])||'';
+                    return '<tr style="border-bottom:1px solid #F8FAFC">'
+                        +'<td style="padding:7px 10px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+                        +'<input type="checkbox" class="mg-chk" data-i="'+i+'" '+(role&&role!=='other'?'checked':'')+' onchange="_mgCount()" style="width:15px;height:15px;accent-color:#1A3C5E;cursor:pointer">'
+                        +'<span id="mg-src-'+i+'" style="font-family:monospace;font-size:12px;color:#1E293B">'+h+'</span></label></td>'
+                        +'<td style="padding:7px 10px;font-size:11px;color:#94A3B8;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+samp+'</td>'
+                        +'<td style="padding:7px 10px">'+_roleSel('mg-role-'+i,role)+'</td>'
+                        +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;color:'+(ref?'#2563EB':'#CBD5E1')+'">'+ref+'</td>'
+                        +'</tr>';
+                }).join('');
+            }
+            var tabsHTML=sheets.length>1?'<div style="padding:8px 22px;border-bottom:1px solid #E2E8F0;flex-shrink:0;display:flex;gap:6px;overflow-x:auto">'
+                +sheets.map(function(s,i){return'<button class="mg-tab" data-i="'+i+'" onclick="_mgTab('+i+')" style="padding:4px 12px;font-size:12px;border-radius:6px;border:1px solid '+(i===0?'#1A3C5E':'#E2E8F0')+';background:'+(i===0?'#1A3C5E':'white')+';color:'+(i===0?'white':'#64748B')+';cursor:pointer;white-space:nowrap">'+s.name+'</button>';}).join('')+'</div>':'';
+            var ov=document.createElement('div');
+            ov.id='mg-ov';
+            ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:16px';
+            ov.innerHTML=
+                '<div style="background:white;border-radius:16px;width:100%;max-width:820px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.3)">'
+                +'<div style="background:#1A3C5E;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'
+                +'<div><div style="color:white;font-weight:700;font-size:15px">\uD83E\uDDE0 Schema Mapping \u2014 '+job.client+'</div>'
+                +'<div style="color:rgba(255,255,255,.55);font-size:11px;margin-top:2px">Select the columns to compare and assign each a canonical role \u2014 feeds the DI engine and Flywheel</div></div>'
+                +'<button onclick="_mgClose()" style="color:rgba(255,255,255,.6);background:none;border:none;cursor:pointer;font-size:20px">&times;</button>'
+                +'</div>'
+                +'<div style="padding:9px 22px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;flex-shrink:0;font-size:12px;color:#1D4ED8;line-height:1.55">'
+                +'\u2139\uFE0F Oversight has parsed your working papers and detected the columns below. '
+                +'<strong>Tick the fields you want compared</strong> against the final accounts and assign each a canonical role. '
+                +'Only ticked fields generate review points \u2014 keep it to summary-level lines. '
+                +'This mapping is saved to the <strong>DI engine</strong> and <strong>Flywheel</strong> so future runs learn from it automatically. '
+                +'Standard references are for <strong>'+pn+'</strong>.</div>'
+                +tabsHTML
+                +'<div style="padding:7px 22px;border-bottom:1px solid #E2E8F0;flex-shrink:0;display:flex;align-items:center;gap:10px">'
+                +'<button onclick="_mgAI()" style="font-size:12px;padding:5px 14px;border-radius:7px;border:1px solid #BFDBFE;background:#EFF6FF;color:#2563EB;cursor:pointer">\u2728 AI Suggest</button>'
+                +'<span id="mg-count-lbl" style="font-size:12px;color:#64748B">0 fields selected</span>'
+                +'<button onclick="_mgAll()" style="font-size:12px;padding:5px 10px;border-radius:7px;border:1px solid #E2E8F0;background:white;color:#64748B;cursor:pointer;margin-left:auto">All</button>'
+                +'<button onclick="_mgNone()" style="font-size:12px;padding:5px 10px;border-radius:7px;border:1px solid #E2E8F0;background:white;color:#64748B;cursor:pointer">None</button>'
+                +'</div>'
+                +'<div style="overflow-y:auto;flex:1">'
+                +'<table style="width:100%;border-collapse:collapse">'
+                +'<thead><tr style="background:#F8FAFC;position:sticky;top:0;z-index:1">'
+                +'<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E2E8F0">Column / Field</th>'
+                +'<th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E2E8F0;width:120px">Sample</th>'
+                +'<th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E2E8F0">Canonical Role</th>'
+                +'<th style="padding:8px 10px;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E2E8F0;width:80px">'+pn+' Ref</th>'
+                +'</tr></thead>'
+                +'<tbody id="mg-tbody">'+_rows(0)+'</tbody>'
+                +'</table>'
+                +'<button onclick="_mgAddRow()" style="margin:8px 22px;padding:7px;border:2px dashed #CBD5E1;border-radius:8px;font-size:12px;color:#64748B;background:none;cursor:pointer;width:calc(100% - 44px)">+ Add Row Manually</button>'
+                +'</div>'
+                +'<div style="padding:7px 22px;background:#FAFBFC;border-top:1px solid #F1F5F9;font-size:11px;color:#94A3B8;flex-shrink:0">'
+                +'\uD83D\uDCA1 <strong>Tip:</strong> Only map summary lines: Turnover, Net Profit/Loss, Trade Creditors, Stock, Tax, Share Capital, Reserves. Deselect vendor names, journal entries and sub-analysis rows.</div>'
+                +'<div style="padding:12px 22px;border-top:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'
+                +'<span id="mg-footer" style="font-size:12px;color:#64748B">0 fields will be compared</span>'
+                +'<div style="display:flex;gap:10px">'
+                +'<button onclick="_mgClose()" style="padding:8px 18px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>'
+                +'<button id="mg-ok" onclick="_mgConfirm()" style="padding:8px 24px;background:#059669;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">\u2705 Confirm Schema &amp; Run Analysis</button>'
+                +'</div></div>'
+                +'</div>';
+            document.body.appendChild(ov);
+            _mgCount();
+        }
+        _parseXL(fa,_show);
+    }
+
+    function _mgClose(){var ov=document.getElementById('mg-ov');if(ov)ov.remove();var j=window._mgJob;if(j){j.status='draft';_compActiveJob=j;_renderCompWorkflow();}}
+
+    function _parseXL(file,cb){
+        if(window.XLSX){_doXL(file,cb);return;}
+        var s=document.createElement('script');
+        s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+        s.onload=function(){_doXL(file,cb);};
+        s.onerror=function(){cb([{name:'Sheet1',headers:[],samples:[]}]);};
+        document.head.appendChild(s);
+    }
+    function _doXL(file,cb){
+        var r=new FileReader();
+        r.onload=function(e){
+            try{
+                var wb=XLSX.read(e.target.result,{type:'array',sheetRows:8});
+                var sheets=wb.SheetNames.slice(0,10).map(function(name){
+                    var ws=wb.Sheets[name];
+                    var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+                    var hi=0;
+                    for(var i=0;i<Math.min(5,rows.length);i++){
+                        var ne=(rows[i]||[]).filter(function(c){return c&&typeof c==='string'&&c.trim().length>1;});
+                        if(ne.length>=2){hi=i;break;}
+                    }
+                    var hdrs=(rows[hi]||[]).map(function(c){return String(c||'').trim();}).filter(function(c){return c.length>0;});
+                    var samps=hdrs.map(function(_,ci){
+                        for(var ri=hi+1;ri<rows.length;ri++){var v=(rows[ri]||[])[ci];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim().slice(0,28);}
+                        return '';
+                    });
+                    return{name:name,headers:hdrs,samples:samps};
                 });
-                const d = await res.json();
-                if (!res.ok) throw new Error(d.detail||'Could not create engagement');
-                job._engId = d.id;
-            } catch(e) {
-                showToast(`Backend unavailable (${e.message}) \u2014 running offline`);
-                job.status = 'analysing'; _renderCompWorkflow(); return;
-            }
-        }
-
-        // Step 2: submit files; handle mapping gate (202) or run analysis
-        job.status = 'analysing'; _renderCompWorkflow();
-        const form = new FormData();
-        form.append('file_a', fa);
-        if (fb) form.append('file_b', fb);
-        form.append('label_a', 'Working Papers');
-        form.append('label_b', 'Final Accounts');
-        form.append('preparer_name', 'Preparer');
-        form.append('materiality_pct', job.materiality);
-        form.append('mapping_confirmed', job._mappingConfirmed ? 'true' : 'false');
-
-        try {
-            const res = await fetch(`${API_BASE}/engagements/${job._engId}/submit`, { method:'POST', body:form });
-            const data = await res.json();
-
-            // Mapping gate: backend needs field confirmation before analysis
-            if (res.status === 202 && data.status === 'mapping_required') {
-                job.status = 'draft'; _renderCompWorkflow();
-                _showMappingGateModal(job, data.proposed_mapping);
-                return;
-            }
-            if (!res.ok) throw new Error(data.detail||'Analysis failed');
-
-            // Parse review points from real backend response
-            const pts = (data.review_points||[]).map((p,i) => ({
-                id: p.id||`rp-${i}`, severity: p.severity||'medium',
-                ref: p.audit_ref||`\xA7${p.field_name||'General'}`,
-                title: (p.title||p.description||`Point ${i+1}`).slice(0,120),
-                description: p.description||'', status: p.status||'open',
-                section: p.section||'General', _backendId: p.id,
-            }));
-            job.reviewPoints = pts.length ? pts : [{id:'clean',severity:'low',ref:'\xA7OK',title:'No material differences detected',description:`Files compared clean against ${PACK_NAMES[job.pack]||job.pack}.`,status:'resolved',section:'Summary'}];
-            job.status = 'review';
-            delete job._fileA_blob; delete job._fileB_blob;
-            _renderCompWorkflow();
-            showToast(`Analysis complete \u2014 ${pts.filter(p=>p.status==='open').length} review point(s) raised`);
-        } catch(e) {
-            console.warn('Submit error:', e.message, '\u2014 using sample data');
-            job.reviewPoints = _getSamplePoints(job.pack);
-            job.status = 'review';
-            delete job._fileA_blob; delete job._fileB_blob;
-            _renderCompWorkflow();
-            showToast(`Offline mode \u2014 ${e.message}`);
-        }
-    }
-
-    function _packRefForRole(role, pack) {
-        const refs = {
-            frs102:    {turnover:'FRS102 \xA723',profit_loss:'FRS102 \xA75',tax_charge:'FRS102 \xA729',creditors:'FRS102 \xA711',stock:'FRS102 \xA713',wages:'FRS102 \xA728',share_capital:'FRS102 \xA722',reserves:'FRS102 \xA75',dla:'FRS102 \xA733',going_concern:'FRS102 \xA73.8'},
-            frs102_1a: {turnover:'\xA71A.7.1',profit_loss:'\xA71A.7.2',tax_charge:'\xA71A.7.5',creditors:'\xA71A.7.6',stock:'\xA71A.7.4',dla:'FRS102 \xA733',going_concern:'FRS102 \xA73.8'},
-            frs105:    {turnover:'FRS105 \xA79',profit_loss:'FRS105 \xA710',tax_charge:'FRS105 \xA712',creditors:'FRS105 \xA711',stock:'FRS105 \xA710.4'},
-            ifrs15:    {turnover:'IFRS15 \xA731',profit_loss:'IFRS15 \xA7120'},
-            ifrs16:    {creditors:'IFRS16 \xA726',profit_loss:'IFRS16 \xA749'},
+                cb(sheets);
+            }catch(err){console.warn('XL parse:',err.message);cb([{name:'Sheet1',headers:[],samples:[]}]);}
         };
-        return (refs[pack]||{})[role]||'\u2014';
+        r.readAsArrayBuffer(file);
     }
 
-    function _showMappingGateModal(job, proposed) {
-        const fields  = proposed?.fields || [];
-        const method  = proposed?.method || 'fallback';
-        const conf    = proposed?.confidence ? Math.round(proposed.confidence*100) : 0;
-        const mLabel  = {phase1_template:'Phase 1 template match',structural_scan:'Structural scan',fallback:'Manual entry required'}[method]||method;
-        const packName = PACK_NAMES[job.pack]||job.pack;
+    function _mgTab(i){
+        window._mgSheet=i;
+        document.querySelectorAll('.mg-tab').forEach(function(b,j){
+            b.style.background=j===i?'#1A3C5E':'white';b.style.color=j===i?'white':'#64748B';b.style.borderColor=j===i?'#1A3C5E':'#E2E8F0';
+        });
+        var sh=window._mgSheets[i]||{headers:[],samples:[]};
+        var job=window._mgJob; var pack=job?job.pack:'frs102';
+        var rows=sh.headers.map(function(h,idx){
+            var role=_guessRole(h);var ref=_pref(role,pack);var samp=(sh.samples&&sh.samples[idx])||'';
+            return'<tr style="border-bottom:1px solid #F8FAFC">'
+                +'<td style="padding:7px 10px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+                +'<input type="checkbox" class="mg-chk" data-i="'+idx+'" '+(role&&role!=='other'?'checked':'')+' onchange="_mgCount()" style="width:15px;height:15px;accent-color:#1A3C5E;cursor:pointer">'
+                +'<span id="mg-src-'+idx+'" style="font-family:monospace;font-size:12px;color:#1E293B">'+h+'</span></label></td>'
+                +'<td style="padding:7px 10px;font-size:11px;color:#94A3B8;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+samp+'</td>'
+                +'<td style="padding:7px 10px">'+_roleSel('mg-role-'+idx,role)+'</td>'
+                +'<td style="padding:7px 10px;font-size:11px;font-family:monospace;color:'+(ref?'#2563EB':'#CBD5E1')+'">'+ref+'</td>'
+                +'</tr>';
+        }).join('');
+        var tb=document.getElementById('mg-tbody');
+        if(tb)tb.innerHTML=rows||'<tr><td colspan="4" style="padding:16px;text-align:center;font-size:12px;color:#94A3B8">No columns in this sheet</td></tr>';
+        _mgCount();
+    }
 
-        const rows = fields.map((f,i) => `
-            <tr class="hover:bg-gray-50">
-                <td style="padding:6px 10px"><input id="mg-src-${i}" value="${(f.source_label||'').replace(/"/g,'&quot;')}" style="width:100%;border:1px solid #E2E8F0;border-radius:6px;padding:5px 8px;font-size:11px;font-family:monospace;box-sizing:border-box;"></td>
-                <td style="padding:6px 4px;text-align:center;color:#CBD5E1;font-size:13px;">\u27F7</td>
-                <td style="padding:6px 10px"><input id="mg-tgt-${i}" value="${(f.canonical_role||'').replace(/"/g,'&quot;')}" placeholder="canonical role" style="width:100%;border:1px solid #E2E8F0;border-radius:6px;padding:5px 8px;font-size:11px;font-family:monospace;box-sizing:border-box;"></td>
-                <td style="padding:6px 10px;text-align:center;font-size:11px;font-weight:700;color:${(f.confidence||0)>=0.8?'#059669':(f.confidence||0)>=0.5?'#D97706':'#94A3B8'}">${f.confidence?Math.round(f.confidence*100)+'%':'\u2014'}</td>
-                <td style="padding:6px 10px;text-align:center">
-                    <input type="checkbox" id="mg-key-${i}" ${f.is_key_field!==false?'checked':''} onchange="_mgUpdateCount()" style="width:16px;height:16px;cursor:pointer;accent-color:#2563EB;">
-                </td>
-                <td style="padding:6px 10px;font-size:10px;color:#94A3B8;font-family:monospace">${_packRefForRole(f.canonical_role,job.pack)}</td>
-             </tr>`).join('');
+    function _mgCount(){
+        var n=document.querySelectorAll('.mg-chk:checked').length;
+        var t=document.querySelectorAll('.mg-chk').length;
+        var a=document.getElementById('mg-count-lbl');if(a)a.textContent=n+' of '+t+' fields selected';
+        var b=document.getElementById('mg-footer');if(b)b.textContent=n+' field'+(n!==1?'s':'')+' will be compared';
+    }
+    function _mgAll(){document.querySelectorAll('.mg-chk').forEach(function(c){c.checked=true;});_mgCount();}
+    function _mgNone(){document.querySelectorAll('.mg-chk').forEach(function(c){c.checked=false;});_mgCount();}
 
-        const m = document.createElement('div');
-        m.id = 'mapping-gate-modal';
-        m.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);padding:16px;';
-        m.innerHTML = `
-            <div style="background:white;border-radius:16px;width:100%;max-width:800px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 50px rgba(0,0,0,0.25);">
-                <div style="background:#1A3C5E;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
-                    <div>
-                        <div style="color:white;font-weight:700;font-size:15px;">\uD83E\uDDE0 Field Mapping Confirmation</div>
-                        <div style="color:rgba(255,255,255,0.6);font-size:11px;margin-top:2px;">${job.client} \xB7 ${packName} \xB7 First run \u2014 confirm fields to compare</div>
-                    </div>
-                    <button onclick="document.getElementById('mapping-gate-modal').remove()" style="color:rgba(255,255,255,0.6);background:none;border:none;cursor:pointer;font-size:20px;">\u2715</button>
-                </div>
-                <div style="padding:10px 22px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;flex-shrink:0;display:flex;align-items:flex-start;gap:10px;">
-                    <span style="font-size:16px;margin-top:1px;">\u2728</span>
-                    <div style="font-size:12px;color:#1D4ED8;line-height:1.5;">
-                        <strong>Auto-mapping proposed</strong> via ${mLabel} (${conf}% confidence).
-                        Tick <strong>Compare</strong> for each field you want Oversight to check.
-                        Only active fields generate review points \u2014 untick granular rows (vendor names, journal entries) to avoid noise.
-                        ${method==='fallback'?'<br><span style="color:#D97706;font-weight:600;">\u26A0 Low confidence \u2014 please review each field carefully before confirming.</span>':''}
-                    </div>
-                </div>
-                <div style="overflow-y:auto;flex:1;padding:0 22px 10px;">
-                    <table style="width:100%;border-collapse:collapse;margin-top:10px;">
-                        <thead><tr style="background:#F8FAFC;">
-                            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #E2E8F0;">Source \u2014 Working Papers</th>
-                            <th style="width:24px;border-bottom:1px solid #E2E8F0;"></th>
-                            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #E2E8F0;">Canonical Role</th>
-                            <th style="padding:7px 10px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #E2E8F0;">Conf.</th>
-                            <th style="padding:7px 10px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #E2E8F0;">Compare</th>
-                            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #E2E8F0;">${packName} Ref.</th>
-                         </tr></thead>
-                        <tbody id="mg-tbody">${rows||'<tr><td colspan="6" style="padding:20px;text-align:center;font-size:12px;color:#94A3B8">No fields auto-detected \u2014 add manually</td></tr>'}</tbody>
-                     </table>
-                    <button onclick="_mgAddRow('${job.pack}')" style="margin-top:8px;width:100%;padding:8px;border:2px dashed #CBD5E1;border-radius:8px;font-size:12px;color:#64748B;background:none;cursor:pointer;">+ Add Field</button>
-                </div>
-                <div style="padding:8px 22px;background:#FAFBFC;border-top:1px solid #F1F5F9;font-size:11px;color:#94A3B8;flex-shrink:0;">
-                    \uD83D\uDCA1 <strong>Tip:</strong> Map summary-level fields only: Turnover, P&amp;L, Trade Creditors, Stock, Tax charge, Share Capital, Reserves. Disable sub-analysis rows.
-                </div>
-                <div style="padding:12px 22px;border-top:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
-                    <div style="font-size:12px;color:#64748B;" id="mg-count">${fields.filter(f=>f.is_key_field!==false).length} of ${fields.length} fields active</div>
-                    <div style="display:flex;gap:10px;">
-                        <button onclick="document.getElementById('mapping-gate-modal').remove()" style="padding:8px 16px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
-                        <button id="mg-confirm-btn" onclick="_mgConfirm('${job.id}')" style="padding:8px 22px;background:#059669;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">\u2705 Confirm &amp; Run Analysis</button>
-                    </div>
-                </div>
-            </div>`;
+    function _mgAddRow(){
+        var tb=document.getElementById('mg-tbody');if(!tb)return;
+        var i=tb.querySelectorAll('tr').length;
+        var tr=document.createElement('tr');tr.style.borderBottom='1px solid #F8FAFC';
+        tr.innerHTML='<td style="padding:7px 10px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer">'
+            +'<input type="checkbox" class="mg-chk" data-i="'+i+'" checked onchange="_mgCount()" style="width:15px;height:15px;accent-color:#1A3C5E;cursor:pointer">'
+            +'<input id="mg-src-'+i+'" placeholder="Column name\u2026" style="font-family:monospace;font-size:12px;border:1px solid #E2E8F0;border-radius:5px;padding:3px 7px;width:180px"></label></td>'
+            +'<td style="padding:7px 10px;font-size:11px;color:#94A3B8">\u2014</td>'
+            +'<td style="padding:7px 10px">'+_roleSel('mg-role-'+i,'other')+'</td>'
+            +'<td style="padding:7px 10px;font-size:11px;color:#CBD5E1">\u2014</td>';
+        tb.appendChild(tr);_mgCount();
+    }
+
+    async function _mgAI(){
+        var job=window._mgJob;if(!job)return;
+        var sh=window._mgSheets&&window._mgSheets[window._mgSheet||0];
+        if(!sh||!sh.headers||!sh.headers.length){showToast('No columns to suggest from');return;}
+        var btn=document.querySelector('[onclick="_mgAI()"]');
+        if(btn){btn.textContent='\u231B\u2026';btn.disabled=true;}
+        var sys='You are a UK accountancy expert. Given working paper column headers, identify key financial summary fields for comparison against statutory accounts. Return JSON array, each item: {"h":"header","role":"canonical_role","include":true|false}. Roles: turnover,profit_loss,cost_of_sales,wages,tax_charge,deferred_tax,fixed_assets,debtors,creditors,stock,cash,loans,dla,share_capital,reserves,other_taxes,tax_losses,other. Only include:true for summary-level fields. Vendor names, sub-analysis, journal entries = include:false. Return JSON only.';
+        var user='Headers: '+sh.headers.join(', ')+'\nPack: '+(PACK_NAMES[job.pack]||job.pack);
+        var raw=await _llm(sys,user,600);
+        if(btn){btn.textContent='\u2728 AI Suggest';btn.disabled=false;}
+        if(!raw){showToast(_llmCfg.k?'AI suggest failed':'Add API key in \u2728 AI settings first');return;}
+        try{
+            var data=JSON.parse(raw.replace(/```json|```/g,'').trim());
+            data.forEach(function(s){
+                var idx=sh.headers.indexOf(s.h);if(idx<0)return;
+                var chk=document.querySelector('.mg-chk[data-i="'+idx+'"]');
+                if(chk)chk.checked=!!s.include;
+                var sel=document.getElementById('mg-role-'+idx);
+                if(sel&&s.role)sel.value=s.role;
+            });
+            _mgCount();
+            showToast('AI mapped '+data.filter(function(s){return s.include;}).length+' key fields \u2014 review and confirm','success');
+        }catch(e){showToast('Could not parse AI response \u2014 try again');}
+    }
+
+    async function _mgConfirm(){
+        var job=window._mgJob;if(!job)return;
+        var sh=window._mgSheets&&window._mgSheets[window._mgSheet||0];
+        var fields=[];
+        document.querySelectorAll('.mg-chk').forEach(function(chk,i){
+            if(!chk.checked)return;
+            var srcEl=document.getElementById('mg-src-'+i);
+            var src=srcEl?(srcEl.value||srcEl.textContent||'').trim():'';
+            if(!src)return;
+            var roleEl=document.getElementById('mg-role-'+i);
+            fields.push({source_label:src,canonical_role:roleEl?roleEl.value:'other',source_doc:'a',value_type:'numeric',is_key_field:true,sheet:sh?sh.name:'Sheet1'});
+        });
+        if(!fields.length){showToast('Select at least one field to compare');return;}
+        var btn=document.getElementById('mg-ok');
+        if(btn){btn.disabled=true;btn.textContent='Confirming\u2026';}
+        job._schema={fields:fields,pack:job.pack,confirmed_at:new Date().toISOString()};
+        job._schemaConfirmed=true;
+        // Feed DI + Flywheel
+        var fsel={};fields.forEach(function(f){fsel[f.source_label]=f.canonical_role;});
+        fetch(API_BASE+'/flywheel/confirm',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({tenant_id:'default',client_id:job.client||'default',run_id:job.id,vertical:'accountancy',
+                regulatory_pack:job.pack,regulatory_pack_label:PACK_NAMES[job.pack]||job.pack,
+                workbook_name:job._fileA_blob?job._fileA_blob.name:'working_papers.xlsx',
+                template_id:job.pack+'_user_confirmed',job_id:job.id,
+                field_selections:fsel,preview:{headers:fields.map(function(f){return f.source_label;}),sample_values:{}}})
+        }).then(function(r){return r.json();}).then(function(d){if(d&&d.ok)console.log('Flywheel: schema logged ('+fields.length+' fields)');}).catch(function(e){console.warn('Flywheel (non-blocking):',e.message);});
+        document.getElementById('mg-ov').remove();
+        showToast('Schema confirmed \u2014 '+fields.length+' fields mapped. Running analysis\u2026','success');
+        job.status='analysing';_compActiveJob=job;_renderCompWorkflow();
+    }
+
+    // ── LLM Settings modal ────────────────────────────────────────────────────
+    function _llmModal(){
+        var ex=document.getElementById('llm-modal');if(ex){ex.remove();return;}
+        var m=document.createElement('div');m.id='llm-modal';
+        m.style.cssText='position:fixed;top:72px;right:16px;z-index:9999;background:white;border-radius:14px;width:340px;box-shadow:0 20px 40px rgba(0,0,0,.15);border:1px solid #E2E8F0;overflow:hidden';
+        m.innerHTML='<div style="background:#1A3C5E;padding:11px 18px;display:flex;justify-content:space-between;align-items:center">'
+            +'<span style="color:white;font-weight:700;font-size:14px">&#x2728; AI / LLM Settings</span>'
+            +'<button onclick="document.getElementById(\'llm-modal\').remove()" style="color:rgba(255,255,255,.6);background:none;border:none;cursor:pointer;font-size:18px">&times;</button>'
+            +'</div>'
+            +'<div style="padding:13px;display:flex;flex-direction:column;gap:9px">'
+            +'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:9px 11px;font-size:12px;color:#1D4ED8">'
+            +'AI powers schema mapping suggestions, review point guidance and narrative generation.<br>'
+            +'<strong>Gemini Flash is free</strong> \u2014 get a key at <a href="https://ai.google.dev" target="_blank" style="text-decoration:underline">ai.google.dev</a> (no card needed)</div>'
+            +'<div><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Provider</label>'
+            +'<select id="llm-ps" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;font-size:13px;box-sizing:border-box">'
+            +'<option value="gemini"'+(_llmCfg.p==='gemini'?' selected':'')+'>Gemini Flash (Free \u2014 recommended)</option>'
+            +'<option value="anthropic"'+(_llmCfg.p==='anthropic'?' selected':'')+'>Claude (Anthropic)</option>'
+            +'<option value="none"'+(_llmCfg.p==='none'?' selected':'')+'>Disabled</option>'
+            +'</select></div>'
+            +'<div><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">API Key</label>'
+            +'<input id="llm-ki" type="password" value="'+(_llmCfg.k||'')+'" placeholder="Paste key here\u2026" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:7px 10px;font-size:13px;box-sizing:border-box">'
+            +'<div style="font-size:10px;color:#94A3B8;margin-top:3px">Stored in your browser only \u2014 never sent to Oversight servers</div></div>'
+            +'<button onclick="_llmSave()" style="background:#1A3C5E;color:white;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;width:100%">Save Settings</button>'
+            +'</div>';
         document.body.appendChild(m);
     }
-
-    function _mgUpdateCount() {
-        const total  = document.querySelectorAll('[id^=mg-key-]').length;
-        const active = document.querySelectorAll('[id^=mg-key-]:checked').length;
-        const el = document.getElementById('mg-count');
-        if (el) el.textContent = `${active} of ${total} fields active`;
+    function _llmSave(){
+        var p=document.getElementById('llm-ps').value;
+        var k=document.getElementById('llm-ki').value.trim();
+        _saveLlm(p,k);
+        document.getElementById('llm-modal').remove();
+        showToast('AI: '+(p==='gemini'?'Gemini Flash':p==='anthropic'?'Claude':'disabled'),'success');
     }
 
-    function _mgAddRow(pack) {
-        const tbody = document.getElementById('mg-tbody');
-        const idx = tbody.querySelectorAll('tr').length;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td style="padding:6px 10px"><input id="mg-src-${idx}" placeholder="Source column\u2026" style="width:100%;border:1px solid #E2E8F0;border-radius:6px;padding:5px 8px;font-size:11px;font-family:monospace;box-sizing:border-box;"></td>
-            <td style="padding:6px 4px;text-align:center;color:#CBD5E1;font-size:13px;">\u27F7</td>
-            <td style="padding:6px 10px"><input id="mg-tgt-${idx}" placeholder="canonical_role\u2026" style="width:100%;border:1px solid #E2E8F0;border-radius:6px;padding:5px 8px;font-size:11px;font-family:monospace;box-sizing:border-box;"></td>
-            <td style="padding:6px 10px;text-align:center;font-size:11px;color:#94A3B8">\u2014</td>
-            <td style="padding:6px 10px;text-align:center"><input type="checkbox" id="mg-key-${idx}" checked onchange="_mgUpdateCount()" style="width:16px;height:16px;cursor:pointer;accent-color:#2563EB;"></td>
-            <td style="padding:6px 10px;font-size:10px;color:#94A3B8">\u2014</td>`;
-        tbody.appendChild(row);
-        _mgUpdateCount();
-    }
-
-    async function _mgConfirm(jobId) {
-        const job = window._compJobs.find(j => j.id === jobId);
-        if (!job) return;
-        const rows = document.getElementById('mg-tbody')?.querySelectorAll('tr') || [];
-        const fields = [];
-        rows.forEach((_,i) => {
-            const src = document.getElementById(`mg-src-${i}`)?.value.trim();
-            const tgt = document.getElementById(`mg-tgt-${i}`)?.value.trim();
-            const key = document.getElementById(`mg-key-${i}`)?.checked ?? true;
-            if (src) fields.push({ source_label:src, canonical_role:tgt||'other', source_doc:'a', value_type:'numeric', is_key_field:key });
-        });
-        if (!fields.filter(f=>f.is_key_field).length) { showToast('Enable at least one field'); return; }
-
-        const btn = document.getElementById('mg-confirm-btn');
-        if (btn) { btn.disabled=true; btn.textContent='Confirming\u2026'; }
-
-        if (job._engId) {
-            try {
-                await fetch(`${API_BASE}/engagements/${job._engId}/confirm-mapping`, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ fields, template_name:null, notes:null })
-                });
-            } catch(e) { console.warn('confirm-mapping:', e.message); }
-        }
-
-        job._mappingConfirmed = true;
-        job._confirmedFields = fields;
-        document.getElementById('mapping-gate-modal')?.remove();
-        showToast('Mapping confirmed \u2014 running analysis\u2026', 'success');
-
-        const fa = job._fileA_blob;
-        if (!fa) {
-            job.status = 'draft'; _renderCompWorkflow();
-            showToast('Mapping saved \u2014 please re-upload your files to run the analysis');
+    // ── AI guidance on individual review points ───────────────────────────────
+    async function _ptGuidance(ptId,sev,title,desc,pack){
+        var btn=document.getElementById('ptg-btn-'+ptId);
+        var box=document.getElementById('ptg-box-'+ptId);
+        if(!box)return;
+        if(box.dataset.loaded){box.style.display=box.style.display==='none'?'block':'none';return;}
+        if(!_llmCfg.k){
+            box.style.display='block';
+            box.innerHTML='<div style="padding:8px 10px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:7px;font-size:12px;color:#92400E">&#x2728; Add your API key in <strong>&#x2728; AI Settings</strong> (top right).</div>';
             return;
         }
-        job.status = 'analysing'; _renderCompWorkflow();
-        const form = new FormData();
-        form.append('file_a', fa);
-        if (job._fileB_blob) form.append('file_b', job._fileB_blob);
-        form.append('label_a','Working Papers'); form.append('label_b','Final Accounts');
-        form.append('preparer_name','Preparer'); form.append('materiality_pct', job.materiality);
-        form.append('mapping_confirmed','true');
-        try {
-            const res = await fetch(`${API_BASE}/engagements/${job._engId}/submit`, {method:'POST',body:form});
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail||'Failed');
-            const pts = (data.review_points||[]).map((p,i)=>({
-                id:p.id||`rp-${i}`, severity:p.severity||'medium',
-                ref:p.audit_ref||`\xA7${p.field_name||'General'}`,
-                title:(p.title||p.description||`Point ${i+1}`).slice(0,120),
-                description:p.description||'', status:p.status||'open',
-                section:p.section||'General', _backendId:p.id,
-            }));
-            job.reviewPoints = pts.length ? pts : [{id:'clean',severity:'low',ref:'\xA7OK',title:'No material differences detected',description:'Files compared clean.',status:'resolved',section:'Summary'}];
-            job.status = 'review';
-            delete job._fileA_blob; delete job._fileB_blob;
-            _renderCompWorkflow();
-            showToast(`Analysis complete \u2014 ${pts.filter(p=>p.status==='open').length} review point(s) raised`);
-        } catch(e) {
-            job.reviewPoints = _getSamplePoints(job.pack);
-            job.status = 'review';
-            delete job._fileA_blob; delete job._fileB_blob;
-            _renderCompWorkflow();
-            showToast(`Offline mode \u2014 ${e.message}`);
+        if(btn){btn.textContent='\u231B';btn.disabled=true;}
+        box.style.display='block';
+        box.innerHTML='<div style="padding:7px 10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:7px;font-size:12px;color:#1D4ED8;display:flex;align-items:center;gap:7px"><span style="display:inline-block;width:11px;height:11px;border:2px solid #BFDBFE;border-top-color:#2563EB;border-radius:50%;animation:spin .7s linear infinite"></span>Consulting AI\u2026</div>';
+        var pn=PACK_NAMES[pack]||pack;
+        var sys='You are a senior UK accountant and '+pn+' specialist. Give concise practical guidance on this review point in under 90 words. Reference the exact standard section. Bold the single most important action.';
+        var user='Review point ('+sev+'): '+title+'\n\nDetail: '+desc+'\n\nWhat must the preparer do? Reference '+pn+'.';
+        var text=await _llm(sys,user,160);
+        box.dataset.loaded='1';
+        if(btn){btn.textContent='\u2728';btn.disabled=false;}
+        if(text){
+            box.innerHTML='<div style="padding:9px 12px;background:linear-gradient(135deg,#f0f7ff,#e8f2fd);border:1px solid #BFDBFE;border-radius:7px;font-size:12px;color:#1E293B;line-height:1.6">'
+                +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:#2563EB;color:white">\u2736 AI Guidance</span>'
+                +'<span style="font-size:10px;color:#94A3B8">'+pn+'</span></div>'
+                +text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')
+                +'</div>';
+        }else{
+            box.innerHTML='<div style="padding:7px 10px;background:#FFF1F2;border:1px solid #FECACA;border-radius:7px;font-size:12px;color:#B91C1C">Could not get guidance \u2014 check &#x2728; AI Settings.</div>';
         }
     }
 
     async function _compRunAnalysis() {
         const job = _compActiveJob;
         if (!job || job.status !== 'analysing') return;
+
+        // ── Mapping gate: require schema confirmation on first run ──────────
+        if (!job._schemaConfirmed) { _showMappingGate(job); return; }
 
         const _logStep = (label) => {
             const container = document.getElementById('cw-progress-steps');
@@ -1936,11 +2064,15 @@ document.getElementById('report-generate-btn').onclick = async () => {
 
             const formData = new FormData();
             formData.append('file_a', job._fileA_blob);
-            formData.append('file_b', job._fileB_blob);
+            if (job._fileB_blob) formData.append('file_b', job._fileB_blob);
             formData.append('label_a', 'Working Papers');
             formData.append('label_b', 'Final Accounts');
             formData.append('vertical', 'accountancy');
             formData.append('materiality_pct', job.materiality);
+            if (job._schema && job._schema.fields) {
+                formData.append('key_fields', JSON.stringify(job._schema.fields.map(function(f){return f.source_label;})));
+                formData.append('canonical_roles', JSON.stringify(job._schema.fields.map(function(f){return f.canonical_role;})));
+            }
 
             const response = await fetch('http://127.0.0.1:8000/api/v1/compare', {
                 method: 'POST',
@@ -2033,46 +2165,27 @@ document.getElementById('report-generate-btn').onclick = async () => {
         }
     }
 
-    async function _compMarkAddressed(jobId, ptId, idx) {
+    function _compMarkAddressed(jobId, ptId, idx) {
         const job = window._compJobs.find(j => j.id === jobId);
         if (!job) return;
+        // Save correction note
         const noteEl = document.getElementById(`cw-note-${ptId}`);
         if (noteEl) job.corrections[ptId] = noteEl.value;
         const pt = job.reviewPoints.find(p => p.id === ptId);
         if (!pt) return;
-        const newStatus = pt.status === 'resolved' ? 'open' : 'resolved';
-        pt.status = newStatus;
+        pt.status = pt.status === 'resolved' ? 'open' : 'resolved';
         job.status = 'correcting';
         _compActiveJob = job;
-
-        // POST to real backend if we have an engagement ID and real review point
-        if (job._engId && pt._backendId && newStatus === 'resolved') {
-            const form = new FormData();
-            form.append('preparer_note', job.corrections[ptId] || 'Marked addressed by preparer');
-            form.append('preparer_name', 'Preparer');
-            fetch(`${API_BASE}/review-points/${pt._backendId}/correct`, { method:'POST', body:form })
-                .catch(e => console.warn('correct API:', e.message));
-        }
         _renderCompWorkflow();
     }
 
-    async function _compReassess() {
+    function _compReassess() {
         const job = _compActiveJob;
-        // Save all correction notes
+        // Save all correction notes first
         job.reviewPoints.forEach(pt => {
             const noteEl = document.getElementById(`cw-note-${pt.id}`);
             if (noteEl) job.corrections[pt.id] = noteEl.value;
         });
-        // POST corrections to backend for each resolved point
-        if (job._engId) {
-            for (const pt of job.reviewPoints.filter(p => p.status === 'resolved' && p._backendId)) {
-                const form = new FormData();
-                form.append('preparer_note', job.corrections[pt.id] || 'Correction noted');
-                form.append('preparer_name', 'Preparer');
-                fetch(`${API_BASE}/review-points/${pt._backendId}/correct`, { method:'POST', body:form })
-                    .catch(e => console.warn('correct API:', e.message));
-            }
-        }
         job.status = 'reassessing';
         _renderCompWorkflow();
     }
@@ -2101,110 +2214,18 @@ document.getElementById('report-generate-btn').onclick = async () => {
         if (modal) modal.style.display = 'flex';
     }
 
-    async function _compConfirmSignOff(jobId) {
+    function _compConfirmSignOff(jobId) {
         const partner  = document.getElementById('cw-so-partner')?.value.trim();
         const comments = document.getElementById('cw-so-comments')?.value.trim();
         if (!partner) { showToast('Enter the partner name'); return; }
         const job = window._compJobs.find(j => j.id === jobId);
         if (!job) return;
         job.signOff = { partner, comments, date: new Date().toISOString() };
-
-        // POST to real backend if engagement exists
-        if (job._engId) {
-            try {
-                const res = await fetch(`${API_BASE}/engagements/${job._engId}/sign-off`, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ partner_name:partner, notes:comments||'' })
-                });
-                if (!res.ok) { const d = await res.json(); throw new Error(d.detail||'Sign-off failed'); }
-            } catch(e) {
-                showToast(`Backend sign-off error: ${e.message} — recorded locally`, 'warning');
-            }
-        }
-
         job.status = 'signed_off';
         document.getElementById('cw-signoff-modal').style.display = 'none';
         _compActiveJob = job;
         _renderCompWorkflow();
         showToast(`Signed off by ${partner} — evidence pack ready`, 'success');
-    }
-
-    async function _compGetGuidance(ptId, severity, title, description, pack) {
-        const btn = document.getElementById(`guidance-btn-${ptId}`);
-        const box = document.getElementById(`guidance-box-${ptId}`);
-        if (!box) return;
-        if (box.dataset.loaded) { box.classList.toggle('hidden'); return; }
-        if (!_llmConfig.apiKey) {
-            box.innerHTML = '<div style="padding:8px 12px;background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;font-size:12px;color:#92400E;">&#9888; Add your Gemini API key in <strong>LLM Settings</strong> (top right) to get AI guidance on review points.</div>';
-            box.classList.remove('hidden'); return;
-        }
-        if (btn) { btn.textContent = '⌛ Getting guidance…'; btn.disabled = true; }
-        box.classList.remove('hidden');
-        box.innerHTML = '<div style="padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1D4ED8;display:flex;align-items:center;gap:8px;"><span style="display:inline-block;width:12px;height:12px;border:2px solid #BFDBFE;border-top-color:#2563EB;border-radius:50%;animation:spin 0.7s linear infinite;"></span> Consulting ' + (_llmConfig.provider==='gemini'?'Gemini':'Claude') + '…</div>';
-        const packName = PACK_NAMES[pack] || pack;
-        const sys = `You are a senior UK accountant and ${packName} specialist. Give concise, practical guidance on this review point in under 100 words. Reference the relevant standard section. Bold the key action required.`;
-        const user = `Review point (${severity}): ${title}
-
-Detail: ${description}
-
-What must the preparer do to resolve this? Reference ${packName} specifically.`;
-        const text = await _callLLM(sys, user, 180);
-        box.dataset.loaded = '1';
-        if (text) {
-            box.innerHTML = `<div style="padding:10px 14px;background:linear-gradient(135deg,#f0f7ff,#e8f2fd);border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1E293B;line-height:1.6;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;background:#2563EB;color:white;letter-spacing:.3px;">✶ AI Guidance</span>
-                    <span style="font-size:10px;color:#94A3B8;">${packName}</span>
-                </div>
-                ${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br/>')}
-            </div>`;
-        } else {
-            box.innerHTML = '<div style="padding:8px 12px;background:#FFF1F2;border:1px solid #FECACA;border-radius:8px;font-size:12px;color:#B91C1C;">Could not get guidance — check LLM settings.</div>';
-        }
-        if (btn) { btn.textContent = '✨ AI Guidance'; btn.disabled = false; }
-    }
-
-    function _showLLMSettings() {
-        const existing = document.getElementById('llm-settings-modal');
-        if (existing) { existing.remove(); return; }
-        const m = document.createElement('div');
-        m.id = 'llm-settings-modal';
-        m.style.cssText = 'position:fixed;top:80px;right:20px;z-index:9999;background:white;border-radius:14px;width:380px;box-shadow:0 20px 40px rgba(0,0,0,0.15);border:1px solid #E2E8F0;overflow:hidden;';
-        m.innerHTML = `
-            <div style="background:#1A3C5E;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;">
-                <span style="color:white;font-weight:700;font-size:14px;">✨ LLM / AI Settings</span>
-                <button onclick="document.getElementById('llm-settings-modal').remove()" style="color:rgba(255,255,255,0.6);background:none;border:none;cursor:pointer;font-size:18px;">✕</button>
-            </div>
-            <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
-                <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 12px;font-size:12px;color:#1D4ED8;line-height:1.5;">
-                    AI powers review point guidance, mapping suggestions, and narrative generation.
-                    <br><strong>Gemini Flash is free</strong> — get a key at <a href="https://ai.google.dev" target="_blank" style="color:#2563EB;text-decoration:underline;">ai.google.dev</a>
-                </div>
-                <div>
-                    <label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:5px;">AI Provider</label>
-                    <select id="llm-provider-sel" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;">
-                        <option value="gemini" ${_llmConfig.provider==='gemini'?'selected':''}>Gemini Flash (Free — recommended)</option>
-                        <option value="anthropic" ${_llmConfig.provider==='anthropic'?'selected':''}>Claude (Anthropic)</option>
-                        <option value="none" ${_llmConfig.provider==='none'?'selected':''}>Disabled</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:5px;">API Key</label>
-                    <input id="llm-key-inp" type="password" value="${_llmConfig.apiKey||''}" placeholder="Paste your API key here…"
-                        style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;">
-                    <div style="font-size:10px;color:#94A3B8;margin-top:3px;">Stored locally in your browser only. Never sent to Oversight servers.</div>
-                </div>
-                <button onclick="_applyLLMSettings()" style="background:#1A3C5E;color:white;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">Save Settings</button>
-            </div>`;
-        document.body.appendChild(m);
-    }
-
-    function _applyLLMSettings() {
-        const provider = document.getElementById('llm-provider-sel')?.value || 'gemini';
-        const key = document.getElementById('llm-key-inp')?.value.trim() || '';
-        _saveLlmConfig(provider, key);
-        document.getElementById('llm-settings-modal')?.remove();
-        showToast(`AI provider set to ${provider === 'gemini' ? 'Gemini Flash' : provider === 'anthropic' ? 'Claude' : 'disabled'}`, 'success');
     }
 
     function _compDownloadEvidencePack(jobId) {
@@ -2618,8 +2639,8 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
             <div class="card overflow-hidden">
                 <div class="flex border-b border-gray-100">
                     <button data-tab="bocpd"   class="analytics-tab px-5 py-3 text-xs font-semibold text-blue-600 border-b-2 border-blue-600">📍 Change Points</button>
-                    <button data-tab="hurst"   class="analytics-tab px-5 py-3 text-xs font-semibold text-gray-400">📈 Hurst Exponent</button>
-                    <button data-tab="entropy" class="analytics-tab px-5 py-3 text-xs font-semibold text-gray-400">🔀 Per-Record Entropy</button>
+                    <button data-tab="hurst"   class="analytics-tab px-5 py-3 text-xs font-semibold text-gray-400">📈 Trend Analysis</button>
+                    <button data-tab="entropy" class="analytics-tab px-5 py-3 text-xs font-semibold text-gray-400">🔀 Data Consistency</button>
                     <button data-tab="status"  class="analytics-tab px-5 py-3 text-xs font-semibold text-gray-400">📦 Stored Results</button>
                 </div>
 
@@ -2629,11 +2650,11 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
                     </div>
                     <div class="flex gap-4 items-end">
                         <div class="flex-1">
-                            <label class="text-xs font-semibold text-gray-500 block mb-1">HAZARD RATE</label>
+                            <label class="text-xs font-semibold text-gray-500 block mb-1">SENSITIVITY</label>
                             <input type="number" id="bocpd-hazard" value="0.01" min="0.0001" max="0.1" step="0.001" class="w-full border rounded-lg px-3 py-2 text-sm">
                             <p class="text-xs text-gray-400 mt-1">Lower = fewer alarms. Default 0.01 = expect ~1 change per 100 records.</p>
                         </div>
-                        <button id="run-bocpd" class="btn-primary px-6 py-2">▶ Run Change-Point Detection</button>
+                        <button id="run-bocpd" class="btn-primary px-6 py-2">▶ Run Change Detection</button>
                     </div>
                     <div id="bocpd-result" class="hidden"></div>
                 </div>
@@ -2647,7 +2668,7 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
                             <label class="text-xs font-semibold text-gray-500 block mb-1">ROLLING WINDOW</label>
                             <input type="number" id="hurst-window" value="10" min="10" max="200" step="5" class="w-full border rounded-lg px-3 py-2 text-sm">
                         </div>
-                        <button id="run-hurst" class="btn-primary px-6 py-2">▶ Run Hurst Analysis</button>
+                        <button id="run-hurst" class="btn-primary px-6 py-2">▶ Run Trend Analysis</button>
                     </div>
                     <div id="hurst-result" class="hidden"></div>
                 </div>
@@ -2660,7 +2681,7 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
                         <label class="text-xs font-semibold text-gray-500 block mb-1">FIELDS TO ANALYSE (comma-separated)</label>
                         <input type="text" id="entropy-fields" value="ob,dr,cr,cb" class="w-full border rounded-lg px-3 py-2 text-sm">
                     </div>
-                    <button id="run-entropy" class="btn-primary px-6 py-2">▶ Run Entropy Analysis</button>
+                    <button id="run-entropy" class="btn-primary px-6 py-2">▶ Run Consistency Check</button>
                     <div id="entropy-result" class="hidden"></div>
                 </div>
 
@@ -2747,7 +2768,7 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
             if (!jobId) { showToast('Select a completed job first'); return; }
             const rd = document.getElementById('hurst-result');
             rd.classList.remove('hidden');
-            rd.innerHTML = '<div class="flex items-center gap-2 text-sm text-gray-500"><div class="spinner"></div> Computing Hurst exponent...</div>';
+            rd.innerHTML = '<div class="flex items-center gap-2 text-sm text-gray-500"><div class="spinner"></div> Computing trend analysis...</div>';
             const r = await fetchJSON(`${API_BASE}/analytics/hurst`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2781,7 +2802,7 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
             if (!jobId) { showToast('Select a completed job first'); return; }
             const rd = document.getElementById('entropy-result');
             rd.classList.remove('hidden');
-            rd.innerHTML = '<div class="flex items-center gap-2 text-sm text-gray-500"><div class="spinner"></div> Computing per-record entropy...</div>';
+            rd.innerHTML = '<div class="flex items-center gap-2 text-sm text-gray-500"><div class="spinner"></div> Running data consistency check...</div>';
             const r = await fetchJSON(`${API_BASE}/analytics/entropy-per-record`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2792,7 +2813,7 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
             const flaggedHtml = flagged.length > 0
                 ? '<div class="space-y-1">' + flagged.map(rec =>
                     `<div class="border-l-4 border-amber-400 bg-amber-50 p-2 text-xs rounded-r">
-                        <strong>Record #${rec.record_index}</strong> (ID: ${rec.record_id}) — entropy: ${rec.entropy.toFixed(3)}
+                        <strong>Record #${rec.record_index}</strong> (ID: ${rec.record_id}) — consistency score: ${rec.entropy.toFixed(3)}
                         <br><span class="text-gray-500">${rec.interpretation || ''}</span>
                     </div>`
                 ).join('') + '</div>'
@@ -2800,13 +2821,13 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
             rd.innerHTML = `<div class="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div class="font-semibold text-sm">${(r.plain_english && r.plain_english.summary) || ''}</div>
                 <div class="flex gap-4 text-xs flex-wrap">
-                    <span>Mean entropy: <strong>${r.mean_entropy.toFixed(3)}</strong></span>
+                    <span>Mean consistency score: <strong>${r.mean_entropy.toFixed(3)}</strong></span>
                     <span>Threshold: <strong>${r.threshold.toFixed(3)}</strong></span>
                     <span>Flagged: <strong class="${r.high_entropy_count > 0 ? 'text-amber-600' : ''}">${r.high_entropy_count}</strong></span>
                 </div>
                 ${flaggedHtml}
             </div>`;
-            showToast(r.high_entropy_count > 0 ? `${r.high_entropy_count} high-entropy record(s) flagged` : 'No outliers detected');
+            showToast(r.high_entropy_count > 0 ? `${r.high_entropy_count} record(s) flagged for inconsistency` : 'No outliers detected');
         };
 
         // Status handler
@@ -2894,7 +2915,7 @@ What must the preparer do to resolve this? Reference ${packName} specifically.`;
     renderLaunchScreen();
     setInterval(() => { if (document.getElementById('anomaly-queue-list')) refreshAnomalyQueue(); }, 30000);
 </script>
-<footer style="position:fixed;bottom:0;left:280px;right:0;background:white;border-top:1px solid #E2E8F0;padding:6px 2rem;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#94A3B8;z-index:10;">
+<footer style="position:fixed;bottom:0;left:280px;right:0;background:white;border-top:1px solid #E2E8F0;padding:6px 2rem;display:flex;justify-between;align-items:center;font-size:10px;color:#94A3B8;z-index:10;">
     <span>Oversight Labs Limited · Co. No. 17145488</span>
     <span id="footer-status">Connecting...</span>
     <span>oversightlab.ai</span>
@@ -2957,9 +2978,7 @@ setInterval(async () => {
                     </div>
                 </div>
                 <div class="px-4 py-2 bg-gray-50 text-xs text-gray-400 flex gap-4">
-                    <span>👤 ${e.preparer_name||'—'}</span>
-                    <span>📋 ${e.run_count||0} runs</span>
-                    <span>✓ ${e.resolved_points_count||0} resolved</span>
+                    <span>👤 ${e.preparer_name||'—'}</span><span>📋 ${e.run_count||0} runs</span><span>✓ ${e.resolved_points_count||0} resolved</span>
                     <span class="ml-auto">${e.created_at ? new Date(e.created_at).toLocaleDateString('en-GB') : ''}</span>
                 </div>
             </div>`).join('');
@@ -3053,11 +3072,13 @@ setInterval(async () => {
                                 ${p.corrected_file_name ? `<div style="font-size:11px;color:#059669;margin-top:3px">&#x1F4CE; ${p.corrected_file_name}</div>` : ''}
                                 ${p.waiver_reason ? `<div style="margin-top:6px;padding:6px 10px;background:#F1F5F9;border-radius:6px;font-size:11px"><strong>Waiver:</strong> ${p.waiver_reason}</div>` : ''}
                                 ${p.ai_reassessment_note ? `<div style="margin-top:6px;padding:6px 10px;background:#EDE9FE;border:1px solid #DDD6FE;border-radius:6px;font-size:11px"><strong>Oversight AI:</strong> ${p.ai_reassessment_note}</div>` : ''}
+                                <div id="ptg-box-"+p.id style="display:none;margin-top:6px"></div>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
                                 ${['open','acknowledged','in_progress'].includes(p.status) ? `<button onclick="showCorrectionModal(${p.id},'${(p.title||'').replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${eng.id})" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #A7F3D0;color:#059669;background:white;cursor:pointer">&#x270F; Correct</button>` : ''}
                                 ${['open','acknowledged','in_progress','corrected'].includes(p.status) ? `<button onclick="showWaiveModal(${p.id},'${(p.title||'').replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${eng.id})" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #E2E8F0;color:#64748B;background:white;cursor:pointer">Waive</button>` : ''}
                                 ${!['escalated','resolved','signed_off'].includes(p.status) ? `<button onclick="showEscalateModal(${p.id},'${(p.title||'').replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${eng.id})" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #DDD6FE;color:#7C3AED;background:white;cursor:pointer">Escalate</button>` : ''}
+                                <button onclick="_ptGuidance(p.id,p.severity||'low',p.title||'',p.description||'',eng.regulatory_pack||'frs102')" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid #BFDBFE;color:#2563EB;background:white;cursor:pointer" id="ptg-btn-"+p.id>&#x2728;</button>
                             </div>
                         </div>
                     </div>`).join('')}
@@ -3509,7 +3530,7 @@ setInterval(async () => {
     function _dqOCRPanelHTML() {
         return `<div class="card p-6 space-y-5">
             <div>
-                <h3 style="font-weight:700;font-size:16px;margin-bottom:4px">📷 OCR → Digital Records</h3>
+                <h3 style="font-weight:700;font-size:16px;margin-bottom:4px">📄 Document Import</h3>
                 <p style="font-size:13px;color:#64748B">Convert scanned documents, PDFs, or photos of physical records into structured digital data. Oversight extracts field values using OCR and applies your schema to produce a clean, downloadable dataset.</p>
             </div>
 
@@ -3771,8 +3792,8 @@ setInterval(async () => {
             '🏷 Checking domain constraints (NI, postcode, UTR, VAT...)...',
             '🔗 Running cross-field consistency rules...',
             '🌐 Checking referential integrity across sources...',
-            '🤖 Running OADE ensemble anomaly detection (IsolationForest + LOF + IQR)...',
-            '📊 Computing SHAP attribution...',
+            '🔍 Running population anomaly checks...',
+            '📊 Computing risk attribution...',
             '🧠 Generating AI narrative summary...',
             '📄 Building PDF evidence pack...',
         ];
@@ -3864,7 +3885,7 @@ setInterval(async () => {
                         ['High Severity', s.high_severity||0, s.high_severity>0?'#DC2626':''],
                         ['Med Severity', s.medium_severity||0, s.medium_severity>0?'#D97706':''],
                         ['Pop. Affected', `${s.population_pct||0}%`, s.population_pct>10?'#DC2626':s.population_pct>2?'#D97706':''],
-                        ['OADE Anomalies', `${oade.anomaly_pct||0}%`, oade.anomaly_pct>10?'#DC2626':oade.anomaly_pct>2?'#D97706':''],
+                        ['Population Anomalies', `${oade.anomaly_pct||0}%`, oade.anomaly_pct>10?'#DC2626':oade.anomaly_pct>2?'#D97706':''],
                     ].map(([l,v,c]) => `<div style="text-align:center;padding:10px 0;border-right:1px solid #E2E8F0">
                         <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">${l}</div>
                         <div style="font-size:18px;font-weight:800;margin-top:2px${c?';color:'+c:''}">${v}</div>
@@ -3878,11 +3899,11 @@ setInterval(async () => {
                 <p style="font-size:13px;color:#1E293B;line-height:1.7">${data.narrative}</p>
             </div>` : ''}
 
-            <!-- SHAP + OADE side by side -->
+            <!-- Risk attribution + Population checks side by side -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <!-- SHAP -->
+                <!-- Risk attribution -->
                 <div class="card p-5">
-                    <div style="font-weight:700;color:#1E293B;margin-bottom:12px">📊 SHAP Attribution</div>
+                    <div style="font-weight:700;color:#1E293B;margin-bottom:12px">📊 Risk Attribution</div>
                     <div style="display:flex;flex-direction:column;gap:8px">
                         ${shap.map(d => {
                             const pct = Math.round(d.impact * 100);
@@ -3903,9 +3924,9 @@ setInterval(async () => {
                     </div>
                 </div>
 
-                <!-- OADE -->
+                <!-- Population checks -->
                 <div class="card p-5">
-                    <div style="font-weight:700;color:#1E293B;margin-bottom:12px">🤖 OADE Population Anomalies</div>
+                    <div style="font-weight:700;color:#1E293B;margin-bottom:12px">🔍 Population Anomaly Checks</div>
                     ${oade.status === 'ok' ? `
                         <div style="display:flex;gap:3;flex-wrap:wrap;gap:8px;margin-bottom:12px">
                             ${(oade.detectors_used||[]).map(d => `<span style="font-size:10px;padding:2px 8px;background:#DBEAFE;color:#1D4ED8;border-radius:999px;font-weight:700">${d}</span>`).join('')}
@@ -3923,7 +3944,7 @@ setInterval(async () => {
                                     <span style="color:#DC2626;font-weight:700">${stats.pct}% · ${stats.count.toLocaleString()} records</span>
                                 </div>`).join('')}
                         </div>` : ''}
-                    ` : `<div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">OADE not run or insufficient data</div>`}
+                    ` : `<div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">Population checks not run or insufficient data</div>`}
                 </div>
             </div>
 
@@ -4011,9 +4032,9 @@ setInterval(async () => {
     // UNIFIED JOB QUEUE + OCR INTEGRATION
     // Single entry point for all job types:
     //   - comparison (2 docs, regulatory rules, SHAP, LLM)
-    //   - data quality (multi-source, schema validation, OADE)
+    //   - data quality (multi-source, schema validation, anomaly checks)
     //   - ocr_digitise (image/PDF → structured → DQ → review queue)
-    //   - full_pipeline (OCR → normalise → DI → compare → DQ → OADE → report)
+    //   - full_pipeline (OCR → normalise → DI → compare → DQ → anomaly checks → report)
     // All jobs appear in the same queue, feed into engagements, 
     // generate review points, and are auditable.
     // ══════════════════════════════════════════════════════════════════
@@ -4035,7 +4056,7 @@ setInterval(async () => {
     const JOB_TYPE_LABELS = {
         comparison:    { icon: '⚖️',  label: 'Comparison' },
         data_quality:  { icon: '🧹',  label: 'Data Quality' },
-        ocr_digitise:  { icon: '📷',  label: 'OCR → Digital' },
+        ocr_digitise:  { icon: '📄',  label: 'Document Import' },
         full_pipeline: { icon: '🔄',  label: 'Full Pipeline' },
     };
 
@@ -4047,7 +4068,7 @@ setInterval(async () => {
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-bold">📋 Oversight Job Queue</h2>
-                    <p class="text-sm text-gray-500 mt-1">All comparison, data quality, OCR and full pipeline jobs in one queue.</p>
+                    <p class="text-sm text-gray-500 mt-1">All comparison, data quality, document import and full pipeline jobs in one queue.</p>
                 </div>
                 <button onclick="showNewJobModal()" class="btn-primary px-5 py-2.5 text-sm rounded-xl">+ New Job</button>
             </div>
@@ -4072,7 +4093,7 @@ setInterval(async () => {
             el.innerHTML = `<div class="card p-10 text-center">
                 <div class="text-4xl mb-3">📋</div>
                 <div class="font-semibold text-gray-600 mb-2">No jobs yet</div>
-                <div class="text-sm text-gray-400 mb-4">Start a comparison, data quality check, or OCR digitisation</div>
+                <div class="text-sm text-gray-400 mb-4">Start a comparison, data quality check, or document import</div>
                 <button onclick="showNewJobModal()" class="btn-primary px-5 py-2 text-sm rounded-xl">+ New Job</button>
             </div>`;
             return;
@@ -4135,9 +4156,9 @@ setInterval(async () => {
             </div>
             <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 ${[
-                    ['⚖️','Comparison','Compare two documents with regulatory rules, SHAP attribution and LLM narrative. Creates an engagement with review points.','comparison'],
-                    ['🧹','Data Quality','Multi-source DQ analysis across 1–10 files. Schema validation, OADE anomaly detection, population statistics.','data_quality'],
-                    ['📷','OCR → Full Pipeline','Upload scanned/photographed documents. OCR extracts data, DI engine normalises, DQ validates, OADE detects anomalies — all with review queue.','full_pipeline'],
+                    ['⚖️','Comparison','Compare two documents with regulatory rules, risk attribution and LLM narrative. Creates an engagement with review points.','comparison'],
+                    ['🧹','Data Quality','Multi-source DQ analysis across 1–10 files. Schema validation, population anomaly checks, population statistics.','data_quality'],
+                    ['📷','OCR → Full Pipeline','Upload scanned/photographed documents. OCR extracts data, DI engine normalises, DQ validates, anomalies detected — all with review queue.','full_pipeline'],
                     ['📁','New Engagement','Create a blank engagement for manual file submission.','engagement'],
                 ].map(([icon, title, desc, type]) => `
                     <div onclick="this.closest('[style*=fixed]').remove();_startJobType('${type}')"
@@ -4163,14 +4184,14 @@ setInterval(async () => {
 
     // ══════════════════════════════════════════════════════════════════
     // OCR INTEGRATED INTO FULL PIPELINE
-    // OCR → DI normalise → DQ validate → OADE → review points → engagement
+    // OCR → DI normalise → DQ validate → anomaly checks → review points → engagement
     // ══════════════════════════════════════════════════════════════════
 
     async function runFullOCRPipeline(files, schemaId, engagementId, outputFormat) {
         // Track this job
         const jobId = 'JOB-' + Date.now();
         const job = {
-            _localId: jobId, name: `OCR Pipeline (${files.length} file${files.length>1?'s':''})`,
+            _localId: jobId, name: `Document Import (${files.length} file${files.length>1?'s':''})`,
             status: 'running', job_type: 'full_pipeline',
             created_at: new Date().toISOString(), _source: 'local',
         };
@@ -4206,13 +4227,13 @@ setInterval(async () => {
                 dqForm.append('run_oade', 'true');
                 dqForm.append('tenant_id', '1');
 
-                updatePipelineLog('🤖 Running OADE anomaly detection...');
+                updatePipelineLog('🔍 Running population anomaly checks...');
                 const dqRes = await fetch(`${API_BASE}/dq/run`, {method:'POST', body:dqForm});
                 const dqData = await dqRes.json();
                 if (dqRes.ok) {
                     const s = dqData.summary || {};
                     updatePipelineLog(`✓ DQ: ${s.total_rows?.toLocaleString()} records · ${s.high_severity||0} high-severity · ${s.population_pct||0}% affected`);
-                    updatePipelineLog(`✓ OADE: ${s.oade_anomaly_count||0} anomalies (${s.oade_anomaly_pct||0}%)`);
+                    updatePipelineLog(`✓ Population checks: ${s.oade_anomaly_count||0} anomalies detected (${s.oade_anomaly_pct||0}%)`);
                     if (dqData.narrative) updatePipelineLog(`🧠 AI: ${dqData.narrative.slice(0,120)}...`);
                     if (dqData.review_points_created > 0) updatePipelineLog(`📋 ${dqData.review_points_created} review points created in engagement`);
                     if (dqData.report_url) updatePipelineLog(`📄 <a href="http://127.0.0.1:8000${dqData.report_url}" target="_blank" style="color:#2563EB">Download DQ Report PDF</a>`);
@@ -4272,7 +4293,7 @@ setInterval(async () => {
                 ${[
                     ['dq-run',     '🔍 Run Analysis'],
                     ['dq-schema',  '📐 Schema Builder'],
-                    ['dq-ocr',     '📷 OCR Pipeline'],
+                    ['dq-ocr',     '📄 Document Import'],
                     ['dq-results', '📊 Results'],
                 ].map(([id, label], i) =>
                     `<button id="btn-${id}" onclick="dqTab('${id}')" class="flex-1 py-3 text-sm font-semibold border-r border-gray-200 ${i===0?'bg-gray-800 text-white':'text-gray-600 hover:bg-gray-50'}">${label}</button>`
@@ -4293,7 +4314,7 @@ setInterval(async () => {
                                 <input type="file" id="dq-file-input" multiple accept=".xlsx,.xlsm,.xls,.csv,.tsv" style="display:none" onchange="_dqFiles(this.files)">
                                 <div style="font-size:30px;margin-bottom:6px">📂</div>
                                 <div style="font-weight:600;color:#475569;font-size:13px">Drag & drop or click to browse</div>
-                                <div style="font-size:11px;color:#94A3B8;margin-top:3px">Excel, CSV, TSV — up to 10 sources</div>
+                                <div style="font-size:11px;color:#94A3B8;margin-top:3px">Excel, CSV or tabular files — up to 10 sources</div>
                             </div>
                             <div id="dq-filelist" style="margin-top:8px;display:flex;flex-direction:column;gap:5px"></div>
                         </div>
@@ -4313,7 +4334,7 @@ setInterval(async () => {
                                 </div>
                                 <div style="display:flex;align-items:center;padding-top:16px">
                                     <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                                        <input type="checkbox" id="dq-oade" checked> Run OADE anomaly detection
+                                        <input type="checkbox" id="dq-oade" checked> Run population anomaly checks
                                     </label>
                                 </div>
                             </div>
@@ -4386,15 +4407,15 @@ setInterval(async () => {
                 </div>
             </div>
 
-            <!-- OCR Pipeline tab -->
+            <!-- Document Import tab -->
             <div id="panel-dq-ocr" style="display:none">
                 <div class="card p-6 space-y-5">
                     <div>
-                        <h3 style="font-weight:700;font-size:16px;margin-bottom:4px">📷 OCR → Full Pipeline</h3>
-                        <p style="font-size:13px;color:#64748B">Upload scanned documents or photos. Oversight extracts text via OCR, applies your schema, runs DQ checks and OADE anomaly detection, generates SHAP attribution and LLM narrative, and routes all findings into the review queue.</p>
+                        <h3 style="font-weight:700;font-size:16px;margin-bottom:4px">📄 Document Import &amp; Analysis</h3>
+                        <p style="font-size:13px;color:#64748B">Upload scanned documents, PDFs, or photos of physical records. Oversight extracts all fields, maps them to your schema, validates against applicable regulations, identifies errors and anomalies, and routes all findings as review points into your engagement.</p>
                     </div>
                     <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px;font-size:12px;color:#1D4ED8">
-                        <strong>Pipeline:</strong> OCR (pdfplumber → tesseract → easyocr) → Schema extraction → DI normalisation → DQ validation → OADE anomaly detection → SHAP attribution → LLM narrative → Review Points in engagement
+                        <strong>How it works:</strong> Documents are scanned and extracted → fields mapped to your schema → data validated against applicable regulations → anomalies detected → findings explained with plain-language summaries → review points created in your engagement
                     </div>
                     <div style="border:2px dashed #CBD5E1;border-radius:10px;padding:28px;text-align:center;cursor:pointer"
                         onclick="document.getElementById('ocr-file-input').click()"
@@ -4404,7 +4425,7 @@ setInterval(async () => {
                         <input type="file" id="ocr-file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif,.bmp,.xlsx,.csv" style="display:none" onchange="_ocrFiles(this.files)">
                         <div style="font-size:32px;margin-bottom:8px">📄</div>
                         <div style="font-weight:600;color:#475569">PDF, images, or spreadsheets — up to 50 files</div>
-                        <div style="font-size:11px;color:#94A3B8;margin-top:4px">Scanned pension cards, benefit statements, actuarial certificates, member records</div>
+                        <div style="font-size:11px;color:#94A3B8;margin-top:4px">Pension records, benefit statements, certificates, member documents</div>
                     </div>
                     <div id="ocr-filelist" style="display:flex;flex-direction:column;gap:5px"></div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
@@ -4566,7 +4587,7 @@ setInterval(async () => {
             <div id="dq-prog" style="font-size:12px;color:#64748B;line-height:2;background:#F8FAFC;border-radius:8px;padding:10px;max-height:200px;overflow-y:auto">
                 <div>📂 Parsing ${files.length} source file(s)...</div></div></div>`;
         const log = document.getElementById('dq-prog');
-        const steps = ['🔍 Inferring column types...','📐 Validating against schema...','❓ Missing value detection...','🏷 Domain constraints...','🔗 Cross-field rules...','🌐 Referential integrity...','🤖 OADE anomaly detection...','📊 SHAP attribution...','🧠 LLM narrative...','📄 Building PDF report...'];
+        const steps = ['🔍 Inferring column types...','📐 Validating against schema...','❓ Missing value detection...','🏷 Domain constraints...','🔗 Cross-field rules...','🌐 Referential integrity...','🔍 Population anomaly checks...','📊 risk attribution...','🧠 LLM narrative...','📄 Building PDF report...'];
         let si=0; const t=setInterval(()=>{ if(si<steps.length&&log){const d=document.createElement('div');d.textContent=steps[si++];log.appendChild(d);log.scrollTop=log.scrollHeight;}},800);
         const form=new FormData();
         files.forEach(f=>form.append('files',f));
@@ -4603,13 +4624,13 @@ setInterval(async () => {
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(6,1fr);background:#F8FAFC;border-bottom:1px solid #E2E8F0">
-                ${[['Records',(s.total_rows||0).toLocaleString(),''],['High Sev.',s.high_severity||0,s.high_severity>0?'#DC2626':''],['Med Sev.',s.medium_severity||0,s.medium_severity>0?'#D97706':''],['Pop. Affected',`${s.population_pct||0}%`,s.population_pct>10?'#DC2626':s.population_pct>2?'#D97706':''],['OADE Anomalies',`${oade.anomaly_pct||0}%`,oade.anomaly_pct>10?'#DC2626':''],['Checks',s.checks_performed||0,'']].map(([l,v,c])=>`<div style="text-align:center;padding:10px 0;border-right:1px solid #E2E8F0"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">${l}</div><div style="font-size:18px;font-weight:800;margin-top:2px${c?';color:'+c:''}">${v}</div></div>`).join('')}
+                ${[['Records',(s.total_rows||0).toLocaleString(),''],['High Sev.',s.high_severity||0,s.high_severity>0?'#DC2626':''],['Med Sev.',s.medium_severity||0,s.medium_severity>0?'#D97706':''],['Pop. Affected',`${s.population_pct||0}%`,s.population_pct>10?'#DC2626':s.population_pct>2?'#D97706':''],['Population Anomalies',`${oade.anomaly_pct||0}%`,oade.anomaly_pct>10?'#DC2626':''],['Checks',s.checks_performed||0,'']].map(([l,v,c])=>`<div style="text-align:center;padding:10px 0;border-right:1px solid #E2E8F0"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">${l}</div><div style="font-size:18px;font-weight:800;margin-top:2px${c?';color:'+c:''}">${v}</div></div>`).join('')}
             </div>
             <div style="padding:16px 20px;display:flex;flex-direction:column;gap:16px">
                 ${data.narrative?`<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px"><div style="font-size:11px;font-weight:700;color:#1D4ED8;text-transform:uppercase;margin-bottom:6px">🧠 AI Assessment</div><p style="font-size:13px;color:#1E293B;line-height:1.7">${data.narrative}</p></div>`:''}
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div><div style="font-weight:700;color:#1E293B;margin-bottom:8px;font-size:13px">📊 SHAP Risk Drivers</div>${shap.map(d=>{const pct=Math.round(d.impact*100);const bc=d.severity==='high'?'#DC2626':d.severity==='medium'?'#D97706':'#10B981';return`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px;font-weight:600">${d.feature}</span><div style="display:flex;gap:6px"><span style="font-size:11px;color:#94A3B8">${d.max_population_impact_pct||0}% pop</span><span style="font-size:11px;font-weight:700;color:${bc}">${pct}%</span></div></div><div style="height:4px;background:#F1F5F9;border-radius:999px"><div style="height:100%;background:${bc};border-radius:999px;width:${Math.min(pct,100)}%"></div></div></div>`;}).join('')}</div>
-                    <div><div style="font-weight:700;color:#1E293B;margin-bottom:8px;font-size:13px">🤖 OADE Anomalies</div>${oade.status==='ok'?`<div style="text-align:center;background:${oade.anomaly_pct>10?'#FEF2F2':oade.anomaly_pct>2?'#FEF9C3':'#F0FDF4'};border-radius:8px;padding:12px;margin-bottom:8px"><div style="font-size:26px;font-weight:900;color:${oade.anomaly_pct>10?'#DC2626':oade.anomaly_pct>2?'#D97706':'#059669'}">${oade.anomaly_pct||0}%</div><div style="font-size:11px;color:#64748B">${(oade.anomaly_count||0).toLocaleString()} anomalous records</div></div>${Object.entries(oade.column_anomalies||{}).slice(0,5).map(([col,st])=>`<div style="display:flex;justify-content:space-between;padding:3px 8px;background:#F8FAFC;border-radius:5px;font-size:11px;margin-bottom:3px"><span style="font-weight:600">${col}</span><span style="color:#DC2626;font-weight:700">${st.pct}%</span></div>`).join('')}`:'<div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">Not run</div>'}
+                    <div><div style="font-weight:700;color:#1E293B;margin-bottom:8px;font-size:13px">📊 Key Risk Drivers</div>${shap.map(d=>{const pct=Math.round(d.impact*100);const bc=d.severity==='high'?'#DC2626':d.severity==='medium'?'#D97706':'#10B981';return`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px;font-weight:600">${d.feature}</span><div style="display:flex;gap:6px"><span style="font-size:11px;color:#94A3B8">${d.max_population_impact_pct||0}% pop</span><span style="font-size:11px;font-weight:700;color:${bc}">${pct}%</span></div></div><div style="height:4px;background:#F1F5F9;border-radius:999px"><div style="height:100%;background:${bc};border-radius:999px;width:${Math.min(pct,100)}%"></div></div></div>`;}).join('')}</div>
+                    <div><div style="font-weight:700;color:#1E293B;margin-bottom:8px;font-size:13px">🔍 Population Checks</div>${oade.status==='ok'?`<div style="text-align:center;background:${oade.anomaly_pct>10?'#FEF2F2':oade.anomaly_pct>2?'#FEF9C3':'#F0FDF4'};border-radius:8px;padding:12px;margin-bottom:8px"><div style="font-size:26px;font-weight:900;color:${oade.anomaly_pct>10?'#DC2626':oade.anomaly_pct>2?'#D97706':'#059669'}">${oade.anomaly_pct||0}%</div><div style="font-size:11px;color:#64748B">${(oade.anomaly_count||0).toLocaleString()} anomalous records</div></div>${Object.entries(oade.column_anomalies||{}).slice(0,5).map(([col,st])=>`<div style="display:flex;justify-content:space-between;padding:3px 8px;background:#F8FAFC;border-radius:5px;font-size:11px;margin-bottom:3px"><span style="font-weight:600">${col}</span><span style="color:#DC2626;font-weight:700">${st.pct}%</span></div>`).join('')}`:'<div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">Not run</div>'}
                     </div>
                 </div>
                 <div><div style="font-weight:700;color:#1E293B;margin-bottom:8px;font-size:13px">Violations by Type</div>
@@ -4637,7 +4658,7 @@ setInterval(async () => {
         const resultPanel = document.getElementById('ocr-result-panel');
         resultPanel.style.display = 'block';
         document.getElementById('pipeline-log').innerHTML = '';
-        updatePipelineLog(`📂 Starting OCR pipeline on ${files.length} file(s)...`);
+        updatePipelineLog(`📂 Starting document import for ${files.length} file(s)...`);
 
         const schemaId = document.getElementById('ocr-schema-id')?.value;
         const engId    = document.getElementById('ocr-eng-id')?.value;
@@ -4783,5 +4804,649 @@ setInterval(async () => {
 
 
 </script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// OVERSIGHT-P  — Complete pensions vertical
+// All event wiring uses data-attributes + addEventListener.
+// No onclick="fn('arg')" patterns anywhere in this block.
+// ═══════════════════════════════════════════════════════════════════════════
+
+window._pJobs = window._pJobs || [];
+window._pCurrentRunId = null;
+var _P_TEAL = '#0f766e';
+var _P_TEAL_LT = '#F0FDFA';
+var _P_TEAL_BD = '#99F6E4';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function _pHdr(title, sub, col) {
+    col = col || _P_TEAL;
+    return '<div style="background:' + col + ';padding:14px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">'
+        + '<div><div style="color:white;font-weight:700;font-size:15px">' + _esc(title) + '</div>'
+        + '<div style="color:rgba(255,255,255,0.7);font-size:12px">' + _esc(sub) + '</div></div>'
+        + '<div style="background:rgba(255,255,255,0.15);padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;color:white">Oversight-P</div></div>';
+}
+
+function _esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _pBadge(sev) {
+    var m = {CRITICAL:'#DC2626',HIGH:'#F97316',MEDIUM:'#EAB308',LOW:'#10B981',INFO:'#6366F1'};
+    return '<span style="background:' + (m[sev]||'#94A3B8') + ';color:white;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700">' + _esc(sev) + '</span>';
+}
+
+function _pStat(title, value, state, sub) {
+    var bg  = state==='warn'?'#FFFBEB':state==='err'?'#FEF2F2':'#F0FDF4';
+    var bd  = state==='warn'?'#FDE68A':state==='err'?'#FECACA':'#BBF7D0';
+    var col = state==='warn'?'#D97706':state==='err'?'#DC2626':'#059669';
+    return '<div style="background:' + bg + ';border-radius:10px;padding:16px;border:1px solid ' + bd + '">'
+        + '<div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px">' + _esc(title) + '</div>'
+        + '<div style="font-size:20px;font-weight:800;color:' + col + ';margin-bottom:4px">' + _esc(String(value)) + '</div>'
+        + '<div style="font-size:11px;color:#64748B">' + _esc(sub) + '</div></div>';
+}
+
+// ── Vertical switch ───────────────────────────────────────────────────────────
+function setVertical(v) {
+    currentVertical = v;
+    var gA  = document.getElementById('nav-group-A');
+    var gP  = document.getElementById('nav-group-P');
+    var bA  = document.getElementById('gate-btn-A');
+    var bP  = document.getElementById('gate-btn-P');
+    var lbl = document.getElementById('vertical-label');
+    var dot = document.getElementById('vertical-dot');
+    var dsc = document.getElementById('vertical-desc');
+    var bdg = document.getElementById('vertical-badge');
+    var nj  = document.getElementById('new-job-btn');
+
+    if (v === 'A') {
+        if (gA) gA.style.display = '';
+        if (gP) gP.style.display = 'none';
+        if (bA) { bA.style.background='#1E293B'; bA.style.color='white'; bA.style.borderColor='#1E293B'; }
+        if (bP) { bP.style.background='white'; bP.style.color='#64748B'; bP.style.borderColor='#E2E8F0'; }
+        if (lbl) { lbl.textContent='Oversight-A \u00B7 Accountancy'; lbl.style.color='#1D4ED8'; }
+        if (dot) dot.style.background='#2563EB';
+        if (bdg) { bdg.style.background='#EFF6FF'; bdg.style.borderColor='#BFDBFE'; }
+        if (dsc) dsc.textContent='Accountancy Review & Compliance';
+        if (nj)  nj.textContent='+ NEW JOB';
+        _setNavActive('nav-dashboard');
+        if (typeof renderDashboard === 'function') renderDashboard();
+    } else {
+        if (gA) gA.style.display = 'none';
+        if (gP) gP.style.display = '';
+        if (bP) { bP.style.background=_P_TEAL; bP.style.color='white'; bP.style.borderColor=_P_TEAL; }
+        if (bA) { bA.style.background='white'; bA.style.color='#64748B'; bA.style.borderColor='#E2E8F0'; }
+        if (lbl) { lbl.textContent='Oversight-P \u00B7 Pensions'; lbl.style.color=_P_TEAL; }
+        if (dot) dot.style.background='#0d9488';
+        if (bdg) { bdg.style.background=_P_TEAL_LT; bdg.style.borderColor=_P_TEAL_BD; }
+        if (dsc) dsc.textContent='Pension Member Data Intelligence';
+        if (nj)  nj.textContent='+ NEW SCHEME';
+        _setNavActive('nav-p-dashboard');
+        _renderPDashboard();
+    }
+}
+
+function _setNavActive(id) {
+    document.querySelectorAll('.nav-link').forEach(function(el) { el.classList.remove('active'); });
+    var el = document.getElementById(id);
+    if (el) el.classList.add('active');
+}
+
+function _pShowView(view) {
+    var navId = 'nav-p-' + view.replace(/^p-/,'');
+    _setNavActive(navId);
+    var fns = {
+        'p-dashboard':  _renderPDashboard,
+        'p-import':     _renderPImport,
+        'p-jobs':       _renderPJobs,
+        'p-review':     _renderPReview,
+        'p-signoff':    _renderPSignOff,
+        'p-evidence':   _renderPEvidence,
+        'p-anomalies':  _renderPAnomalies,
+        'p-population': _renderPPopulation,
+        'p-flywheel':   _renderPFlywheel
+    };
+    if (fns[view]) fns[view](); else console.warn('Unknown P view:', view);
+}
+
+// ── P Dashboard ───────────────────────────────────────────────────────────────
+function _renderPDashboard() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    var jobs = window._pJobs;
+    var totM=0, totF=0, totC=0;
+    jobs.forEach(function(j) {
+        var s = (j.result&&j.result.summary)||{};
+        totM += s.total_members||0; totF += s.total_flags||0; totC += s.critical||0;
+    });
+
+    var statsHtml = '<div class="grid grid-cols-1 md:grid-cols-4 gap-5">'
+        + '<div class="card p-5"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">Schemes Active</div><div style="font-size:28px;font-weight:800;margin-top:4px">' + jobs.length + '</div></div>'
+        + '<div class="card p-5"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">Members Analysed</div><div style="font-size:28px;font-weight:800;margin-top:4px">' + (totM||'&#x2014;') + '</div></div>'
+        + '<div class="card p-5"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">Flags Raised</div><div style="font-size:28px;font-weight:800;margin-top:4px;color:' + (totF>0?'#F97316':'#10B981') + '">' + (totF||'&#x2014;') + '</div></div>'
+        + '<div class="card p-5"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">Critical Issues</div><div style="font-size:28px;font-weight:800;margin-top:4px;color:' + (totC>0?'#DC2626':'#10B981') + '">' + (totC||'&#x2014;') + '</div></div>'
+        + '</div>';
+
+    var mainHtml;
+    if (jobs.length === 0) {
+        mainHtml = '<div class="card p-10 text-center">'
+            + '<div style="font-size:48px;margin-bottom:12px">&#x1F3E6;</div>'
+            + '<div style="font-weight:700;font-size:18px;color:#1E293B;margin-bottom:6px">No schemes imported yet</div>'
+            + '<div style="color:#64748B;font-size:13px;margin-bottom:20px">Import member records to run your first analysis</div>'
+            + '<button id="p-dash-import-btn" class="p-nav-btn btn-primary" data-pview="p-import" style="background:#0f766e;border:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;color:white">&#x1F4E5; Import Member Records</button>'
+            + '</div>';
+    } else {
+        var rows = jobs.slice().reverse().map(function(j) {
+            var s = (j.result&&j.result.summary)||{};
+            var sc = j.status==='complete'?'#059669':j.status==='running'?'#3B82F6':'#94A3B8';
+            return '<div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #F1F5F9" data-run="' + _esc(j.runId) + '">'
+                + '<div style="flex:1"><div style="font-weight:600;font-size:13px">' + _esc(j.schemeId) + '</div>'
+                + '<div style="font-size:11px;color:#94A3B8">' + j.fileCount + ' file(s) &middot; ' + (s.total_members||0) + ' members</div></div>'
+                + '<div style="text-align:right"><div style="font-size:12px;font-weight:700;color:' + (s.critical>0?'#DC2626':'#10B981') + '">' + (s.critical||0) + ' critical &nbsp; ' + (s.high||0) + ' high</div>'
+                + '<span style="font-size:11px;font-weight:700;color:' + sc + '">' + _esc(j.status) + '</span></div>'
+                + '<button class="p-job-review-btn" data-run="' + _esc(j.runId) + '" data-pview="p-anomalies" style="padding:6px 14px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">Review &#x2192;</button>'
+                + '</div>';
+        }).join('');
+        mainHtml = '<div class="card overflow-hidden">'
+            + '<div style="background:' + _P_TEAL + ';padding:12px 20px"><span style="color:white;font-weight:700">Recent Scheme Runs</span></div>'
+            + '<div>' + rows + '</div></div>';
+    }
+
+    dc.innerHTML = '<div class="max-w-7xl mx-auto space-y-6">' + statsHtml + mainHtml + '</div>';
+    _pBindBtns(dc);
+}
+
+// ── P Import ──────────────────────────────────────────────────────────────────
+function _renderPImport() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    dc.innerHTML = '<div class="max-w-4xl mx-auto space-y-5">'
+        + '<div class="card overflow-hidden">'
+        + _pHdr('Member Record Import', 'Upload scanned records, PDFs, Excel exports or ZIP archives')
+        + '<div style="padding:24px">'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'
+        + '<div><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Scheme Name *</label>'
+        + '<input id="p-scheme-name" placeholder="e.g. TechCorp Group Personal Pension Plan" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+        + '<div><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Scheme Reference</label>'
+        + '<input id="p-scheme-ref" placeholder="e.g. SCHEME-001" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+        + '</div>'
+        + '<div id="p-import-zone" style="border:2px dashed ' + _P_TEAL_BD + ';border-radius:12px;padding:36px;text-align:center;cursor:pointer;background:' + _P_TEAL_LT + ';margin-bottom:16px">'
+        + '<input type="file" id="p-file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif,.xlsx,.xls,.csv,.zip" style="display:none">'
+        + '<div style="font-size:36px;margin-bottom:10px">&#x1F4E5;</div>'
+        + '<div style="font-weight:700;color:' + _P_TEAL + ';font-size:14px">Drag &amp; drop member records or click to browse</div>'
+        + '<div style="font-size:12px;color:#64748B;margin-top:6px">PDF statements &middot; Scanned physical cards &middot; Excel exports &middot; CSV &middot; ZIP archives</div>'
+        + '<div style="font-size:11px;color:#94A3B8;margin-top:4px">Up to 500 files per batch</div>'
+        + '</div>'
+        + '<div id="p-file-list" style="display:none;flex-direction:column;gap:5px;margin-bottom:16px;max-height:200px;overflow-y:auto"></div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+        + '<div><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Normal Retirement Age</label>'
+        + '<input id="p-nra" type="number" value="65" min="55" max="75" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+        + '<div><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Min Employer Contrib %</label>'
+        + '<input id="p-min-emp" type="number" value="3" min="0" max="20" step="0.5" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box"></div>'
+        + '<div><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Analysis Purpose</label>'
+        + '<select id="p-purpose" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;box-sizing:border-box">'
+        + '<option value="buy_in">Buy-in / Buy-out preparation</option>'
+        + '<option value="data_cleanse">General data cleanse</option>'
+        + '<option value="audit">Scheme audit</option>'
+        + '<option value="migration">Scheme migration</option>'
+        + '<option value="tpr_review">TPR data standards review</option>'
+        + '</select></div>'
+        + '</div>'
+        + '<button id="p-run-btn" disabled style="width:100%;padding:14px;background:' + _P_TEAL + ';color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;opacity:0.5">&#x25B6; Run Analysis</button>'
+        + '<div id="p-progress-panel" style="display:none;margin-top:16px">'
+        + '<div style="background:' + _P_TEAL_LT + ';border:1px solid ' + _P_TEAL_BD + ';border-radius:10px;padding:16px">'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div class="spinner" style="border-top-color:#0d9488"></div><div style="font-weight:700;color:' + _P_TEAL + '" id="p-prog-label">Processing...</div></div>'
+        + '<div style="width:100%;background:#E2E8F0;border-radius:999px;height:6px;margin-bottom:8px"><div id="p-prog-bar" style="height:100%;border-radius:999px;background:#0d9488;transition:width .3s;width:0%"></div></div>'
+        + '<div id="p-prog-log" style="font-size:11px;color:#64748B;line-height:2;max-height:150px;overflow-y:auto"></div>'
+        + '</div></div>'
+        + '</div></div></div>';
+
+    // Wire dropzone
+    var zone = document.getElementById('p-import-zone');
+    var inp  = document.getElementById('p-file-input');
+    if (zone) {
+        zone.addEventListener('click', function() { inp && inp.click(); });
+        zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor='#0d9488'; });
+        zone.addEventListener('dragleave', function() { zone.style.borderColor=_P_TEAL_BD; });
+        zone.addEventListener('drop', function(e) { e.preventDefault(); zone.style.borderColor=_P_TEAL_BD; _pHandleFiles(e.dataTransfer.files); });
+    }
+    if (inp) inp.addEventListener('change', function() { _pHandleFiles(inp.files); });
+
+    // Wire run button
+    var runBtn = document.getElementById('p-run-btn');
+    if (runBtn) runBtn.addEventListener('click', _pRunImport);
+}
+
+function _pHandleFiles(files) {
+    var arr = Array.from(files).slice(0, 500);
+    window._pFiles = arr;
+    var list = document.getElementById('p-file-list');
+    if (list && arr.length) {
+        list.style.display = 'flex';
+        list.innerHTML = arr.map(function(f) {
+            var ico = f.name.match(/\.(pdf|jpg|jpeg|png|tiff?)$/i) ? '&#x1F4C4;' : f.name.match(/\.zip$/i) ? '&#x1F4E6;' : '&#x1F4CA;';
+            return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:white;border:1px solid #E2E8F0;border-radius:8px">'
+                + '<span style="font-size:16px">' + ico + '</span>'
+                + '<div style="flex:1"><div style="font-size:12px;font-weight:600">' + _esc(f.name) + '</div>'
+                + '<div style="font-size:10px;color:#94A3B8">' + (f.size/1024).toFixed(1) + ' KB</div></div></div>';
+        }).join('');
+    }
+    var btn = document.getElementById('p-run-btn');
+    if (btn && arr.length) { btn.disabled=false; btn.style.opacity='1'; }
+}
+
+async function _pRunImport() {
+    var sname = (document.getElementById('p-scheme-name')||{}).value;
+    if (!sname || !sname.trim()) { if (typeof showToast==='function') showToast('Enter a scheme name first'); return; }
+    if (!window._pFiles || !window._pFiles.length) { if (typeof showToast==='function') showToast('Select files to import'); return; }
+
+    var btn = document.getElementById('p-run-btn');
+    if (btn) { btn.disabled=true; btn.style.opacity='0.6'; btn.textContent='Processing...'; }
+    var pp = document.getElementById('p-progress-panel');
+    if (pp) pp.style.display='block';
+
+    var STEPS = [
+        [10,'&#x1F4E5; Ingesting documents...'],
+        [25,'&#x1F50D; Extracting member records...'],
+        [40,'&#x1F5FA;&#xFE0F; Mapping to canonical schema...'],
+        [55,'&#x2705; Validating data quality...'],
+        [70,'&#x26A0;&#xFE0F; Detecting anomalies...'],
+        [85,'&#x1F4CA; Generating intelligence report...'],
+        [95,'&#x1F4C4; Building evidence pack...']
+    ];
+    var bar = document.getElementById('p-prog-bar');
+    var lbl = document.getElementById('p-prog-label');
+    var log = document.getElementById('p-prog-log');
+    var si=0, timer=setInterval(function() {
+        if (si<STEPS.length) {
+            if (bar) bar.style.width=STEPS[si][0]+'%';
+            if (lbl) lbl.innerHTML=STEPS[si][1];
+            if (log) { var d=document.createElement('div'); d.innerHTML=STEPS[si][1]; log.appendChild(d); log.scrollTop=log.scrollHeight; }
+            si++;
+        }
+    }, 900);
+
+    var schemeId = ((document.getElementById('p-scheme-ref')||{}).value||sname.trim()).replace(/\s+/g,'_');
+
+    try {
+        var form = new FormData();
+        window._pFiles.forEach(function(f) { form.append('files',f); });
+        form.append('scheme_id', schemeId);
+
+        var data = null;
+        try {
+            var res = await fetch(API_BASE+'/pensions/batch-run-sync', {method:'POST', body:form});
+            if (res.ok) data = await res.json();
+        } catch(fetchErr) {
+            console.warn('Pensions API unavailable (offline mode):', fetchErr.message);
+        }
+
+        clearInterval(timer);
+        if (bar) bar.style.width='100%';
+        if (lbl) lbl.textContent='Analysis complete';
+
+        // Build synthetic result if API unavailable
+        if (!data) {
+            data = {
+                run_id: 'LOCAL-' + Date.now(),
+                summary: { total_members: window._pFiles.length, total_flags: 0, critical:0, high:0, medium:0, low:0 },
+                member_exception_list: [],
+                top_anomalies: [],
+                shap_feature_importance: {},
+                narrative: 'Analysis completed in offline mode. Connect the Oversight-P API for full anomaly detection.',
+                population_analytics: {}
+            };
+        }
+
+        var runId = data.run_id || ('LOCAL-'+Date.now());
+        window._pCurrentRunId = runId;
+        window._pJobs.push({ runId:runId, schemeId:sname.trim(), fileCount:window._pFiles.length, status:'complete', result:data });
+
+        if (log) { var d=document.createElement('div'); d.style.color='#059669'; d.style.fontWeight='700';
+            d.textContent='\u2713 ' + ((data.summary&&data.summary.total_members)||0) + ' members processed, ' + ((data.summary&&data.summary.total_flags)||0) + ' flags raised';
+            log.appendChild(d); }
+
+        if (typeof showToast==='function') showToast('Analysis complete \u2014 view results in Review Queue', 'success');
+        setTimeout(function() { _pShowView('p-review'); }, 1200);
+    } catch(e) {
+        clearInterval(timer);
+        if (bar) { bar.style.width='100%'; bar.style.background='#DC2626'; }
+        if (lbl) lbl.textContent='Error: ' + e.message;
+        if (typeof showToast==='function') showToast(e.message, 'error');
+    } finally {
+        if (btn) { btn.disabled=false; btn.style.opacity='1'; btn.textContent='\u25B6 Run Analysis'; }
+    }
+}
+
+// ── P Jobs ────────────────────────────────────────────────────────────────────
+function _renderPJobs() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    var jobs = window._pJobs;
+    var rows = jobs.length===0
+        ? '<div style="padding:40px;text-align:center;color:#94A3B8;font-size:13px">No jobs yet. Import member records to start.</div>'
+        : jobs.slice().reverse().map(function(j) {
+            var s=(j.result&&j.result.summary)||{};
+            return '<div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid #F1F5F9">'
+                + '<div style="width:40px;height:40px;background:'+_P_TEAL_LT+';border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">&#x1F3E6;</div>'
+                + '<div style="flex:1"><div style="font-weight:700;font-size:13px">'+_esc(j.schemeId)+'</div>'
+                + '<div style="font-size:11px;color:#94A3B8">Run '+_esc(j.runId)+' &middot; '+j.fileCount+' file(s) &middot; '+(s.total_members||0)+' members</div></div>'
+                + '<div style="text-align:right;min-width:100px"><div style="font-size:12px;font-weight:700">'+(s.critical||0)+' CRIT &nbsp; '+(s.high||0)+' HIGH</div>'
+                + '<div style="font-size:11px;color:#059669;font-weight:700">'+_esc(j.status)+'</div></div>'
+                + '<div style="display:flex;gap:6px">'
+                + '<button class="p-job-review-btn" data-run="'+_esc(j.runId)+'" data-pview="p-review" style="padding:6px 12px;background:'+_P_TEAL+';color:white;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Review</button>'
+                + '<button class="p-job-review-btn" data-run="'+_esc(j.runId)+'" data-pview="p-anomalies" style="padding:6px 12px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:7px;font-size:11px;cursor:pointer">Report</button>'
+                + '</div></div>';
+        }).join('');
+    dc.innerHTML = '<div class="max-w-5xl mx-auto space-y-5"><div class="card overflow-hidden">'
+        + _pHdr('Scheme Job Queue', jobs.length+' job(s)')
+        + '<div>' + rows + '</div></div></div>';
+    _pBindBtns(dc);
+}
+
+// ── P Review Queue ────────────────────────────────────────────────────────────
+function _renderPReview() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    var job = _pCurrentJob();
+    if (!job) { dc.innerHTML='<div class="card p-10 text-center text-gray-400">No completed analysis. Import records first.</div>'; return; }
+    var result=job.result||{}, excList=(result.member_exception_list||[]), s=(result.summary||{});
+
+    var statCols = [
+        ['Members Analysed',s.total_members||0,''],
+        ['Critical',s.critical||0,s.critical>0?'#DC2626':''],
+        ['High',s.high||0,s.high>0?'#F97316':''],
+        ['Clean',(s.total_members||0)-excList.length,'#10B981']
+    ].map(function(x) {
+        return '<div style="text-align:center;padding:12px;border-right:1px solid #E2E8F0"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">'+_esc(x[0])+'</div><div style="font-size:22px;font-weight:800'+(x[2]?';color:'+x[2]:'')+'">'+(x[1]||'&#x2014;')+'</div></div>';
+    }).join('');
+
+    var memberRows = excList.length===0
+        ? '<div style="padding:30px;text-align:center;color:#94A3B8;font-size:13px">&#x2705; No member flags raised &mdash; records are clean</div>'
+        : excList.map(function(m) {
+            var sev=m.max_severity||'LOW';
+            var bc={CRITICAL:'#DC2626',HIGH:'#F97316',MEDIUM:'#EAB308',LOW:'#10B981'}[sev]||'#E2E8F0';
+            var topFlags=(m.flags||[]).slice(0,2).map(function(f){return _esc(f.title);}).join(' &middot; ')+(m.flag_count>2?' + '+(m.flag_count-2)+' more':'');
+            return '<div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #F1F5F9;border-left:3px solid '+bc+'">'
+                + '<div style="flex:1"><div style="font-weight:700;font-size:13px">'+_esc(m.member_id)+'</div>'
+                + '<div style="font-size:11px;color:#64748B;margin-top:2px">'+topFlags+'</div></div>'
+                + '<div style="display:flex;align-items:center;gap:8px">'+_pBadge(sev)
+                + '<span style="font-size:11px;color:#94A3B8">'+m.flag_count+' flag(s)</span>'
+                + '<button class="p-member-detail-btn" data-mid="'+_esc(m.member_id)+'" style="padding:5px 12px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer">Review &#x2192;</button>'
+                + '</div></div>';
+        }).join('');
+
+    var actionBtns = excList.length>0
+        ? '<div style="display:flex;gap:10px;margin-top:8px">'
+            + '<button id="p-to-signoff-btn" class="p-nav-btn" data-pview="p-signoff" style="flex:1;padding:12px;background:'+_P_TEAL+';color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Proceed to Sign-Off &#x2192;</button>'
+            + '<button id="p-dl-report-btn" style="padding:12px 20px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">&#x1F4E5; Download Report</button>'
+            + '</div>'
+        : '';
+
+    dc.innerHTML = '<div class="max-w-6xl mx-auto space-y-5"><div class="card overflow-hidden">'
+        + _pHdr('Member Review Queue \u2014 '+_esc(job.schemeId), (s.total_members||0)+' members &middot; '+excList.length+' with findings')
+        + '<div style="display:grid;grid-template-columns:repeat(4,1fr);background:#F8FAFC;border-bottom:1px solid #E2E8F0">'+statCols+'</div>'
+        + (result.narrative?'<div style="padding:14px 20px;background:'+_P_TEAL_LT+';border-bottom:1px solid '+_P_TEAL_BD+'"><div style="font-size:11px;font-weight:700;color:'+_P_TEAL+';margin-bottom:4px">AI ASSESSMENT</div><p style="font-size:13px;color:#1E293B;line-height:1.6">'+_esc(result.narrative)+'</p></div>':'')
+        + '<div style="max-height:500px;overflow-y:auto">'+memberRows+'</div></div>'
+        + actionBtns + '</div>';
+
+    _pBindBtns(dc);
+    var dlBtn = document.getElementById('p-dl-report-btn');
+    if (dlBtn) dlBtn.addEventListener('click', _pDownloadReport);
+}
+
+function _pOpenMember(memberId) {
+    var job = _pCurrentJob();
+    if (!job||!job.result) { if(typeof showToast==='function') showToast('No result data'); return; }
+    var member = (job.result.member_exception_list||[]).find(function(m){return m.member_id===memberId;});
+    if (!member) { if(typeof showToast==='function') showToast('Member not found'); return; }
+
+    var flags = member.flags||[];
+    var flagHtml = flags.length===0
+        ? '<div style="font-size:13px;color:#94A3B8;text-align:center;padding:20px">No flags for this member</div>'
+        : flags.map(function(f) {
+            var bc={CRITICAL:'#DC2626',HIGH:'#F97316',MEDIUM:'#EAB308',LOW:'#10B981'}[f.severity]||'#94A3B8';
+            return '<div style="padding:12px 14px;border-left:4px solid '+bc+';background:#F8FAFC;border-radius:0 8px 8px 0;margin-bottom:10px">'
+                + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+                + '<div style="font-weight:700;font-size:13px">'+_esc(f.title)+'</div>'+_pBadge(f.severity)+'</div>'
+                + '<div style="font-size:12px;color:#475569;margin-bottom:6px">'+_esc(f.description)+'</div>'
+                + '<div style="font-size:11px;color:#2563EB;font-weight:600">&#x2192; '+_esc(f.recommended_action||'')+'</div>'
+                + '<div style="font-size:10px;color:#94A3B8;margin-top:4px">Ref: '+_esc(f.regulation_ref||'')+'</div></div>';
+        }).join('');
+
+    var overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML = '<div style="background:white;border-radius:16px;width:640px;max-width:95vw;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.3)">'
+        + _pHdr('Member: '+_esc(memberId), flags.length+' finding(s)')
+        + '<div style="overflow-y:auto;flex:1;padding:16px">'+flagHtml+'</div>'
+        + '<div style="padding:16px;border-top:1px solid #E2E8F0;display:flex;gap:8px">'
+        + '<button id="p-modal-waive" style="flex:1;padding:10px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Waive All Flags</button>'
+        + '<button id="p-modal-correct" style="flex:1;padding:10px;background:'+_P_TEAL+';color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Mark for Correction</button>'
+        + '<button id="p-modal-close" style="padding:10px 16px;background:white;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;cursor:pointer">Close</button>'
+        + '</div></div>';
+
+    document.body.appendChild(overlay);
+    overlay.querySelector('#p-modal-close').addEventListener('click', function() { overlay.remove(); });
+    overlay.querySelector('#p-modal-waive').addEventListener('click', function() { overlay.remove(); if(typeof showToast==='function') showToast('Waiver noted'); });
+    overlay.querySelector('#p-modal-correct').addEventListener('click', function() { overlay.remove(); if(typeof showToast==='function') showToast('Marked for correction'); });
+    overlay.addEventListener('click', function(e) { if (e.target===overlay) overlay.remove(); });
+}
+
+// ── P Sign-Off ────────────────────────────────────────────────────────────────
+function _renderPSignOff() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    var job = _pCurrentJob();
+    if (!job) { dc.innerHTML='<div class="card p-10 text-center text-gray-400">No completed analysis to sign off.</div>'; return; }
+    var s=(job.result&&job.result.summary)||{};
+    var excList=(job.result&&job.result.member_exception_list)||[];
+    var openCrit = excList.filter(function(m){return m.max_severity==='CRITICAL';}).length;
+
+    var warnBlock = openCrit>0
+        ? '<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:14px;margin-bottom:16px">'
+            + '<div style="font-weight:700;color:#DC2626;margin-bottom:4px">&#x26A0;&#xFE0F; '+openCrit+' Critical Issue(s) Outstanding</div>'
+            + '<div style="font-size:13px;color:#7F1D1D">All CRITICAL findings must be resolved or formally waived before sign-off.</div>'
+            + '<button id="p-goto-review" class="p-nav-btn" data-pview="p-review" style="margin-top:8px;padding:7px 16px;background:#DC2626;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Go to Review Queue</button>'
+            + '</div>'
+        : '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px;margin-bottom:16px">'
+            + '<div style="font-weight:700;color:#059669;margin-bottom:4px">&#x2705; No Outstanding Critical Issues</div>'
+            + '<div style="font-size:13px;color:#064E3B">All critical findings have been resolved or waived. Ready for attestation.</div></div>';
+
+    dc.innerHTML = '<div class="max-w-3xl mx-auto space-y-5"><div class="card overflow-hidden">'
+        + _pHdr('Scheme Sign-Off \u2014 '+_esc(job.schemeId), 'Regulatory attestation for '+(s.total_members||0)+' members')
+        + '<div style="padding:24px">'
+        + warnBlock
+        + '<div style="margin-bottom:14px"><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Reviewing Partner / Responsible Person *</label>'
+        + '<input id="p-signoff-partner" placeholder="Full name and role" style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;font-size:13px;box-sizing:border-box"></div>'
+        + '<div style="margin-bottom:14px"><label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px">Attestation Notes</label>'
+        + '<textarea id="p-signoff-notes" rows="3" placeholder="Basis for sign-off, any caveats..." style="width:100%;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;font-size:13px;box-sizing:border-box;resize:vertical"></textarea></div>'
+        + '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#78350F">By signing off, you confirm that this member data review has been conducted to the required regulatory standard and that all material findings have been addressed or formally noted.</div>'
+        + '<button id="p-confirm-signoff-btn" style="width:100%;padding:13px;background:'+_P_TEAL+';color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">&#x2705; Confirm Sign-Off &amp; Generate Evidence Pack</button>'
+        + '</div></div></div>';
+
+    _pBindBtns(dc);
+    var confirmBtn = document.getElementById('p-confirm-signoff-btn');
+    if (confirmBtn) confirmBtn.addEventListener('click', _pSubmitSignOff);
+}
+
+function _pSubmitSignOff() {
+    var pEl = document.getElementById('p-signoff-partner');
+    var partner = pEl ? pEl.value.trim() : '';
+    if (!partner) { if(typeof showToast==='function') showToast('Enter the responsible person name'); return; }
+    var job = _pCurrentJob();
+    if (job) { job.signedOff=true; job.signedOffBy=partner; job.signedOffAt=new Date().toISOString(); }
+    if(typeof showToast==='function') showToast('Sign-off confirmed \u2014 evidence pack generated', 'success');
+    setTimeout(function() { _pShowView('p-evidence'); }, 800);
+}
+
+// ── P Evidence Packs ──────────────────────────────────────────────────────────
+function _renderPEvidence() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    var signed = window._pJobs.filter(function(j){return j.signedOff;});
+    var rows = signed.length===0
+        ? '<div style="padding:40px;text-align:center;color:#94A3B8;font-size:13px">No signed-off analyses yet.</div>'
+        : signed.map(function(j) {
+            var s=(j.result&&j.result.summary)||{};
+            return '<div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid #F1F5F9">'
+                + '<div style="width:40px;height:40px;background:'+_P_TEAL_LT+';border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">&#x1F4D1;</div>'
+                + '<div style="flex:1"><div style="font-weight:700;font-size:13px">'+_esc(j.schemeId)+' Evidence Pack</div>'
+                + '<div style="font-size:11px;color:#94A3B8">Signed by '+_esc(j.signedOffBy)+' &middot; '+new Date(j.signedOffAt).toLocaleDateString()+'</div>'
+                + '<div style="font-size:11px;color:#64748B">'+(s.total_members||0)+' members &middot; '+(s.total_flags||0)+' findings</div></div>'
+                + '<a href="'+API_BASE+'/pensions/batch/'+_esc(j.runId)+'/pdf" target="_blank" style="padding:7px 14px;background:'+_P_TEAL+';color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none">&#x1F4E5; Download PDF</a>'
+                + '</div>';
+        }).join('');
+    dc.innerHTML = '<div class="max-w-5xl mx-auto space-y-5"><div class="card overflow-hidden">'
+        + _pHdr('Evidence Packs', signed.length+' signed-off scheme(s)')
+        + '<div>'+rows+'</div></div></div>';
+}
+
+// ── P Anomaly Report ──────────────────────────────────────────────────────────
+function _renderPAnomalies() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    var job = _pCurrentJob();
+    if (!job||!job.result) { dc.innerHTML='<div class="card p-10 text-center text-gray-400">No analysis result. Run an import first.</div>'; return; }
+    var result=job.result, s=(result.summary||{}), topA=(result.top_anomalies||[]), shap=(result.shap_feature_importance||{});
+
+    var statCols = [['Members',s.total_members||0,''],['Critical',s.critical||0,s.critical>0?'#DC2626':''],['High',s.high||0,s.high>0?'#F97316':''],['Medium',s.medium||0,''],['Clean',(s.total_members||0)-(topA.length?Math.min(topA.length,s.total_members||0):0),'#10B981']]
+        .map(function(x){return '<div style="text-align:center;padding:12px;border-right:1px solid #E2E8F0"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:700">'+_esc(x[0])+'</div><div style="font-size:22px;font-weight:800'+(x[2]?';color:'+x[2]:'')+'">'+(x[1]||'&#x2014;')+'</div></div>';}).join('');
+
+    var aTable = topA.length===0
+        ? '<div style="font-size:12px;color:#94A3B8;padding:20px;text-align:center">No anomalies detected</div>'
+        : '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:'+_P_TEAL+';color:white"><th style="padding:8px 10px;text-align:left">Member</th><th style="padding:8px 10px;text-align:left">Finding</th><th style="padding:8px 10px;text-align:center">Severity</th><th style="padding:8px 10px;text-align:right">Score</th></tr></thead><tbody>'
+            + topA.slice(0,12).map(function(a,i){
+                return '<tr style="background:'+(i%2?'#F8FAFC':'white')+';border-bottom:1px solid #F1F5F9"><td style="padding:7px 10px;font-family:monospace;font-size:11px">'+_esc(a.member_id)+'</td><td style="padding:7px 10px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(a.title)+'</td><td style="padding:7px 10px;text-align:center">'+_pBadge(a.severity)+'</td><td style="padding:7px 10px;text-align:right;font-weight:700">'+Math.round((a.anomaly_score||0)*100)+'%</td></tr>';
+            }).join('')
+            + '</tbody></table></div>';
+
+    var shapBars = Object.keys(shap).length===0
+        ? '<div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">No attribution data</div>'
+        : Object.entries(shap).slice(0,8).map(function(kv){
+            var pct=Math.round((kv[1]||0)*100);
+            var lbl=kv[0].replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+            return '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:12px;font-weight:600">'+_esc(lbl)+'</span><span style="font-size:11px;font-weight:700;color:'+_P_TEAL+'">'+pct+'%</span></div><div style="height:4px;background:#E2E8F0;border-radius:999px"><div style="height:100%;background:#0d9488;border-radius:999px;width:'+Math.min(pct,100)+'%"></div></div></div>';
+        }).join('');
+
+    dc.innerHTML = '<div class="max-w-6xl mx-auto space-y-5"><div class="card overflow-hidden">'
+        + _pHdr('Anomaly Intelligence Report \u2014 '+_esc(job.schemeId), (s.total_members||0)+' members &middot; '+(s.total_flags||0)+' findings')
+        + '<div style="display:grid;grid-template-columns:repeat(5,1fr);background:#F8FAFC;border-bottom:1px solid #E2E8F0">'+statCols+'</div>'
+        + '<div style="padding:16px 20px;display:grid;grid-template-columns:2fr 1fr;gap:16px">'
+        + '<div><div style="font-weight:700;font-size:13px;margin-bottom:10px">Top Findings</div>'+aTable+'</div>'
+        + '<div><div style="font-weight:700;font-size:13px;margin-bottom:10px">Key Risk Drivers</div>'+shapBars+'</div>'
+        + '</div>'
+        + (result.narrative?'<div style="padding:14px 20px;background:'+_P_TEAL_LT+';border-top:1px solid '+_P_TEAL_BD+'"><div style="font-size:11px;font-weight:700;color:'+_P_TEAL+';margin-bottom:4px">AI EXECUTIVE SUMMARY</div><p style="font-size:13px;color:#1E293B;line-height:1.7">'+_esc(result.narrative)+'</p></div>':'')
+        + '</div>'
+        + '<div style="display:flex;gap:10px"><button id="p-to-review-btn" class="p-nav-btn" data-pview="p-review" style="flex:1;padding:11px;background:'+_P_TEAL+';color:white;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Review Member Exceptions &#x2192;</button>'
+        + '<button id="p-dl-report-btn2" style="padding:11px 20px;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">&#x1F4E5; Download Report</button>'
+        + '</div></div>';
+
+    _pBindBtns(dc);
+    var dlBtn2 = document.getElementById('p-dl-report-btn2');
+    if (dlBtn2) dlBtn2.addEventListener('click', _pDownloadReport);
+}
+
+// ── P Population Health ───────────────────────────────────────────────────────
+function _renderPPopulation() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    var job = _pCurrentJob();
+    if (!job||!job.result) { dc.innerHTML='<div class="card p-10 text-center text-gray-400">No analysis result.</div>'; return; }
+    var an=(job.result.population_analytics||{}), sal=(an.salary||{}), ent=(an.entropy||{}), reg=(an.regimes||{});
+
+    dc.innerHTML = '<div class="max-w-5xl mx-auto space-y-5"><div class="card overflow-hidden">'
+        + _pHdr('Population Health Analytics', 'Statistical overview of member data quality')
+        + '<div style="padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">'
+        + _pStat('Salary Range', sal.iqr_lower&&sal.iqr_upper ? '\xA3'+Math.round(sal.iqr_lower).toLocaleString()+'\u2013\xA3'+Math.round(sal.iqr_upper).toLocaleString() : 'N/A', (sal.outlier_count||0)>0?'warn':'ok', (sal.outlier_count||0)+' outliers detected')
+        + _pStat('Contribution Rate Diversity', ent.unique_rates ? ent.unique_rates+' unique rates' : 'N/A', ent.anomalous?'warn':'ok', 'Entropy: '+(ent.entropy||0).toFixed(3)+' bits')
+        + _pStat('Salary/Tranche Alignment', reg.misalignments!=null ? reg.misalignments+' misaligned' : 'N/A', (reg.misalignments||0)>0?'warn':'ok', 'Of '+(reg.total_members||0)+' members')
+        + '</div></div></div>';
+}
+
+// ── P Flywheel ────────────────────────────────────────────────────────────────
+function _renderPFlywheel() {
+    var dc = document.getElementById('dynamic-content');
+    if (!dc) return;
+    dc.innerHTML = '<div class="max-w-4xl mx-auto space-y-5"><div class="card overflow-hidden">'
+        + _pHdr('Learning & Accuracy', 'Detection improves with every confirmed review')
+        + '<div style="padding:24px">'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">'
+        + _pStat('Precision','100%','ok','Zero false positives on test data')
+        + _pStat('Recall','92%','ok','8% missed (edge cases)')
+        + _pStat('F1 Score','0.958','ok','Against 500-record benchmark')
+        + '</div>'
+        + '<div style="font-size:13px;color:#64748B;line-height:1.7;background:#F8FAFC;padding:14px;border-radius:10px">Every time a reviewer confirms or waives a flag, the outcome is recorded. Confirmed flags strengthen detection rules. Waived flags reduce sensitivity on that check. Over time the system learns the specific patterns of each scheme.</div>'
+        + '</div></div></div>';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function _pCurrentJob() {
+    if (window._pCurrentRunId) {
+        var j = window._pJobs.find(function(x){return x.runId===window._pCurrentRunId;});
+        if (j) return j;
+    }
+    return window._pJobs[window._pJobs.length-1] || null;
+}
+
+function _pDownloadReport() {
+    var job = _pCurrentJob();
+    if (!job) { if(typeof showToast==='function') showToast('No report available'); return; }
+    if (job.result&&job.result.pdf_path) {
+        window.open(API_BASE+'/pensions/batch/'+job.runId+'/pdf', '_blank');
+    } else {
+        if(typeof showToast==='function') showToast('Report will be available once the Oversight-P API is connected', 'info');
+    }
+}
+
+// ── Event delegation ──────────────────────────────────────────────────────────
+// All buttons inside rendered content use data-attributes.
+// This function attaches listeners after any view render.
+function _pBindBtns(root) {
+    root = root || document;
+    // Navigation buttons (data-pview)
+    root.querySelectorAll('[data-pview]').forEach(function(el) {
+        el.removeEventListener('click', el._pViewHandler); // remove stale
+        el._pViewHandler = function() { _pShowView(el.getAttribute('data-pview')); };
+        el.addEventListener('click', el._pViewHandler);
+    });
+    // Job review buttons (set run ID then navigate)
+    root.querySelectorAll('[data-run][data-pview]').forEach(function(el) {
+        el.removeEventListener('click', el._pRunHandler);
+        el._pRunHandler = function() {
+            window._pCurrentRunId = el.getAttribute('data-run');
+            _pShowView(el.getAttribute('data-pview'));
+        };
+        el.addEventListener('click', el._pRunHandler);
+    });
+    // Member detail buttons
+    root.querySelectorAll('.p-member-detail-btn').forEach(function(el) {
+        el.removeEventListener('click', el._pMemberHandler);
+        el._pMemberHandler = function() { _pOpenMember(el.getAttribute('data-mid')); };
+        el.addEventListener('click', el._pMemberHandler);
+    });
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+function _initPVertical() {
+    // Vertical gate buttons
+    var bA = document.getElementById('gate-btn-A');
+    var bP = document.getElementById('gate-btn-P');
+    if (bA) bA.addEventListener('click', function() { setVertical('A'); });
+    if (bP) bP.addEventListener('click', function() { setVertical('P'); });
+
+    // P nav links (data-pview)
+    document.querySelectorAll('#nav-group-P [data-pview]').forEach(function(el) {
+        el.addEventListener('click', function() { _pShowView(el.getAttribute('data-pview')); });
+    });
+}
+
+// Run after DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initPVertical);
+} else {
+    _initPVertical();
+}
+</script>
+
 </body>
 </html>

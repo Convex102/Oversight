@@ -57,3 +57,28 @@ def pensions_templates(tenant_id: str, limit: int = 100):
     except Exception as e:
         logger.exception("pensions_templates_failed", extra={"tenant_id": tenant_id})
         raise HTTPException(status_code=500, detail="Template listing failed")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Oversight-P batch endpoints (mass ingestion, anomaly detection, evidence pack)
+# Wired via app/packs/pensions/pension_batch_task.py
+# ════════════════════════════════════════════════════════════════════════════
+try:
+    from app.packs.pensions.pension_batch_task import pension_batch_router
+    if pension_batch_router is not None:
+        # The batch router has its own prefix `/api/v1/pensions` — mount with empty prefix
+        # so its full path stays intact. The endpoints become siblings of /run and /templates.
+        from fastapi import APIRouter
+        # Re-export the router so main.py picks it up under the same module.
+        # Endpoints: POST /api/v1/pensions/batch-upload, /batch-run-sync, /ingest-record
+        #            GET  /api/v1/pensions/batch/{run_id}, /batch/{run_id}/pdf
+        # Note: the batch_router itself has prefix=/api/v1/pensions so we attach it
+        # to a no-prefix wrapper via app.include_router in main.py — that already happens
+        # for `router` so we re-assign for clarity.
+        _batch_endpoints_loaded = True
+    else:
+        _batch_endpoints_loaded = False
+except Exception as _batch_err:
+    logger.warning("Pension batch endpoints not loaded: %s", _batch_err)
+    pension_batch_router = None
+    _batch_endpoints_loaded = False

@@ -286,7 +286,7 @@ async def create_engagement(
     eng = Engagement(
         tenant_id=req.tenant_id,
         client_name=req.client_name.strip(),
-        period=req.period.strip(),
+        period=(req.period or "").strip() or None,
         regulatory_pack=req.regulatory_pack,
         preparer_name=(req.preparer_name or "").strip() or None,
         engagement_ref=(req.engagement_ref or "").strip() or None,
@@ -636,6 +636,8 @@ class ConfirmMappingRequest(BaseModel):
     template_name: Optional[str] = None   # optional: save as reusable template
     materiality_pct: Optional[float] = None
     notes: Optional[str] = None
+    confirmed_by: Optional[str] = "User"
+    regulatory_pack: Optional[str] = None
 
 
 @router.post(
@@ -645,7 +647,6 @@ class ConfirmMappingRequest(BaseModel):
 async def confirm_mapping(
     eng_id: int,
     req: ConfirmMappingRequest,
-    confirmed_by: str = Form("User"),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
@@ -679,7 +680,7 @@ async def confirm_mapping(
     }
 
     confirmed_mapping = {
-        "confirmed_by": confirmed_by,
+        "confirmed_by": req.confirmed_by,
         "confirmed_at": dt.datetime.utcnow().isoformat() + "Z",
         "template_name": req.template_name,
         "notes": req.notes,
@@ -694,7 +695,7 @@ async def confirm_mapping(
     eng.latest_run_summary = summary
     eng.status = "mapping_confirmed"
 
-    _audit(db, eng_id, "mapping_confirmed", actor=confirmed_by,
+    _audit(db, eng_id, "mapping_confirmed", actor=req.confirmed_by,
            detail=f"{len(req.fields)} fields confirmed ({sum(1 for f in req.fields if f.is_key_field)} key fields)")
     db.commit()
 
@@ -711,7 +712,7 @@ async def confirm_mapping(
             )
             engine.capture(
                 type=FlywheelEventType.LABEL_CONFIRMED,
-                actor=confirmed_by,
+                actor=req.confirmed_by,
                 confidence=1.0,
                 payload={
                     "event": "mapping_template_saved",
@@ -739,7 +740,7 @@ async def confirm_mapping(
         db, eng.tenant_id,
         "mapping_confirmed",
         f"Mapping Confirmed — {eng.client_name}",
-        f"Field mappings confirmed by {confirmed_by}. "
+        f"Field mappings confirmed by {req.confirmed_by}. "
         f"Ready to run analysis — resubmit to continue.",
         severity="info",
         engagement_id=eng_id,
@@ -1433,6 +1434,34 @@ def _compare_and_raise(
     The asgla_compare pipeline uses RapidFuzz retrieval + CrossEncoder reranking
     to semantically match field names across documents regardless of label differences.
     """
+    # ── ORCHESTRATOR PATH (preferred) ───────────────────────────────────────
+    # If oversight_enhancements is installed, delegate to ReviewPointOrchestrator
+    # which adds anchor-field filtering, ratio anomaly detection, and field
+    # dependency graph chained-point generation on top of the base pipeline.
+    # If anything fails, falls through to the legacy implementation below.
+    try:
+        from oversight_enhancements.review_point_orchestrator import ReviewPointOrchestrator
+        # Build a confirmed_mapping dict from key_fields if supplied
+        _confirmed = None
+        if key_fields:
+            _confirmed = {"fields": [
+                {"canonical_role": k, "is_key_field": True} for k in key_fields
+            ]}
+        _orch = ReviewPointOrchestrator(vertical="accountancy")
+        return _orch.run(
+            path_a=path_a, path_b=path_b,
+            label_a=label_a, label_b=label_b,
+            materiality_pct=materiality_pct,
+            tmp_path=tmp_path,
+            engagement_id=0,
+            confirmed_mapping=_confirmed,
+            regulatory_pack="frs102",
+        )
+    except ImportError:
+        pass
+    except Exception as _orch_err:
+        logger.warning("Orchestrator path failed, using legacy compare: %s", _orch_err)
+
     ext_a = path_a.suffix.lower()
     ext_b = path_b.suffix.lower()
 
