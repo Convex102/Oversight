@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oversight Labs — AI Decision Intelligence Infrastructure</title>
+<meta name="description" content="Oversight Labs builds temporal intelligence infrastructure for regulated industries — decision intelligence, anomaly detection, inference efficiency and adaptive security. UK-built, UK-governed.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://oversightlab.ai/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://oversightlab.ai/">
+<meta property="og:title" content="Oversight Labs — AI Decision Intelligence Infrastructure">
+<meta property="og:description" content="Temporal intelligence infrastructure for regulated industries. Built in the UK. Deployed in production.">
+<meta property="og:site_name" content="Oversight Labs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Oversight Labs — AI Decision Intelligence Infrastructure">
+<meta name="twitter:description" content="Temporal intelligence infrastructure for regulated industries. Built in the UK.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F2A45;
+  --brand:#1A3C5E;
+  --brand-dark:#0F2A45;
+  --brand-light:#EBF4FF;
+  --paper:#FFFFFF;
+  --surface:#F8FAFC;
+  --surface-2:#F1F5F9;
+  --line:#E2E8F0;
+  --muted:#5A7184;
+  --success:#059669;
+  --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  --sans:'Inter',-apple-system,'Segoe UI',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+a{color:var(--brand);text-decoration:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+img{max-width:100%}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.eyebrow b{color:var(--brand);font-weight:600}
+h1,h2,h3{line-height:1.15;font-weight:700;letter-spacing:-0.015em}
+h1{font-size:clamp(34px,5vw,56px)}
+h2{font-size:clamp(26px,3.4vw,38px)}
+h3{font-size:19px}
+.lede{font-size:18px;color:var(--muted);max-width:680px}
+.btn{display:inline-block;padding:12px 22px;border-radius:6px;font-weight:600;font-size:15px;border:1px solid transparent;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-dark)}
+.btn-ghost{background:transparent;color:var(--brand);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--brand)}
+.mono{font-family:var(--mono)}
+
+/* ---- nav ---- */
+header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;color:var(--ink);letter-spacing:-.01em}
+.logo-mark{width:26px;height:26px;border-radius:6px;background:var(--brand);display:inline-flex;align-items:center;justify-content:center}
+.logo-mark svg{width:16px;height:16px}
+.nav-links{display:flex;gap:26px;align-items:center}
+.nav-links a{font-size:14.5px;font-weight:500;color:var(--ink);padding:6px 2px;border-bottom:2px solid transparent}
+.nav-links a:hover{color:var(--brand)}
+.nav-links a.active{border-bottom-color:var(--brand);color:var(--brand)}
+.nav-cta{margin-left:6px}
+.menu-btn{display:none;background:none;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--ink)}
+@media(max-width:860px){
+  .nav-links{display:none;position:absolute;top:64px;left:0;right:0;background:#fff;border-bottom:1px solid var(--line);flex-direction:column;align-items:flex-start;padding:18px 24px;gap:14px}
+  .nav-links.open{display:flex}
+  .menu-btn{display:block}
+}
+
+/* ---- hero ---- */
+.hero{padding:84px 0 64px;background:linear-gradient(180deg,#fff 0%,var(--surface) 100%);border-bottom:1px solid var(--line)}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}}
+.hero h1 span{color:var(--brand)}
+.hero .lede{margin:18px 0 28px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.signal-card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:18px 18px 12px;box-shadow:0 1px 2px rgba(15,42,69,.05)}
+.signal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.signal-head .eyebrow{font-size:10.5px}
+.pill{font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:99px;background:#D1FAE5;color:var(--success);font-weight:600}
+#signal{width:100%;height:190px;display:block}
+.signal-foot{display:flex;gap:18px;margin-top:8px;border-top:1px solid var(--line);padding-top:10px;flex-wrap:wrap}
+.sf{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.sf b{color:var(--ink);font-weight:600}
+
+/* ---- sections ---- */
+section{padding:72px 0}
+.sec-head{margin-bottom:42px;max-width:720px}
+.sec-head .eyebrow{display:block;margin-bottom:12px}
+.sec-head p{color:var(--muted);margin-top:12px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+@media(max-width:900px){.grid-3{grid-template-columns:1fr}.grid-2{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:26px;transition:border-color .15s,box-shadow .15s}
+.card:hover{border-color:var(--brand);box-shadow:0 2px 8px rgba(15,42,69,.07)}
+.card .eyebrow{display:block;margin-bottom:12px}
+.card h3{margin-bottom:10px}
+.card p{font-size:14.5px;color:var(--muted)}
+.card ul{list-style:none;margin-top:14px}
+.card ul li{font-size:14px;color:var(--ink);padding:7px 0;border-top:1px solid var(--surface-2);display:flex;gap:9px;align-items:flex-start}
+.card ul li::before{content:"";width:6px;height:6px;border-radius:2px;background:var(--brand);flex-shrink:0;margin-top:7px}
+.band{background:var(--brand-dark);color:#fff}
+.band .eyebrow{color:#9FB8D1}.band .eyebrow b{color:#fff}
+.band h2{color:#fff}
+.band p{color:#C7D6E5}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:40px}
+@media(max-width:900px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+.stat{border-left:2px solid var(--brand);padding-left:18px}
+.band .stat{border-left-color:#3D5F82}
+.stat .n{font-family:var(--mono);font-size:30px;font-weight:600;color:var(--ink)}
+.band .stat .n{color:#fff}
+.stat .l{font-size:13px;color:var(--muted);margin-top:4px}
+.band .stat .l{color:#9FB8D1}
+
+/* ---- pricing ---- */
+.price-track{margin-bottom:48px}
+.track-label{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.track-label h3{font-size:21px}
+.track-label span{font-size:13.5px;color:var(--muted)}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:900px){.price-grid{grid-template-columns:1fr}}
+.price-card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:28px;position:relative;display:flex;flex-direction:column}
+.price-card.featured{border-color:var(--brand);box-shadow:0 3px 14px rgba(26,60,94,.12)}
+.flag{position:absolute;top:-11px;left:24px;background:var(--brand);color:#fff;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:99px}
+.price-card .tier{font-weight:700;font-size:17px}
+.price-card .amt{font-size:38px;font-weight:700;margin:14px 0 2px;letter-spacing:-.02em}
+.price-card .amt small{font-size:15px;font-weight:500;color:var(--muted)}
+.price-card .inc{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:18px}
+.price-card ul{list-style:none;flex:1}
+.price-card ul li{font-size:14px;padding:8px 0;border-top:1px solid var(--surface-2);display:flex;gap:9px}
+.price-card ul li::before{content:"✓";color:var(--success);font-weight:700;flex-shrink:0}
+.price-card .btn{margin-top:22px;text-align:center}
+.note{font-size:13px;color:var(--muted);margin-top:22px;max-width:760px}
+
+/* ---- commentary ---- */
+.post-list{display:grid;gap:18px}
+.post-item{display:grid;grid-template-columns:140px 1fr;gap:24px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:26px;cursor:pointer;transition:border-color .15s}
+.post-item:hover{border-color:var(--brand)}
+@media(max-width:700px){.post-item{grid-template-columns:1fr;gap:8px}}
+.post-meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);line-height:1.9}
+.post-meta .tag{display:inline-block;background:var(--brand-light);color:var(--brand);padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.post-item h3{margin-bottom:6px}
+.post-item p{font-size:14.5px;color:var(--muted)}
+.post-body{max-width:740px}
+.post-body .post-meta{margin-bottom:18px}
+.post-body h1{font-size:clamp(28px,4vw,40px);margin-bottom:22px}
+.post-body p{margin-bottom:18px;font-size:16.5px;line-height:1.75}
+.post-body h2{font-size:23px;margin:34px 0 14px}
+.post-body blockquote{border-left:3px solid var(--brand);padding:6px 0 6px 20px;margin:24px 0;color:var(--muted);font-size:17px}
+.back-link{font-family:var(--mono);font-size:12.5px;display:inline-block;margin-bottom:28px}
+
+/* ---- contact / footer ---- */
+.contact-box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:36px;display:grid;grid-template-columns:1.2fr 1fr;gap:40px}
+@media(max-width:800px){.contact-box{grid-template-columns:1fr}}
+.contact-box .mono-line{font-family:var(--mono);font-size:13.5px;padding:9px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.contact-box .mono-line span:first-child{color:var(--muted)}
+footer{border-top:1px solid var(--line);background:var(--surface);padding:44px 0 36px;margin-top:40px}
+.foot-grid{display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap}
+.foot-grid .col h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;font-family:var(--mono);font-weight:600}
+.foot-grid .col a{display:block;font-size:14px;padding:4px 0;color:var(--ink)}
+.foot-grid .col a:hover{color:var(--brand)}
+.legal{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.vert-tag{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--brand);background:var(--brand-light);padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:14px;letter-spacing:.08em}
+
+/* ── skip link ── */
+.skip-link{position:absolute;left:-9999px;top:4px;z-index:100;background:var(--brand);color:#fff;padding:8px 16px;border-radius:4px;font-size:14px;font-weight:600}
+.skip-link:focus{left:4px}
+
+/* ── hero metrics card (replaces animated canvas) ── */
+.metrics-card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:28px;box-shadow:0 1px 3px rgba(15,42,69,.06)}
+.metrics-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--surface-2)}
+.metrics-card-head .eyebrow{font-size:10.5px;letter-spacing:.14em}
+.status-dot{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--success)}
+.status-dot::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.metric-item{padding:16px;background:var(--surface);border-radius:6px;margin:1px}
+.metric-item .mn{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.02em;line-height:1}
+.metric-item .ml{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.4}
+.metric-item.accent{background:var(--brand-light)}
+.metric-item.accent .mn{color:var(--brand)}
+.metrics-card-foot{margin-top:14px;padding-top:14px;border-top:1px solid var(--surface-2);display:flex;gap:18px;flex-wrap:wrap}
+.mf{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.mf b{color:var(--ink);font-weight:600}
+
+/* ── Athena page additions ── */
+.athena-hero{padding:80px 0 56px;background:linear-gradient(180deg,#fff 0%,var(--surface) 100%);border-bottom:1px solid var(--line)}
+.guarantee-box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:28px 32px;margin-bottom:32px}
+.guarantee-box .mono{font-family:var(--mono);font-size:13.5px;padding:9px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.guarantee-box .mono:last-child{border-bottom:none;padding-bottom:0}
+.guarantee-box .mono span:first-child{color:var(--muted);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.guarantee-box .mono span:last-child{color:var(--ink);font-weight:600;text-align:right}
+.how-step{display:flex;gap:20px;padding:22px 0;border-bottom:1px solid var(--surface-2);align-items:flex-start}
+.how-step:last-child{border-bottom:none}
+.step-n{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--brand);background:var(--brand-light);width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.04em}
+.step-body h3{font-size:16px;margin-bottom:4px}
+.step-body p{font-size:14.5px;color:var(--muted)}
+.feature-row{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:32px}
+@media(max-width:700px){.feature-row{grid-template-columns:1fr}}
+.feature-item{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:22px}
+.feature-item h3{font-size:15px;margin-bottom:6px}
+.feature-item p{font-size:14px;color:var(--muted);line-height:1.6}
+.plan-toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:32px;max-width:280px}
+.plan-toggle button{flex:1;background:none;border:none;padding:9px 16px;font-size:14px;font-weight:500;cursor:pointer;color:var(--muted);transition:background .15s,color .15s;font-family:var(--sans)}
+.plan-toggle button.active{background:var(--brand);color:#fff;font-weight:600}
+.track-pane{display:none}.track-pane.active{display:block}
+.upgrade-note{font-size:13px;color:var(--muted);background:var(--brand-light);border-radius:6px;padding:10px 14px;margin-bottom:20px;border-left:3px solid var(--brand)}
+
+/* ── Waitlist / signup ── */
+.wl-band{background:var(--brand-dark);padding:56px 0}
+.wl-band h2{color:#fff;margin-bottom:8px}
+.wl-band p{color:#C7D6E5;font-size:16px;margin-bottom:28px;max-width:560px}
+.wl-form-row{display:flex;gap:10px;flex-wrap:wrap;max-width:480px}
+.wl-input{flex:1;min-width:200px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:#fff;font-family:var(--sans);font-size:15px;padding:11px 14px;outline:none;transition:border-color .15s}
+.wl-input:focus{border-color:rgba(255,255,255,.55)}
+.wl-input::placeholder{color:#9FB8D1}
+.wl-submit{background:#fff;color:var(--brand-dark);border:none;border-radius:6px;font-weight:700;font-size:15px;padding:11px 22px;cursor:pointer;transition:opacity .15s;white-space:nowrap;font-family:var(--sans)}
+.wl-submit:hover{opacity:.9}
+.wl-submit:disabled{opacity:.5;cursor:not-allowed}
+.wl-note{font-size:13px;color:#9FB8D1;margin-top:12px}
+.wl-note a{color:#C7D6E5;text-decoration:underline}
+.wl-success{display:none;font-family:var(--mono);font-size:14px;color:#6EE7B7;padding:14px 18px;border:1px solid rgba(110,231,183,.3);border-radius:6px;background:rgba(110,231,183,.06);max-width:480px;margin-top:16px}
+.wl-error{display:none;font-size:13px;color:#FCA5A5;margin-top:8px}
+
+/* ── Signup modal ── */
+.modal-bd{display:none;position:fixed;inset:0;background:rgba(15,42,69,.55);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-bd.open{display:flex}
+.modal-box{background:#fff;border-radius:10px;border:1px solid var(--line);box-shadow:0 16px 56px rgba(15,42,69,.18);max-width:480px;width:100%;padding:36px;position:relative;max-height:92vh;overflow-y:auto}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1;padding:4px}
+.modal-close:hover{color:var(--ink)}
+.modal-title{font-size:22px;font-weight:700;margin-bottom:4px;color:var(--ink)}
+.modal-sub{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:24px;letter-spacing:.06em}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:5px}
+.field input,.field select{width:100%;border:1px solid var(--line);border-radius:6px;font-family:var(--sans);font-size:15px;padding:10px 13px;outline:none;color:var(--ink);transition:border-color .15s;background:#fff}
+.field input:focus,.field select:focus{border-color:var(--brand)}
+.field .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.consent-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:20px}
+.consent-row input[type=checkbox]{margin-top:3px;accent-color:var(--brand);flex-shrink:0;width:16px;height:16px}
+.consent-txt{font-size:13px;color:var(--muted);line-height:1.6}
+.consent-txt a{color:var(--brand)}
+#stripe-card-el{border:1px solid var(--line);border-radius:6px;padding:11px 13px;transition:border-color .15s;background:#fff}
+#stripe-card-el.StripeElement--focus{border-color:var(--brand)}
+#card-err{font-size:13px;color:#DC2626;min-height:18px;margin:4px 0 12px;display:block}
+.modal-submit{width:100%;background:var(--brand);color:#fff;border:none;border-radius:6px;font-weight:700;font-size:15px;padding:13px;cursor:pointer;transition:background .15s;font-family:var(--sans)}
+.modal-submit:hover{background:var(--brand-dark)}
+.modal-submit:disabled{opacity:.5;cursor:not-allowed}
+.modal-legal{font-size:12px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.7}
+.modal-legal a{color:var(--brand)}
+.modal-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.modal-success{display:none;text-align:center;padding:20px 0}
+.modal-success .check{font-size:42px;margin-bottom:14px}
+.modal-success h3{margin-bottom:8px}
+.modal-success p{font-size:15px;color:var(--muted);line-height:1.7}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<header>
+  <div class="wrap nav">
+    <a href="#/" class="logo" data-route="/">
+      <span class="logo-mark"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1 11 L4 7 L7 9 L11 3 L15 6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      Oversight Labs
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navLinks">MENU</button>
+    <nav class="nav-links" id="navLinks" role="navigation" aria-label="Main navigation">
+      <a href="#/platform" data-route="/platform">Platform</a>
+      <a href="#/research" data-route="/research">Research</a>
+      <a href="#/products" data-route="/products">Products</a>
+      <a href="#/athena" data-route="/athena">Athena</a>
+      <a href="#/pricing" data-route="/pricing">Pricing</a>
+      <a href="#/commentary" data-route="/commentary">Commentary</a>
+      <a href="#/contact" data-route="/contact">Contact</a>
+      <a href="#/athena" class="btn btn-primary nav-cta" data-route="/athena" style="color:#fff">Start free trial</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ================= HOME ================= -->
+<main id="page-home" class="page" role="main" id="main-content">
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">OVERSIGHT LABS &middot; TEMPORAL INTELLIGENCE INFRASTRUCTURE</span>
+        <h1 style="margin-top:14px">The intelligence <span>infrastructure</span> under regulated decisions.</h1>
+        <p class="lede">We build the normalisation, detection and inference layer that sits beneath audit, pensions, remediation, security and AI operations. One canonical core. Every regulated domain.</p>
+        <div class="hero-actions">
+          <a href="#/products" class="btn btn-primary" data-route="/products" style="color:#fff">Explore the platform</a>
+          <a href="#/contact" class="btn btn-ghost" data-route="/contact">Book a briefing</a>
+        </div>
+      </div>
+      <div class="metrics-card" role="region" aria-label="Platform at a glance">
+        <div class="metrics-card-head">
+          <span class="eyebrow">PLATFORM STATUS &middot; OVERSIGHT LABS</span>
+          <span class="status-dot">LIVE</span>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-item accent">
+            <div class="mn">9 in 10</div>
+            <div class="ml">Senior partner review points raised before file opened &mdash; validated in live practice</div>
+          </div>
+          <div class="metric-item">
+            <div class="mn">60%</div>
+            <div class="ml">Reduction in review preparation time on live Oversight-A engagements</div>
+          </div>
+          <div class="metric-item">
+            <div class="mn">0.958</div>
+            <div class="ml">F1 score on pension member data validation benchmarks</div>
+          </div>
+          <div class="metric-item accent">
+            <div class="mn">100%</div>
+            <div class="ml">Findings delivered with full audit trail and regulatory references</div>
+          </div>
+        </div>
+        <div class="metrics-card-foot">
+          <span class="mf">DOMAINS <b>6</b></span>
+          <span class="mf">DEPLOYMENT <b>UK</b></span>
+          <span class="mf">GOVERNANCE <b>EXPLAINABLE</b></span>
+          <span class="mf">DATA <b>SEGREGATED</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">FROM THE LAB TO THE FIELD</span>
+        <h2>One intelligence layer. Every regulated domain.</h2>
+        <p>Most review processes compare two snapshots and hope the differences are the whole story. Our research starts from a different premise: your data is a signal moving through time, and the statistical methods that work for the hardest quantitative domains — quantitative finance, large-scale forecasting — work here too. Oversight-C is that research, deployed.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <span class="eyebrow">01 · NORMALISE</span>
+          <h3>Any source, one canonical view</h3>
+          <p>Ledgers, member records, case files, statements — messy real-world data is mapped to a single consistent structure, with every transformation logged and reversible.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">02 · DETECT</span>
+          <h3>Anomalies, breaks and chains</h3>
+          <p>Statistical detection finds outliers, structural changes and the knock-on effects between related fields — producing review points a professional can act on, with the reasoning attached.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">03 · IMPROVE</span>
+          <h3>The Flywheel: exceptional on day one, compounding from day two</h3>
+          <p>The platform arrives benchmarked against senior practitioner review. Then the Flywheel takes over: every resolution your team makes feeds back into detection, so an already validated system keeps compounding — tuned ever more precisely to your clients, your schemes, your book.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">VALIDATED IN PRODUCTION</span>
+        <h2>Built for professionals who sign their name to the result.</h2>
+        <p>Figures below are from live commercial deployments of Oversight-A (accountancy) and Oversight-P (pensions), benchmarked against independent senior practitioner review — not synthetic demos.</p>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="n">9 in 10</div><div class="l">senior partner review points raised by Oversight-A before the partner opened the file — independently validated in live accountancy practice</div></div>
+        <div class="stat"><div class="n">60%</div><div class="l">reduction in Oversight-A review preparation time on live engagements</div></div>
+        <div class="stat"><div class="n">0.958</div><div class="l">Oversight-P F1 score on pension member data validation benchmarks</div></div>
+        <div class="stat"><div class="n">100%</div><div class="l">of findings delivered with full audit trail and regulatory references</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">WHO IT'S FOR</span>
+        <h2>Five domains. One platform.</h2>
+        <p>The same intelligence layer, specialised for the regulatory reality of each profession.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card"><span class="vert-tag">OVERSIGHT-A</span><h3>Accountancy</h3><p>Year-end review intelligence for FRS 102 / FRS 105 engagements. In live commercial use today.</p></div>
+        <div class="card"><span class="vert-tag">OVERSIGHT-P</span><h3>Pensions</h3><p>Member data quality, scheme validation and buy-in / buy-out readiness for DB administrators and trustees.</p></div>
+        <div class="card"><span class="vert-tag">OVERSIGHT-F</span><h3>Financial Services</h3><p>Remediation case intelligence aligned to current FCA redress frameworks, at portfolio scale.</p></div>
+        <div class="card"><span class="vert-tag">OVERSIGHT ATHENA</span><h3>AI Inference Efficiency</h3><p>Make the AI you already pay for go further. Intelligent inference efficiency across your LLM providers — with a contractual savings guarantee and a verifiable per-call ledger. <a href="#/athena" data-route="/athena" style="color:var(--brand)">Learn more →</a></p></div>
+        <div class="card"><span class="vert-tag">OVERSIGHT-M</span><h3>Clinical Data</h3><p>Early-warning intelligence for high-frequency clinical time series. In active research validation.</p></div>
+        <div class="card"><span class="vert-tag">ARGUS &amp; AEGIS</span><h3>Adaptive Security</h3><p>Security that trains against itself — continuously hardened through an adversarial arena, learning faster than threats evolve.</p></div>
+      </div>
+      <div style="margin-top:36px;display:flex;gap:12px;flex-wrap:wrap"><a class="btn btn-ghost" href="#/products" data-route="/products">See all products →</a><a class="btn btn-ghost" href="#/research" data-route="/research">Read our research →</a></div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= RESEARCH ================= -->
+<main id="page-research" class="page">
+  <section style="padding-top:64px">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">RESEARCH</span>
+        <h2>The lab behind the platform.</h2>
+        <p>Oversight Labs is a research-led organisation. Every product on this site is a deployment of work that started as a question about how temporal data behaves — and the research programme continues alongside the products it has already produced.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="eyebrow">CORE RESEARCH AREA</span>
+          <h3>Temporal representation learning</h3>
+          <p>How structured records from entirely different domains — ledgers, member files, network traffic — can be represented in one canonical temporal form without losing the signal that matters to each domain. This is the foundation Oversight-C is built on, and the reason capability transfers between products instead of being rebuilt for each one.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">CORE RESEARCH AREA</span>
+          <h3>Probabilistic forecasting under regime change</h3>
+          <p>Point forecasts fail silently when the underlying process shifts. Our work focuses on detecting structural breaks as they happen and propagating that uncertainty honestly into Monte Carlo confidence bands — so a forecast tells you not just what it expects, but how much it currently trusts itself.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">CORE RESEARCH AREA</span>
+          <h3>Explainable anomaly attribution</h3>
+          <p>Detecting an anomaly is the easy part. Attributing it to a specific cause, scoring conviction honestly, and chaining it to the other fields it affects — in language a regulated professional can act on — is the harder problem, and the one our detection research is built around.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">CORE RESEARCH AREA</span>
+          <h3>Adversarial self-play for defence</h3>
+          <p>Static defences age the moment they ship. Our security research uses multi-agent reinforcement learning — autonomous attackers and defenders training against each other continuously — so detection capability compounds instead of decaying. The Arena is the operational form of this research.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">CORE RESEARCH AREA</span>
+          <h3>Continual learning from professional feedback</h3>
+          <p>Every resolution a professional makes is a labelled training signal. Our Flywheel research is about capturing that signal safely and using it to improve detection precision without degrading on edge cases the model hasn't seen yet — the difference between a model that drifts and one that compounds.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">CORE RESEARCH AREA</span>
+          <h3>Inference efficiency at the token level</h3>
+          <p>Understanding the information density of a request &mdash; how much of it is signal versus redundancy &mdash; well enough to process it without losing meaning. This is the research underpinning Oversight Athena's inference efficiency layer.</p>
+        </div>
+      </div>
+
+      <div class="contact-box" style="margin-top:48px">
+        <div>
+          <span class="eyebrow">HOW WE WORK</span>
+          <h3 style="margin:12px 0 10px">Research validated against ground truth, then shipped</h3>
+          <p style="font-size:15px;color:var(--muted)">Nothing leaves the lab as a product claim until it has been benchmarked against an independent, qualified human doing the same task — a senior audit partner, a pensions actuary, a security analyst. That benchmark is the bar for "validated" everywhere on this site, and it's the same bar we hold new research to before it becomes a product feature.</p>
+        </div>
+        <div>
+          <div class="mono-line"><span>METHOD</span><span>Benchmark against qualified humans</span></div>
+          <div class="mono-line"><span>STANDARD</span><span>Explainable, conviction-scored output</span></div>
+          <div class="mono-line"><span>DEPLOYMENT</span><span>Research → domain adapter → product</span></div>
+          <div class="mono-line" style="border-bottom:none"><span>ENQUIRIES</span><span><a href="#/contact" data-route="/contact">Research collaboration →</a></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= PLATFORM ================= -->
+<main id="page-platform" class="page">
+  <section style="padding-top:64px">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow"><b>OVERSIGHT-C</b> · THE PLATFORM</span>
+        <h2>Infrastructure, not another point tool.</h2>
+        <p>Oversight-C is a universal temporal data intelligence layer. Each product you see is the same core platform, specialised through a domain adapter — which is why capability proven in one profession transfers to the next.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="eyebrow">THE PROBLEM</span>
+          <h3>Static comparison misses the story</h3>
+          <p>Professional review is still dominated by comparing this period to last period. That catches the obvious. It misses gradual drift, structural breaks, relationships between fields, and the anomalies that only exist <em>in the movement</em> of the data. Those are exactly the issues that cost firms time, rework and regulatory exposure.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">THE APPROACH</span>
+          <h3>Treat records as signals</h3>
+          <p>Every regulated dataset — a nominal ledger, a member record, a remediation case file — is a time series wearing a disguise. Oversight normalises them into one canonical temporal form and applies the same detection rigour across all of them. One platform, validated once, deployed everywhere.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:20px" class="grid-3">
+        <div class="card">
+          <h3>Explainable by design</h3>
+          <p>Every finding ships with its reasoning, the underlying values, severity, and the relevant regulatory reference. Nothing is a black box verdict — your professionals stay in command of the judgement.</p>
+        </div>
+        <div class="card">
+          <h3>Audit trail on everything</h3>
+          <p>Every ingestion, transformation and detection is logged immutably. When a regulator, partner or trustee asks "how did you find this?", the answer is one click, not an archaeology project.</p>
+        </div>
+        <div class="card">
+          <h3>The Flywheel learning system</h3>
+          <p>Validated performance is the starting line, not the destination. The Flywheel feeds every resolution back into detection, so a platform that already matches senior review keeps compounding — your year-two instance is sharper than anyone else’s year one.</p>
+        </div>
+        <div class="card">
+          <h3>Human-in-the-loop decision intelligence</h3>
+          <p>Every finding carries a conviction score and full explainability, so your professionals know not just what the platform found but how strongly it believes it and why. Decision intelligence that arms human judgement — it never replaces the signature on the file.</p>
+        </div>
+        <div class="card">
+          <h3>Deploys around your stack</h3>
+          <p>Works with the files and systems you already have. No rip-and-replace, no six-month integration programme before first value.</p>
+        </div>
+        <div class="card">
+          <h3>Data handled properly</h3>
+          <p>UK-based company, built for regulated industries from day one. Client data is segregated per engagement and never used to train shared models.</p>
+        </div>
+      </div>
+
+      <div class="contact-box" style="margin-top:48px">
+        <div>
+          <span class="eyebrow">HOW AN ENGAGEMENT RUNS</span>
+          <h3 style="margin:12px 0 10px">From first file to first finding in days</h3>
+          <p style="font-size:15px;color:var(--muted)">A typical pilot starts with a single completed engagement you already know the answers to. We run it blind, you compare our review points against what your senior people found, and the platform's value is measured against your own ground truth — not our marketing.</p>
+        </div>
+        <div>
+          <div class="mono-line"><span>WEEK 1</span><span>Data in, baseline run</span></div>
+          <div class="mono-line"><span>WEEK 2</span><span>Side-by-side vs. your review</span></div>
+          <div class="mono-line"><span>WEEK 3+</span><span>Live engagements, feedback loop on</span></div>
+          <div class="mono-line"><span>OUTCOME</span><span>Measured against your benchmark</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= PRODUCTS ================= -->
+<main id="page-products" class="page">
+  <section style="padding-top:64px">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">PRODUCTS</span>
+        <h2>The platform, specialised.</h2>
+        <p>Every product below runs on the same Oversight-C core. Choose the domain — the intelligence is shared.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="vert-tag">OVERSIGHT-A · LIVE</span>
+          <h3>Accountancy Review Intelligence</h3>
+          <p>Year-end review intelligence for UK practice. Ingests trial balances, nominal ledgers and working papers; produces partner-grade review points aligned to FRS 102 and FRS 105, each with regulatory references and recommended actions.</p>
+          <ul>
+            <li>Raises the review points a senior partner would raise — independently validated against blind partner review on live engagements</li>
+            <li>60% reduction in review preparation time</li>
+            <li>Ratio, trend and cross-field consistency analysis beyond static comparison</li>
+            <li>Qualitative checks: disclosures, policies, consistency, related parties</li>
+            <li>Full audit trail and one-click engagement export</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="vert-tag">OVERSIGHT-P</span>
+          <h3>Pension Data Intelligence</h3>
+          <p>Member data quality and scheme validation for DB administrators, trustees and insurers — built for the realities of GMP work, de-risking transactions and TPR expectations.</p>
+          <ul>
+            <li>0.958 F1 on member data validation benchmarks, with batch processing at scale</li>
+            <li>Schema mapping that absorbs decades of inconsistent admin formats</li>
+            <li>Buy-in / buy-out data readiness scoring for transaction preparation</li>
+            <li>Anomaly detection across salary, service, dates and benefit calculations</li>
+            <li>Reporting designed for trustee boards and insurer due diligence</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="vert-tag">OVERSIGHT-F</span>
+          <h3>Financial Remediation Intelligence</h3>
+          <p>Case-level intelligence for redress and remediation programmes, aligned to current FCA frameworks. Built for portfolios where every case needs defensible, consistent treatment.</p>
+          <ul>
+            <li>Portfolio-scale case screening and prioritisation</li>
+            <li>Consistency checking across outcomes and calculations</li>
+            <li>Evidence trail suitable for skilled person and regulator review</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="vert-tag">OVERSIGHT-M · RESEARCH</span>
+          <h3>Clinical Data Intelligence</h3>
+          <p>Early-warning intelligence for high-frequency clinical time series, currently in research validation against large public critical-care datasets. Partnership enquiries from clinical research groups welcome.</p>
+          <ul>
+            <li>Deterioration signal detection in continuous monitoring data</li>
+            <li>Built on the same validated temporal core as our commercial products</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="card">
+          <span class="vert-tag">OVERSIGHT ARGUS &amp; AEGIS</span>
+          <h3>Adaptive Security Intelligence</h3>
+          <p>Conventional security tooling defends against yesterday’s attacks with static rules. Argus watches; Aegis defends — a paired system built on novel neural detection that turns the model on its head: instead of waiting for threats to teach it, it trains continuously against its own adversary. A virtual red team attacks; the blue team defends; every engagement feeds the Flywheel. The system that protects you this morning is measurably stronger than the one that protected you last night.</p>
+          <ul>
+            <li>Continuous adversarial training — an always-on red team / blue team arena hardens detection around the clock</li>
+            <li>Novel neural detection architectures, built in-house — not repackaged signature engines</li>
+            <li>Flywheel learning: every attack scenario, real or simulated, compounds the defence</li>
+            <li>Conviction-scored, explainable alerts — your security team sees why, not just what</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top:20px" class="grid-2">
+        <div class="card">
+          <span class="vert-tag">ADVERSARIAL ARENA · MARL</span>
+          <h3>The Arena — security that trains against itself</h3>
+          <p>A multi-agent reinforcement learning environment where autonomous red-team agents attack and blue-team agents defend, continuously. Every round produces new tactics, new defences and new training signal. It is the engine that keeps Argus and Aegis ahead of the threat curve — and it is available on its own, for security teams and researchers who want a live proving ground for their own detection models.</p>
+          <ul>
+            <li>Autonomous red vs blue multi-agent reinforcement learning, running around the clock</li>
+            <li>Continuously generates novel attack and defence strategies — not a fixed scenario library</li>
+            <li>Benchmark and harden your own models against an adversary that never stops improving</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="vert-tag">DYNAMIC CVE ENGINE</span>
+          <h3>Live threat intelligence, operationalised</h3>
+          <p>Newly disclosed vulnerabilities are ingested as they are published, translated into live attack scenarios inside the Arena, and used to test and harden defences — often before a working exploit is circulating in the wild. The gap between disclosure and defence, where most breaches happen, closes to near zero.</p>
+          <ul>
+            <li>Continuous ingestion of newly published vulnerabilities</li>
+            <li>Automatic translation of disclosures into testable attack scenarios</li>
+            <li>Defences hardened against new threats on the day they emerge, not the quarter after</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="sec-head" style="margin-top:64px">
+        <span class="eyebrow">INFRASTRUCTURE PRODUCTS</span>
+        <h2>The platform layer, available directly.</h2>
+        <p>The capabilities underneath our domain products are products in their own right — for organisations building intelligence into their own operations.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <span class="vert-tag">TEMPORAL FORECASTING</span>
+          <h3>Forecasting as a service</h3>
+          <p>Forward-looking projections over any structured time series, with full Monte Carlo confidence bands rather than single-point guesses. Know the range, not just the number — and know when the data itself says the forecast can no longer be trusted.</p>
+          <ul>
+            <li>Probabilistic forecasts with upper and lower confidence bands</li>
+            <li>Regime-change awareness — alerts when the underlying behaviour shifts</li>
+            <li>Anomaly flagging integrated into every projection</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="vert-tag">AGENT CREWS</span>
+          <h3>Autonomous agent workforces</h3>
+          <p>Governed teams of AI agents that run defined business functions continuously — research, monitoring, market intelligence, outreach preparation — with every action logged and every output reviewable before it leaves the building.</p>
+          <ul>
+            <li>Pre-built crews for research, competitive intelligence and growth operations</li>
+            <li>Runs around the clock under your governance rules</li>
+            <li>Complete activity audit trail — agents are accountable by design</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="vert-tag">MCP INTEGRATION</span>
+          <h3>Connects to your stack natively</h3>
+          <p>The platform speaks Model Context Protocol — the open standard for connecting AI systems to tools and data. Your existing systems become capabilities the intelligence layer can use, without bespoke integration projects.</p>
+          <ul>
+            <li>Standards-based connection to internal tools and data sources</li>
+            <li>Web research, document processing and search out of the box</li>
+            <li>New capabilities added by configuration, not engineering</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="card" style="border-color:var(--brand)">
+          <span class="vert-tag">OVERSIGHT ATHENA &middot; LIVE</span>
+          <h3>Make the AI you already pay for go further.</h3>
+          <p>Athena is an inference efficiency layer that sits between your AI stack and any LLM provider. Every request is processed before reaching the provider — reducing token consumption, lowering your bill, and logging every saving to a verifiable per-call ledger. Works with your existing accounts; nothing migrates.</p>
+          <ul>
+            <li>Intelligent inference efficiency across providers and model tiers — cost, quality and reliability per call</li>
+            <li>Bring your own keys, or use our managed track with no provider accounts needed</li>
+            <li>Contractual efficiency guarantee on eligible plans — the SLA is in your subscription, not a marketing claim</li>
+            <li>Per-call savings ledger — every token processed is logged and verifiable</li>
+            <li>Four integration modes: proxy (zero code changes), Python/TS library, CrewAI/LangChain drop-in, MCP server</li>
+            <li>30-day free trial on all plans — card collected at sign-up, nothing charged until day 31</li>
+          </ul>
+          <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+            <a class="btn btn-primary" href="#/athena" data-route="/athena" style="color:#fff">See Athena plans →</a>
+            <a class="btn btn-ghost" href="#/pricing" data-route="/pricing">View pricing</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= PRICING ================= -->
+<main id="page-pricing" class="page">
+  <section style="padding-top:64px">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">PRICING</span>
+        <h2>Simple plans for Oversight Athena. Tailored engagements for everything else.</h2>
+        <p>Oversight Athena is self-serve and priced publicly below. Oversight-A, P and F engagements are scoped to your practice &mdash; book a briefing and we will put a number on it quickly.</p>
+      </div>
+
+      <div class="price-track">
+        <div class="track-label">
+          <h3>Bring your own keys &mdash; BYOK</h3>
+          <span>Keep your provider accounts. Athena makes them go further.</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin:-6px 0 10px;background:var(--brand-light);padding:10px 14px;border-radius:6px;border-left:3px solid var(--brand)">Nano plan delivers approximately 30% efficiency. Solo and above include the full 60%+ SLA guarantee. All plans include a 30-day free trial &mdash; card required at sign-up, not charged until day 31.</p>
+        <div class="price-grid">
+          <div class="price-card">
+            <div class="tier">Nano</div>
+            <div class="amt">£19.99<small>/month</small></div>
+            <div class="inc">Entry &middot; cheapest models &middot; ~30% efficiency</div>
+            <ul>
+              <li>1 BYOK key (Haiku, GPT-4o mini, Gemini Flash, DeepSeek V3)</li>
+              <li>Inference efficiency pipeline (~30%)</li>
+              <li>Per-call savings ledger</li>
+              <li>Unlimited throughput</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/athena" data-route="/athena">Start free trial</a>
+          </div>
+          <div class="price-card featured">
+            <span class="flag">Recommended</span>
+            <div class="tier">Solo</div>
+            <div class="amt">£39<small>/month</small></div>
+            <div class="inc">Full 60%+ SLA guarantee &middot; all models</div>
+            <ul>
+              <li>1 BYOK key &middot; all providers and models</li>
+              <li>60%+ efficiency SLA guarantee</li>
+              <li>Persistent session memory</li>
+              <li>Per-call savings ledger</li>
+            </ul>
+            <a class="btn btn-primary" href="#/athena" data-route="/athena" style="color:#fff">Start free trial</a>
+          </div>
+          <div class="price-card">
+            <div class="tier">Studio</div>
+            <div class="amt">£99<small>/month</small></div>
+            <div class="inc">3 keys &middot; hybrid routing &middot; agent workloads</div>
+            <ul>
+              <li>3 BYOK keys &middot; 3 providers &middot; hybrid routing</li>
+              <li>60%+ SLA &middot; 100M tokens / month</li>
+              <li>Crew agent workloads supported</li>
+              <li>Priority support &middot; Slack channel</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/athena" data-route="/athena">Start free trial</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="price-track">
+        <div class="track-label">
+          <h3>Managed routing</h3>
+          <span>No provider accounts needed &mdash; we run it all for you.</span>
+        </div>
+        <div class="price-grid">
+          <div class="price-card">
+            <div class="tier">Starter</div>
+            <div class="amt">£49<small>/month</small></div>
+            <div class="inc">500 calls / month &middot; everyday models</div>
+            <ul>
+              <li>Zero provider setup</li>
+              <li>T3 model tier (Llama 3.3 70B, Gemini Flash)</li>
+              <li>Per-call savings ledger</li>
+              <li>Overage: £0.05 / call</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/athena" data-route="/athena">Start free trial</a>
+          </div>
+          <div class="price-card featured">
+            <span class="flag">Best value</span>
+            <div class="tier">Pro</div>
+            <div class="amt">£129<small>/month</small></div>
+            <div class="inc">2,000 calls / month &middot; advanced + everyday models</div>
+            <ul>
+              <li>Everything in Starter</li>
+              <li>T2+T3 models (DeepSeek V3 + Llama)</li>
+              <li>Usage analytics and forecasting</li>
+              <li>Priority support</li>
+              <li>Overage: £0.03 / call</li>
+            </ul>
+            <a class="btn btn-primary" href="#/athena" data-route="/athena" style="color:#fff">Start free trial</a>
+          </div>
+          <div class="price-card">
+            <div class="tier">Power</div>
+            <div class="amt">£299<small>/month</small></div>
+            <div class="inc">8,000 calls / month &middot; all model tiers</div>
+            <ul>
+              <li>Everything in Pro</li>
+              <li>Full T1+T2+T3 stack</li>
+              <li>Team workspaces and shared reporting</li>
+              <li>Onboarding session included</li>
+              <li>Overage: £0.02 / call</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/athena" data-route="/athena">Start free trial</a>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">All Oversight Athena plans include the verifiable per-call savings ledger. 30-day free trial on all plans &mdash; card collected at sign-up, not charged until day 31. Cancel any time before that. Fair use applies.</p>
+
+      <div class="price-track" style="margin-top:48px">
+        <div class="track-label">
+          <h3>Oversight Athena Enterprise</h3>
+          <span>For organisations running AI at scale.</span>
+        </div>
+        <div class="card" style="border-color:var(--brand);display:grid;grid-template-columns:1.2fr 1fr;gap:36px">
+          <div>
+            <h3 style="margin-bottom:10px">Governed AI efficiency across the whole estate</h3>
+            <p style="font-size:15px;color:var(--muted)">When AI consumption spans departments, providers and budgets, the efficiency layer becomes a governance layer. Enterprise deployments include organisation-wide measurement, policy controls over which models serve which workloads, and the reporting your finance and risk functions actually need. Commercials are N% of your gross baseline &mdash; built on outcomes, not seat counts.</p>
+          </div>
+          <div>
+            <div class="mono-line"><span>GUARANTEE</span><span>Contractual reduction commitments for eligible engagements</span></div>
+            <div class="mono-line"><span>GOVERNANCE</span><span>Model and routing policy controls</span></div>
+            <div class="mono-line"><span>AUDIT</span><span>Estate-wide savings ledger</span></div>
+            <div class="mono-line"><span>SUPPORT</span><span>Dedicated, with SSO and invoicing</span></div>
+            <div class="mono-line" style="border-bottom:none"><span>COMMERCIALS</span><span><a href="#/contact" data-route="/contact">Book a briefing →</a></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="price-track" style="margin-top:56px">
+        <div class="track-label">
+          <h3>Oversight Argus &amp; Aegis</h3>
+          <span>Adaptive security — watch, defend, or both.</span>
+        </div>
+        <p style="font-size:14px;color:var(--muted);margin:-6px 0 18px;max-width:720px">Argus is detection and monitoring. Aegis is autonomous defence and response. Run either alone, or combine them for a continuously self-hardening security posture. Per-endpoint pricing below; the Arena and the dynamic CVE engine are included from the Defend tier upward.</p>
+        <div class="price-grid">
+          <div class="price-card">
+            <div class="tier">Argus · Watch</div>
+            <div class="amt">£7<small>/endpoint/mo</small></div>
+            <div class="inc">Detection &amp; monitoring</div>
+            <ul>
+              <li>Novel neural threat detection</li>
+              <li>Conviction-scored, explainable alerts</li>
+              <li>Continuous monitoring dashboard</li>
+              <li>Flywheel learning from your environment</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/contact" data-route="/contact">Start with Argus</a>
+          </div>
+          <div class="price-card featured">
+            <span class="flag">Most popular</span>
+            <div class="tier">Aegis · Defend</div>
+            <div class="amt">£14<small>/endpoint/mo</small></div>
+            <div class="inc">Detection + autonomous response</div>
+            <ul>
+              <li>Everything in Argus</li>
+              <li>Autonomous threat response and containment</li>
+              <li>Adversarial Arena hardening included</li>
+              <li>Dynamic CVE engine — day-zero defence</li>
+            </ul>
+            <a class="btn btn-primary" href="#/contact" data-route="/contact" style="color:#fff">Start with Aegis</a>
+          </div>
+          <div class="price-card">
+            <div class="tier">Sentinel · Enterprise</div>
+            <div class="amt">Custom</div>
+            <div class="inc">Argus + Aegis, estate-wide</div>
+            <ul>
+              <li>Everything in Aegis, at scale</li>
+              <li>Dedicated Arena instance for your estate</li>
+              <li>SSO, SIEM integration, invoicing</li>
+              <li>Volume pricing and dedicated support</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/contact" data-route="/contact">Book a briefing</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="price-track" style="margin-top:40px">
+        <div class="track-label">
+          <h3>Personal protection</h3>
+          <span>The same neural detection, for individuals and households.</span>
+        </div>
+        <div class="price-grid">
+          <div class="price-card">
+            <div class="tier">Argus Home</div>
+            <div class="amt">£9<small>/month</small></div>
+            <div class="inc">Up to 5 devices</div>
+            <ul>
+              <li>Neural threat detection for personal devices</li>
+              <li>Plain-language alerts — no jargon</li>
+              <li>Always-on, set and forget</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/contact" data-route="/contact">Protect my devices</a>
+          </div>
+          <div class="price-card">
+            <div class="tier">Argus Family</div>
+            <div class="amt">£19<small>/month</small></div>
+            <div class="inc">Up to 15 devices</div>
+            <ul>
+              <li>Everything in Argus Home</li>
+              <li>Whole-household coverage</li>
+              <li>Shared protection dashboard</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/contact" data-route="/contact">Protect my family</a>
+          </div>
+          <div class="price-card">
+            <div class="tier">The Arena</div>
+            <div class="amt">Custom</div>
+            <div class="inc">For security teams &amp; researchers</div>
+            <ul>
+              <li>Standalone access to the adversarial arena</li>
+              <li>Benchmark and harden your own models</li>
+              <li>Dynamic CVE scenario feed</li>
+            </ul>
+            <a class="btn btn-ghost" href="#/contact" data-route="/contact">Request access</a>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">Security pricing is per endpoint per month unless stated; annual commitment and volume discounts available. Personal plans are flat monthly. Minimums apply to Enterprise — <a href="#/contact" data-route="/contact">talk to us</a> for a scoped quote.</p>
+
+      <div class="contact-box" style="margin-top:56px">
+        <div>
+          <span class="eyebrow">OVERSIGHT-A · P · F ENGAGEMENTS</span>
+          <h3 style="margin:12px 0 10px">Platform engagements are scoped, not listed</h3>
+          <p style="font-size:15px;color:var(--muted)">Professional-domain deployments are priced on engagement scope, data volumes and integration needs — typically a fixed pilot fee followed by an annual platform agreement. Every pilot is benchmarked against your own ground truth before you commit to anything longer.</p>
+        </div>
+        <div>
+          <div class="mono-line"><span>PILOT</span><span>Fixed fee, fixed scope</span></div>
+          <div class="mono-line"><span>PLATFORM</span><span>Annual agreement, usage-based</span></div>
+          <div class="mono-line"><span>RULE PACKS</span><span>Domain modules as needed</span></div>
+          <div class="mono-line" style="border-bottom:none"><span>ENTERPRISE</span><span><a href="#/contact" data-route="/contact">Book a briefing →</a></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= COMMENTARY ================= -->
+<main id="page-commentary" class="page">
+  <section style="padding-top:64px">
+    <div class="wrap">
+      <div class="sec-head" id="commentaryHead">
+        <span class="eyebrow">COMMENTARY</span>
+        <h2>Notes from the intelligence layer.</h2>
+        <p>Industry guidance, regulatory analysis and occasional opinions from Oversight Labs.</p>
+      </div>
+      <div id="postListView" class="post-list"></div>
+      <article id="postDetailView" class="post-body" style="display:none"></article>
+    </div>
+  </section>
+</main>
+
+<!-- ================= CONTACT ================= -->
+<main id="page-contact" class="page">
+  <section style="padding-top:64px">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">CONTACT</span>
+        <h2>Talk to us.</h2>
+        <p>Briefings, pilots, partnerships and press. We respond quickly.</p>
+      </div>
+      <div class="contact-box">
+        <div>
+          <h3 style="margin-bottom:10px">What happens next</h3>
+          <p style="font-size:15px;color:var(--muted);margin-bottom:16px">Tell us your domain and the problem you're staring at. We'll come back with whether the platform fits, what a pilot looks like, and a straight answer on cost. No discovery-call theatre.</p>
+          <p style="font-size:15px;color:var(--muted)">For Oversight Athena, mention your current provider plan and rough monthly token usage &mdash; we will show you what the same spend could be doing.</p>
+        </div>
+        <div>
+          <div class="mono-line"><span>EMAIL</span><span><a href="mailto:hello@oversightlab.ai">hello@oversightlab.ai</a></span></div>
+          <div class="mono-line"><span>WEB</span><span>oversightlab.ai</span></div>
+          <div class="mono-line"><span>REGISTERED</span><span>61 Rodney Street, Liverpool L1 9ER</span></div>
+          <div class="mono-line" style="border-bottom:none"><span>COMPANY</span><span>Oversight Labs Limited · No. 17145488</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="col" style="max-width:280px">
+        <a href="#/" class="logo" data-route="/" style="margin-bottom:12px">
+          <span class="logo-mark"><svg viewBox="0 0 16 16" fill="none"><path d="M1 11 L4 7 L7 9 L11 3 L15 6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          Oversight Labs
+        </a>
+        <p style="font-size:13px;color:var(--muted)">A research-led AI lab building temporal intelligence infrastructure for regulated industries.</p>
+      </div>
+      <div class="col">
+        <h4>Platform</h4>
+        <a href="#/research" data-route="/research">Research</a>
+        <a href="#/platform" data-route="/platform">How it works</a>
+        <a href="#/products" data-route="/products">Products</a>
+        <a href="#/pricing" data-route="/pricing">Pricing</a>
+      </div>
+      <div class="col">
+        <h4>Products</h4>
+        <a href="#/products" data-route="/products">Oversight-A &middot; Accountancy</a>
+        <a href="#/products" data-route="/products">Oversight-P &middot; Pensions</a>
+        <a href="#/products" data-route="/products">Oversight-F &middot; Financial</a>
+        <a href="#/athena" data-route="/athena">Oversight Athena &middot; Inference</a>
+        <a href="#/products" data-route="/products">Argus &amp; Aegis &middot; Security</a>
+        <a href="#/products" data-route="/products">The Arena &middot; MARL</a>
+      </div>
+      <div class="col">
+        <h4>Company</h4>
+        <a href="#/commentary" data-route="/commentary">Commentary</a>
+        <a href="#/contact" data-route="/contact">Contact</a>
+      </div>
+    </div>
+    <div class="legal">
+      <span>&copy; 2026 Oversight Labs Limited &middot; Registered in England &amp; Wales No. 17145488 &middot; 61 Rodney Street, Liverpool L1 9ER</span>
+      <span style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+        <a href="/terms" target="_blank" rel="noopener" style="color:var(--muted)">Terms</a>
+        <a href="/privacy" target="_blank" rel="noopener" style="color:var(--muted)">Privacy</a>
+        <a href="mailto:hello@oversightlab.ai" style="color:var(--muted)">hello@oversightlab.ai</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<!-- ================= ATHENA ================= -->
+<main id="page-athena" class="page">
+
+  <div class="athena-hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">OVERSIGHT ATHENA &middot; INFERENCE EFFICIENCY</span>
+          <h1 style="margin-top:14px">Make the AI you already pay for go <span>further.</span></h1>
+          <p class="lede">Athena is an inference efficiency layer. Every request is processed before it reaches your LLM provider &mdash; reducing token consumption, lowering your bill, and logging every saving to a verifiable ledger. Bring your own keys or let us manage everything.</p>
+          <div class="hero-actions" style="margin-top:24px">
+            <button onclick="openSignup('byok_solo')" class="btn btn-primary" style="color:#fff">Start free trial</button>
+            <a href="#athena-plans" class="btn btn-ghost">See plans</a>
+          </div>
+        </div>
+        <div class="guarantee-box">
+          <div class="mono"><span>INTEGRATION</span><span>Proxy mode &mdash; one env var, zero code changes</span></div>
+          <div class="mono"><span>GUARANTEE</span><span>Contractual efficiency commitment on eligible plans</span></div>
+          <div class="mono"><span>FREE TRIAL</span><span>30 days &middot; card collected &middot; not charged until day 31</span></div>
+          <div class="mono"><span>BYOK</span><span>Your existing API keys &mdash; nothing migrates</span></div>
+          <div class="mono"><span>MANAGED</span><span>No provider accounts needed &mdash; we handle it</span></div>
+          <div class="mono"><span>LEDGER</span><span>Every token processed is logged and verifiable</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">HOW IT WORKS</span>
+        <h2>Set up in minutes. Savings from the first call.</h2>
+        <p>Athena meets your stack where it already is. Your code, your provider accounts, your models &mdash; unchanged.</p>
+      </div>
+      <div class="card" style="margin-bottom:32px">
+        <div class="how-step">
+          <div class="step-n">01</div>
+          <div class="step-body"><h3>Point your base URL at Athena</h3><p>Change one environment variable. Every LLM call routes through Athena automatically. No SDK changes, no prompt changes, no logic changes.</p></div>
+        </div>
+        <div class="how-step">
+          <div class="step-n">02</div>
+          <div class="step-body"><h3>Athena processes each request</h3><p>The inference efficiency pipeline analyses and processes the call before your provider receives it. Output quality is preserved. Token count falls.</p></div>
+        </div>
+        <div class="how-step">
+          <div class="step-n">03</div>
+          <div class="step-body"><h3>Your provider receives the processed request</h3><p>You pay your provider on processed tokens. Athena charges a flat monthly subscription separately &mdash; or on enterprise plans, N% of your gross baseline.</p></div>
+        </div>
+        <div class="how-step">
+          <div class="step-n">04</div>
+          <div class="step-body"><h3>Every saving is logged in your ledger</h3><p>Gross tokens in versus processed tokens dispatched &mdash; every call, every session, every month. Monthly statements available for finance teams.</p></div>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-item"><h3>BYOK &mdash; bring your own keys</h3><p>Keep your Anthropic, OpenAI, Google or DeepSeek accounts. Athena sits in front of them. Your rate agreements stay in place.</p></div>
+        <div class="feature-item"><h3>Managed &mdash; no keys needed</h3><p>No provider accounts required. Send requests to Athena and we handle model selection, routing and infrastructure end to end.</p></div>
+        <div class="feature-item"><h3>Verifiable savings ledger</h3><p>Per-call log of gross versus processed tokens. Exportable monthly statements. Every saving is a number, not a claim.</p></div>
+        <div class="feature-item"><h3>Four integration modes</h3><p>Proxy (zero code change), Python / TypeScript library, CrewAI / LangChain drop-in, or MCP server for Claude Code and Cursor.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="athena-plans" style="background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">PLANS &amp; PRICING</span>
+        <h2>Simple pricing. No surprises.</h2>
+        <p>All plans include the per-call savings ledger. 30-day free trial on all plans &mdash; card collected, not charged until day 31.</p>
+      </div>
+
+      <div class="plan-toggle" role="tablist">
+        <button class="active" role="tab" aria-selected="true" onclick="switchTrack('byok',this)">BYOK</button>
+        <button role="tab" aria-selected="false" onclick="switchTrack('managed',this)">Managed</button>
+      </div>
+
+      <div class="track-pane active" id="track-byok">
+        <p style="font-size:14px;color:var(--muted);margin-bottom:14px">Keep your own provider API keys. Athena makes them go further.</p>
+        <div class="upgrade-note">Nano delivers ~30% efficiency. Solo and above include the contractual 60%+ SLA guarantee &mdash; the dashboard shows the gap.</div>
+        <div class="price-grid">
+          <div class="price-card">
+            <div class="tier">Nano</div>
+            <div class="amt">£19.99<small>/month</small></div>
+            <div class="inc">Entry &middot; cheapest models &middot; ~30% efficiency</div>
+            <ul>
+              <li>1 BYOK key (Haiku, GPT-4o mini, Gemini Flash, DeepSeek V3)</li>
+              <li>~30% efficiency on every call</li>
+              <li>Per-call savings ledger</li>
+              <li>Unlimited throughput</li>
+            </ul>
+            <button onclick="openSignup('byok_nano')" class="btn btn-ghost" style="margin-top:22px;width:100%">Start free trial</button>
+          </div>
+          <div class="price-card featured">
+            <span class="flag">Recommended</span>
+            <div class="tier">Solo</div>
+            <div class="amt">£39<small>/month</small></div>
+            <div class="inc">Full SLA guarantee &middot; all models &middot; memory</div>
+            <ul>
+              <li>1 BYOK key &middot; all providers and models</li>
+              <li>60%+ efficiency SLA guarantee</li>
+              <li>Persistent session memory</li>
+              <li>Per-call savings ledger</li>
+            </ul>
+            <button onclick="openSignup('byok_solo')" class="btn btn-primary" style="margin-top:22px;width:100%;color:#fff">Start free trial</button>
+          </div>
+          <div class="price-card">
+            <div class="tier">Studio</div>
+            <div class="amt">£99<small>/month</small></div>
+            <div class="inc">3 keys &middot; hybrid routing &middot; agents</div>
+            <ul>
+              <li>3 BYOK keys &middot; 3 providers &middot; hybrid routing</li>
+              <li>60%+ SLA &middot; 100M tokens / month</li>
+              <li>Crew agent workloads</li>
+              <li>Priority support &middot; Slack channel</li>
+            </ul>
+            <button onclick="openSignup('byok_studio')" class="btn btn-ghost" style="margin-top:22px;width:100%">Start free trial</button>
+          </div>
+        </div>
+        <div class="price-grid" style="margin-top:20px">
+          <div class="price-card">
+            <div class="tier">Team</div>
+            <div class="amt">£249<small>/month</small></div>
+            <div class="inc">10 seats &middot; shared pool &middot; named SLA</div>
+            <ul>
+              <li>10 seats &middot; 3 shared keys</li>
+              <li>300M token pool</li>
+              <li>Monthly savings statements</li>
+              <li>Onboarding session</li>
+            </ul>
+            <button onclick="openSignup('byok_team')" class="btn btn-ghost" style="margin-top:22px;width:100%">Start free trial</button>
+          </div>
+          <div class="price-card" style="border-color:var(--brand);grid-column:span 2">
+            <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:32px">
+              <div>
+                <div class="tier">Enterprise</div>
+                <div class="amt" style="font-size:24px;margin:10px 0 6px">N% of gross baseline</div>
+                <div class="inc">Bilateral &middot; no published rate</div>
+                <p style="font-size:14px;color:var(--muted);margin-top:10px">Contractual SLA across your entire AI estate. Every token logged. Finance-ready monthly reporting. Commercials built on outcomes.</p>
+              </div>
+              <div>
+                <div class="mono-line"><span>GUARANTEE</span><span>Contractual efficiency commitment</span></div>
+                <div class="mono-line"><span>AUDIT</span><span>Estate-wide per-call ledger</span></div>
+                <div class="mono-line"><span>GOVERNANCE</span><span>Model and routing policy controls</span></div>
+                <div class="mono-line" style="border-bottom:none"><span>ENQUIRIES</span><span><a href="#/contact" data-route="/contact">Book a briefing &rarr;</a></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="track-pane" id="track-managed">
+        <p style="font-size:14px;color:var(--muted);margin-bottom:22px">No provider accounts needed. We run the model infrastructure. Send requests; receive responses.</p>
+        <div class="price-grid">
+          <div class="price-card">
+            <div class="tier">Starter</div>
+            <div class="amt">£49<small>/month</small></div>
+            <div class="inc">500 calls / month &middot; everyday models</div>
+            <ul>
+              <li>Zero provider setup</li>
+              <li>T3 model tier (Llama 3.3 70B, Gemini Flash)</li>
+              <li>Per-call savings ledger</li>
+              <li>Overage: £0.05 / call</li>
+            </ul>
+            <button onclick="openSignup('managed_starter')" class="btn btn-ghost" style="margin-top:22px;width:100%">Start free trial</button>
+          </div>
+          <div class="price-card featured">
+            <span class="flag">Best value</span>
+            <div class="tier">Pro</div>
+            <div class="amt">£129<small>/month</small></div>
+            <div class="inc">2,000 calls / month &middot; advanced + everyday</div>
+            <ul>
+              <li>Everything in Starter</li>
+              <li>T2+T3 models (DeepSeek V3 + Llama)</li>
+              <li>Usage analytics</li>
+              <li>Priority support</li>
+              <li>Overage: £0.03 / call</li>
+            </ul>
+            <button onclick="openSignup('managed_pro')" class="btn btn-primary" style="margin-top:22px;width:100%;color:#fff">Start free trial</button>
+          </div>
+          <div class="price-card">
+            <div class="tier">Power</div>
+            <div class="amt">£299<small>/month</small></div>
+            <div class="inc">8,000 calls / month &middot; all model tiers</div>
+            <ul>
+              <li>Everything in Pro</li>
+              <li>Full T1+T2+T3 stack</li>
+              <li>Team workspaces</li>
+              <li>Onboarding session</li>
+              <li>Overage: £0.02 / call</li>
+            </ul>
+            <button onclick="openSignup('managed_power')" class="btn btn-ghost" style="margin-top:22px;width:100%">Start free trial</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="note" style="margin-top:32px">All plans include the verifiable per-call savings ledger. 30-day free trial on all plans &mdash; card collected at sign-up, not charged until day 31. Cancel any time before that. Fair use applies.</p>
+    </div>
+  </section>
+
+  <div class="wl-band" id="athena-waitlist">
+    <div class="wrap">
+      <div id="wl-pre-block">
+        <span class="eyebrow" style="color:#9FB8D1"><b style="color:#fff">EARLY ACCESS</b></span>
+        <h2 style="margin-top:10px">Launching soon. Get in first.</h2>
+        <p>The first 50 on the waitlist receive a 60-day trial instead of 30. One email when we go live.</p>
+        <form id="wl-form" onsubmit="submitWaitlist(event)" novalidate>
+          <div class="wl-form-row">
+            <input class="wl-input" type="email" id="wl-email" placeholder="your@email.com" required autocomplete="email" aria-label="Email address">
+            <button class="wl-submit" type="submit" id="wl-btn">Join waitlist</button>
+          </div>
+          <div class="wl-success" id="wl-success" role="status">You are on the list. We will email you on launch day with your early-access link.</div>
+          <div class="wl-error" id="wl-error" role="alert"></div>
+          <p class="wl-note" style="margin-top:12px">Your email is used only for the launch notification. <a href="/privacy" target="_blank" rel="noopener">Privacy policy.</a></p>
+        </form>
+      </div>
+      <div id="wl-live-block" style="display:none">
+        <span class="eyebrow" style="color:#9FB8D1"><b style="color:#fff">FREE TRIAL</b></span>
+        <h2 style="margin-top:10px">30 days free. Start in minutes.</h2>
+        <p>Card collected at sign-up. Nothing charged until day 31. Cancel any time before that.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+          <button class="wl-submit" onclick="openSignup('byok_solo')">Start free trial &rarr;</button>
+          <a href="#/contact" data-route="/contact" class="btn btn-ghost" style="color:#C7D6E5;border-color:rgba(255,255,255,.22)">Talk to us</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Signup modal ── -->
+<div class="modal-bd" id="signup-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-text">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeSignup()" aria-label="Close">&times;</button>
+
+    <div class="modal-success" id="modal-success">
+      <div class="check" aria-hidden="true">&#10003;</div>
+      <h3>Trial activated.</h3>
+      <p>Check your email for your API key and dashboard link.<br>Welcome to Oversight Athena.</p>
+    </div>
+
+    <div id="modal-form-wrap">
+      <div class="modal-title" id="modal-title-text">Start your free trial</div>
+      <div class="modal-sub" id="modal-plan-label">SOLO &mdash; £39/MONTH AFTER 30 DAYS</div>
+
+      <div class="field">
+        <label for="sig-email">Email address</label>
+        <input type="email" id="sig-email" placeholder="you@company.com" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="sig-name">Full name</label>
+        <input type="text" id="sig-name" placeholder="Your name" autocomplete="name" required>
+      </div>
+      <div id="byok-fields">
+        <div class="field">
+          <label for="sig-apikey">Provider API key</label>
+          <input type="password" id="sig-apikey" placeholder="sk-ant-&hellip; or sk-&hellip; or AIza&hellip;" autocomplete="off">
+          <div class="hint">Encrypted with AES-256-GCM. Never stored in plaintext. Never shared.</div>
+        </div>
+        <div class="field">
+          <label for="sig-provider">Key provider</label>
+          <select id="sig-provider">
+            <option value="">Select provider</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (GPT / o1)</option>
+            <option value="google">Google (Gemini)</option>
+            <option value="deepseek">DeepSeek</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Card details &mdash; not charged until day 31</label>
+        <div id="stripe-card-el"></div>
+        <span id="card-err" aria-live="polite"></span>
+      </div>
+      <div class="consent-row">
+        <input type="checkbox" id="sig-consent" required>
+        <div class="consent-txt">I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>. My card will not be charged until the 30-day free trial ends and I can cancel before that at any time.</div>
+      </div>
+      <button class="modal-submit" id="sig-submit" onclick="handleSignup()">Activate free trial</button>
+      <div class="modal-legal">Secured by Stripe &middot; 256-bit encryption<br><a href="/privacy" target="_blank" rel="noopener">Privacy</a> &middot; <a href="/terms" target="_blank" rel="noopener">Terms</a> &middot; Oversight Labs Limited &middot; No. 17145488</div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ============ Commentary posts ============
+   To publish a new post: add an object to POSTS below.
+   body supports plain paragraphs separated by \n\n,
+   "## " for subheadings, "> " for pull quotes. */
+var POSTS = [
+  {
+    id: "let-the-machines-carry-the-boxes",
+    date: "2026-06-09",
+    tag: "Opinion",
+    title: "We taught the machines to paint before we taught them to carry the boxes",
+    summary: "An odd inversion has taken hold: AI is busy generating music and art - the things humans do for joy - while professionals still spend their evenings on reconciliations. We have the assignment backwards.",
+    body: "There is something quietly absurd about the current moment in AI. The technology's most visible achievements are paintings, songs and poems - the activities humans have done for pleasure since we first put ochre on cave walls. Meanwhile, somewhere tonight, a qualified accountant is manually ticking through a creditors ledger, a pensions administrator is re-keying member data between systems, and a remediation analyst is reading their four-hundredth identical case file of the month.\n\nWe built machines that make art and left the humans carrying the boxes.\n\n## Creativity was never the problem to solve\n\nNobody became a chartered accountant dreaming of duplicate invoice checks. Nobody entered pensions because they loved reconciling GMP records. People enter professions for the judgement, the client relationships, the moments where expertise actually changes an outcome - and then spend remarkable proportions of their working lives on mechanical verification that a machine should have absorbed years ago.\n\n> The promise of automation was never that machines would write our symphonies. It was that they would do the heavy lifting so we had time to.\n\nThe cultural argument matters as much as the commercial one. Art, music and writing are not inefficiencies to be optimised away - they are the point of having time at all. A technology agenda that automates human joy while leaving human drudgery intact has simply misread its brief.\n\n## The heavy lifting is the harder engineering\n\nHere is the uncomfortable truth the generative wave glosses over: making a plausible image is, in engineering terms, more forgiving than finding the one misposted journal in ten thousand. Art tolerates infinite wrong answers. A regulated review tolerates none. Doing the heavy lifting properly demands statistical rigour, explainability, audit trails and benchmarked accuracy against senior professional judgement - which is precisely why so much of the industry chose the easier, flashier path.\n\nWe made the opposite choice. Oversight exists to take the mechanical weight out of professional work: the scanning, the cross-checking, the anomaly-hunting across thousands of field relationships that humans were never built for. The professional keeps what humans are actually for - judgement, scepticism, the signature on the file - and gets their evenings back.\n\nLet the machines carry the boxes. The symphonies were always ours."
+  },
+  {
+    id: "static-comparison-is-a-liability",
+    date: "2026-06-02",
+    tag: "Industry view",
+    title: "Static comparison is quietly becoming a professional liability",
+    summary: "Comparing this year to last year catches the obvious. The issues that generate rework, fee pressure and regulatory exposure live in the movement of the data - and most review processes never look there.",
+    body: "Walk into almost any professional review process - audit, pensions administration, remediation - and you will find the same core method: take two snapshots, compare them, investigate the differences. It is the method every professional was trained on, and for decades it was the only practical option.\n\nThe problem is that the issues which actually hurt firms rarely announce themselves as a difference between two snapshots. They show up as drift: a ratio that moved a little each year until it was outside any defensible range. They show up as structural breaks: a relationship between two fields that held for a decade and then quietly stopped holding. They show up as chains: one small misposting whose knock-on effects surface three fields away, where nobody thought to look.\n\n## The cost is already on your P&L\n\nFirms experience this as rework, as awkward conversations after sign-off, and as senior time spent re-deriving what happened months after the fact. Regulators experience it as findings. Clients experience it as fees that feel high for a process that still missed something.\n\n> The data was always telling the story. The method just wasn't listening on the right frequency.\n\nNone of this is a criticism of professionals. It is a limitation of tooling. Human reviewers are extraordinarily good at judgement and context, and genuinely bad at scanning thousands of field relationships for gradual statistical change - which is precisely the work machines should be doing for them.\n\n## What good looks like\n\nThe standard we hold ourselves to is simple: detection should be benchmarked against what a senior practitioner independently found on a real engagement, with full reasoning attached to every point raised. Anything that cannot survive that comparison is a demo, not a product.\n\nThe firms that adopt temporal intelligence first will not talk about it much. They will simply produce cleaner files in less time, and their competitors will wonder how.\n\n## The regulator has already drawn the line\n\nThis is no longer a question of taste. In June 2025 the Financial Reporting Council published its first guidance on the use of AI in audit, and it addressed the black box problem head on: the opaque nature of many AI models makes governance documentation and appropriate explainability central expectations, not optional extras. Its 2026 guidance on generative and agentic AI went further still - the human professional remains accountable, always, and firms must be able to obtain appropriate confidence in what their tools produce.\n\nRead plainly: AI that cannot explain itself has no future in regulated professional work. A tool that says 'trust me' is a tool the regulator has already ruled out.\n\n## How Oversight approaches this\n\nWe built for that world from the first line. Every Oversight finding carries a conviction score, the underlying values, the field relationships that triggered it, and the relevant regulatory reference - FRS section and all. The audit trail behind every detection is immutable and one click away. When a partner is asked 'how did your tool find this?', the answer is on the screen, not in a vendor's confidential architecture.\n\nExplainability is not a compliance feature we bolted on. It is the product. The firms that understand this distinction now will be the ones the regulator points to later as what good looks like."
+  },
+  {
+    id: "de-risking-data-readiness",
+    date: "2026-05-18",
+    tag: "Pensions",
+    title: "The de-risking pipeline has a data problem, and everyone is pricing it in",
+    summary: "Hundreds of billions of DB liabilities are heading to insurers this decade. The schemes that transact well will be the ones whose member data survives due diligence - and most administrators are not ready for that scrutiny.",
+    body: "The bulk annuity market is running at extraordinary volumes, with a decade-long pipeline measured in the hundreds of billions. Every one of those transactions has the same gating item buried in its timeline: member data quality.\n\nInsurers price uncertainty. When a scheme's data cannot be trusted - missing service histories, inconsistent benefit bases, GMP records that do not reconcile - the insurer does not walk away. They price the risk in, and the trustees pay for it in the premium. Poor data is not a project inconvenience; it is a direct, quantifiable cost at the single most important financial event in a scheme's life.\n\n## Cleansing projects are not the same as data intelligence\n\nThe standard response is a data cleansing project: a one-off, labour-intensive sweep, often staffed by contractors, producing a snapshot that begins decaying the day it completes. It addresses the symptom on transaction eve rather than the condition.\n\n> Data readiness is a state you maintain, not a project you run.\n\nContinuous validation changes the economics. When every member record is screened against statistical and regulatory expectations as a matter of routine - with anomalies surfaced, triaged and resolved continuously - the scheme arrives at due diligence already knowing its own data better than the insurer's team will. That position is worth real basis points.\n\n## Questions trustees should be asking\n\nAsk your administrator how member data anomalies are detected between cleansing exercises. Ask what proportion of records have been validated against benefit-basis consistency in the last year. Ask what evidence trail exists for the corrections already made. If the answers involve the words 'next project', the gap between you and a well-priced transaction is wider than the covenant papers suggest.\n\n## Where Oversight comes in\n\nOversight-P makes data readiness the continuous state rather than the heroic project. Member records are validated batch after batch against statistical and regulatory expectations - benefit-basis consistency, impossible values, structural anomalies across salary, service and dates - with every flag conviction-scored and every correction logged on an immutable trail.\n\nBy the time an insurer's due diligence team opens the data room, the scheme already holds the evidence pack: what was found, what was fixed, and proof the remaining records have been screened. That is the difference between defending your data and presenting it - and in a market this competitive, it is priced."
+  },
+  {
+    id: "ai-spend-is-a-controls-problem",
+    date: "2026-04-29",
+    tag: "AI governance",
+    title: "Enterprise AI spend is a controls problem wearing a procurement badge",
+    summary: "Most organisations now pay for AI capacity the way they once paid for mobile roaming: opaque consumption, no audit trail, and nobody accountable for the meter. Finance teams should treat inference like any other metered utility.",
+    body: "Somewhere in your organisation, the AI bill is growing. Not dramatically - just steadily, the way unmanaged metered costs always grow. And if you asked what proportion of that consumption was necessary, almost nobody could answer with evidence.\n\nThis is not a technology problem. It is a controls problem. Token consumption is a metered utility, and we apply controls to every other metered utility we buy. Yet AI calls routinely carry redundant context, repeated boilerplate and unnecessarily verbose payloads - all billed at full rate, all invisible to finance.\n\n## The efficiency layer\n\nThe answer is the same one the industry found for every previous metered resource: an efficiency layer between consumption and supply, with measurement built in. Each call is intelligently reduced before it reaches the provider, and each saving is logged so the reduction is verifiable rather than asserted.\n\n> If a vendor cannot show you a per-call ledger of what was saved, they are selling you an adjective.\n\nThe second-order benefit matters more than the first. Once consumption is measured, it can be governed: budgets become forecastable, plan sizing becomes evidence-based, and the conversation shifts from 'the AI bill went up again' to 'our effective capacity per pound improved 3x this quarter'.\n\nOrganisations that put controls on AI consumption now will compound the advantage as usage scales. Those that do not will eventually do it anyway - after the bill forces the conversation.\n\n## Where Oversight comes in\n\nOversight Athena is that efficiency layer. It routes every request to the model tier the task actually needs, reduces what each call consumes, and writes every saving to a verifiable per-call ledger your finance team can open. The same plans, materially more work, with the measurement built in &mdash; because a control without a ledger is just a promise."
+  }
+];
+
+/* ============ Router ============ */
+var PAGES = ["home","research","platform","products","pricing","commentary","contact","athena"];
+
+function route(){
+  var hash  = location.hash.replace(/^#\/?/, "") || "home";
+  var parts = hash.split("/");
+  var page  = parts[0] || "home";
+  if (PAGES.indexOf(page) === -1) page = "home";
+
+  // Show / hide pages
+  for (var i = 0; i < PAGES.length; i++){
+    var el = document.getElementById("page-" + PAGES[i]);
+    if (el) el.className = "page" + (PAGES[i] === page ? " active" : "");
+  }
+
+  // Update nav active state
+  var links = document.querySelectorAll(".nav-links a[data-route]");
+  for (var j = 0; j < links.length; j++){
+    var r = (links[j].getAttribute("data-route") || "").replace(/^\//,"") || "home";
+    var isActive = (r === page);
+    links[j].className = isActive ? "active" : "";
+    links[j].setAttribute("aria-current", isActive ? "page" : "false");
+  }
+
+  if (page === "commentary") renderCommentary(parts[1] || null);
+
+  // Close mobile nav
+  var nav = document.getElementById("navLinks");
+  if (nav) { nav.className = "nav-links"; }
+
+  // Update aria-expanded on menu button
+  var btn = document.getElementById("menuBtn");
+  if (btn) btn.setAttribute("aria-expanded", "false");
+
+  window.scrollTo(0, 0);
+
+  // Update document title for navigation
+  var titles = {
+    home:        "Oversight Labs — AI Decision Intelligence Infrastructure",
+    platform:    "Platform — Oversight Labs",
+    research:    "Research — Oversight Labs",
+    products:    "Products — Oversight Labs",
+    pricing:     "Pricing — Oversight Labs",
+    commentary:  "Commentary — Oversight Labs",
+    contact:     "Contact — Oversight Labs",
+    athena:      "Oversight Athena — Inference Efficiency"
+  };
+  document.title = titles[page] || titles.home;
+}
+
+window.addEventListener("hashchange", route);
+
+/* ── Mobile nav toggle ── */
+(function(){
+  var btn = document.getElementById("menuBtn");
+  var nav = document.getElementById("navLinks");
+  if (!btn || !nav) return;
+  btn.addEventListener("click", function(){
+    var isOpen = nav.className.indexOf("open") > -1;
+    nav.className = isOpen ? "nav-links" : "nav-links open";
+    btn.setAttribute("aria-expanded", isOpen ? "false" : "true");
+    btn.setAttribute("aria-label", isOpen ? "Open navigation menu" : "Close navigation menu");
+  });
+  // Close nav when a link is clicked on mobile
+  nav.addEventListener("click", function(e){
+    var target = e.target;
+    if (target.tagName === "A" || target.tagName === "BUTTON"){
+      nav.className = "nav-links";
+      btn.setAttribute("aria-expanded", "false");
+    }
+  });
+  // Close nav on outside click
+  document.addEventListener("click", function(e){
+    if (!nav.contains(e.target) && e.target !== btn){
+      nav.className = "nav-links";
+      btn.setAttribute("aria-expanded", "false");
+    }
+  });
+})();
+
+/* ============ Athena config ============ */
+window.ATHENA_LIVE      = false;
+window.ATHENA_STRIPE_PK = "";
+window.ATHENA_API_BASE  = "";
+
+var PLAN_LABELS = {
+  "byok_nano":       "NANO \u2014 \u00A319.99/MONTH AFTER 30-DAY FREE TRIAL",
+  "byok_solo":       "SOLO \u2014 \u00A339/MONTH AFTER 30-DAY FREE TRIAL",
+  "byok_studio":     "STUDIO \u2014 \u00A399/MONTH AFTER 30-DAY FREE TRIAL",
+  "byok_team":       "TEAM \u2014 \u00A3249/MONTH AFTER 30-DAY FREE TRIAL",
+  "managed_starter": "MANAGED STARTER \u2014 \u00A349/MONTH AFTER 30-DAY FREE TRIAL",
+  "managed_pro":     "MANAGED PRO \u2014 \u00A3129/MONTH AFTER 30-DAY FREE TRIAL",
+  "managed_power":   "MANAGED POWER \u2014 \u00A3299/MONTH AFTER 30-DAY FREE TRIAL"
+};
+var MANAGED_PLANS = { managed_starter: 1, managed_pro: 1, managed_power: 1 };
+var _stripe = null, _cardEl = null, _cardReady = false, _currentPlan = "byok_solo";
+
+/* Initialise launch vs waitlist state */
+(function(){
+  if (window.ATHENA_LIVE){
+    var pre  = document.getElementById("wl-pre-block");
+    var live = document.getElementById("wl-live-block");
+    if (pre)  pre.style.display  = "none";
+    if (live) live.style.display = "block";
+  }
+})();
+
+/* ── Plan track toggle (BYOK / Managed) ── */
+function switchTrack(track, btn){
+  var btns = document.querySelectorAll(".plan-toggle button");
+  for (var i = 0; i < btns.length; i++){
+    btns[i].classList.remove("active");
+    btns[i].setAttribute("aria-selected", "false");
+  }
+  btn.classList.add("active");
+  btn.setAttribute("aria-selected", "true");
+  var panes = document.querySelectorAll(".track-pane");
+  for (var j = 0; j < panes.length; j++) panes[j].classList.remove("active");
+  var target = document.getElementById("track-" + track);
+  if (target) target.classList.add("active");
+}
+
+/* ── Waitlist submission ── */
+function submitWaitlist(e){
+  e.preventDefault();
+  var email  = (document.getElementById("wl-email").value || "").trim();
+  var btn    = document.getElementById("wl-btn");
+  var errEl  = document.getElementById("wl-error");
+  var succEl = document.getElementById("wl-success");
+  if (!email) return;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    errEl.textContent = "Please enter a valid email address.";
+    errEl.style.display = "block";
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "Joining\u2026";
+  errEl.style.display = "none";
+  var base = window.ATHENA_API_BASE || "";
+  fetch(base + "/api/waitlist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email })
+  }).then(function(r){
+    return r.json().then(function(d){ return { ok: r.ok, data: d }; });
+  }).then(function(res){
+    if (res.ok){
+      document.getElementById("wl-form").style.display = "none";
+      succEl.style.display = "block";
+    } else {
+      errEl.textContent = (res.data && res.data.error) || "Something went wrong. Please try again.";
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Join waitlist";
+    }
+  }).catch(function(){
+    errEl.textContent = "Could not connect. Please try again.";
+    errEl.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "Join waitlist";
+  });
+}
+
+/* ── Signup modal ── */
+function openSignup(planId){
+  if (!window.ATHENA_LIVE){
+    var wl = document.getElementById("athena-waitlist");
+    if (wl) wl.scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+  _currentPlan = planId || "byok_solo";
+  var labelEl = document.getElementById("modal-plan-label");
+  if (labelEl) labelEl.textContent = PLAN_LABELS[_currentPlan] || "";
+  var byokF = document.getElementById("byok-fields");
+  if (byokF) byokF.style.display = MANAGED_PLANS[_currentPlan] ? "none" : "block";
+  var modal = document.getElementById("signup-modal");
+  if (modal){ modal.className = "modal-bd open"; }
+  document.body.style.overflow = "hidden";
+  // Lazy-init Stripe once and only once
+  if (!_stripe && window.ATHENA_STRIPE_PK && typeof Stripe !== "undefined"){
+    _stripe = Stripe(window.ATHENA_STRIPE_PK);
+    var elements = _stripe.elements();
+    _cardEl = elements.create("card", {
+      style: {
+        base: {
+          color: "#0F2A45",
+          fontFamily: '"Inter",-apple-system,sans-serif',
+          fontSize: "15px",
+          "::placeholder": { color: "#94A3B8" }
+        },
+        invalid: { color: "#DC2626" }
+      }
+    });
+    _cardEl.mount("#stripe-card-el");
+    _cardEl.on("change", function(ev){
+      var err = document.getElementById("card-err");
+      if (err) err.textContent = ev.error ? ev.error.message : "";
+      _cardReady = ev.complete;
+    });
+  }
+}
+
+function closeSignup(){
+  var modal = document.getElementById("signup-modal");
+  if (modal) modal.className = "modal-bd";
+  document.body.style.overflow = "";
+}
+
+// Close modal on backdrop click
+(function(){
+  var modal = document.getElementById("signup-modal");
+  if (!modal) return;
+  modal.addEventListener("click", function(e){
+    if (e.target === modal) closeSignup();
+  });
+})();
+
+// Close modal on Escape key
+document.addEventListener("keydown", function(e){
+  if ((e.key === "Escape" || e.keyCode === 27)){
+    var modal = document.getElementById("signup-modal");
+    if (modal && modal.className.indexOf("open") > -1) closeSignup();
+  }
+});
+
+/* ── Signup submission ── */
+function handleSignup(){
+  if (!window.ATHENA_LIVE) return;
+  var email    = (document.getElementById("sig-email").value   || "").trim();
+  var name     = (document.getElementById("sig-name").value    || "").trim();
+  var apiKey   = (document.getElementById("sig-apikey").value  || "").trim();
+  var provider = document.getElementById("sig-provider").value || "";
+  var consent  = document.getElementById("sig-consent").checked;
+  var errEl    = document.getElementById("card-err");
+  var btn      = document.getElementById("sig-submit");
+
+  errEl.textContent = "";
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    errEl.textContent = "Please enter a valid email address."; return;
+  }
+  if (!name){ errEl.textContent = "Name is required."; return; }
+  if (!consent){ errEl.textContent = "Please accept the terms to continue."; return; }
+  var isByok = !MANAGED_PLANS[_currentPlan];
+  if (isByok && !apiKey){ errEl.textContent = "API key is required for BYOK plans."; return; }
+  if (isByok && !provider){ errEl.textContent = "Please select your API key provider."; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = "<span class=\"modal-spinner\"></span>Setting up your trial\u2026";
+
+  var base = window.ATHENA_API_BASE || "";
+  fetch(base + "/fusion/signup/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email, name: name, plan: _currentPlan })
+  })
+  .then(function(r){ return r.json().then(function(d){ if (!r.ok) throw new Error(d.error || "Signup failed."); return d; }); })
+  .then(function(data){
+    return _stripe.confirmCardSetup(data.setup_intent_client_secret, {
+      payment_method: { card: _cardEl, billing_details: { email: email, name: name } }
+    }).then(function(result){
+      if (result.error) throw new Error(result.error.message);
+      if (isByok && apiKey){
+        return fetch(base + "/fusion/byok/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Client-Id": data.client_id },
+          body: JSON.stringify({ provider: provider, api_key: apiKey, routing_mode: "byok_only" })
+        });
+      }
+    });
+  })
+  .then(function(){
+    document.getElementById("modal-form-wrap").style.display = "none";
+    document.getElementById("modal-success").style.display   = "block";
+  })
+  .catch(function(err){
+    errEl.textContent = err.message || "Something went wrong. Please try again.";
+    btn.disabled = false;
+    btn.textContent = "Activate free trial";
+  });
+}
+
+/* ── Pricing page helper ── */
+function athenaSignup(plan){
+  location.hash = "#/athena";
+  setTimeout(function(){ openSignup(plan); }, 200);
+}
+
+
+/* ============ Commentary rendering ============ */
+function fmtDate(d){
+  var m = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var p = d.split("-");
+  return m[parseInt(p[1],10)-1] + " " + parseInt(p[2],10) + ", " + p[0];
+}
+function renderBody(text){
+  var blocks = text.split("\n\n");
+  var html = "";
+  for (var i=0;i<blocks.length;i++){
+    var b = blocks[i];
+    if (b.indexOf("## ") === 0) html += "<h2>" + escapeHtml(b.substring(3)) + "</h2>";
+    else if (b.indexOf("> ") === 0) html += "<blockquote>" + escapeHtml(b.substring(2)) + "</blockquote>";
+    else html += "<p>" + escapeHtml(b) + "</p>";
+  }
+  return html;
+}
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function renderCommentary(postId){
+  var list = document.getElementById("postListView");
+  var detail = document.getElementById("postDetailView");
+  var head = document.getElementById("commentaryHead");
+  if (postId){
+    var post = null;
+    for (var i=0;i<POSTS.length;i++) if (POSTS[i].id === postId) post = POSTS[i];
+    if (!post){ location.hash = "#/commentary"; return; }
+    head.style.display = "none";
+    list.style.display = "none";
+    detail.style.display = "block";
+    detail.innerHTML =
+      '<a class="back-link" href="#/commentary">&larr; ALL COMMENTARY</a>' +
+      '<div class="post-meta"><span class="tag">' + escapeHtml(post.tag) + '</span> &nbsp; ' + fmtDate(post.date) + '</div>' +
+      '<h1>' + escapeHtml(post.title) + '</h1>' +
+      renderBody(post.body) +
+      '<div style="margin-top:40px;padding-top:24px;border-top:1px solid var(--line)">' +
+      '<p style="font-size:14px;color:var(--muted)">Oversight Labs builds decision intelligence infrastructure for regulated industries. <a href="#/contact">Talk to us</a>.</p></div>';
+  } else {
+    head.style.display = "block";
+    detail.style.display = "none";
+    list.style.display = "grid";
+    var html = "";
+    var sorted = POSTS.slice().sort(function(a,b){ return a.date < b.date ? 1 : -1; });
+    for (var k=0;k<sorted.length;k++){
+      var p = sorted[k];
+      html += '<div class="post-item" onclick="location.hash=\'#/commentary/' + p.id + '\'">' +
+        '<div class="post-meta"><span class="tag">' + escapeHtml(p.tag) + '</span><br>' + fmtDate(p.date) + '</div>' +
+        '<div><h3>' + escapeHtml(p.title) + '</h3><p>' + escapeHtml(p.summary) + '</p></div></div>';
+    }
+    list.innerHTML = html;
+  }
+}
+
+/* ============ Boot ============ */
+route();
+</script>
+<script async src="https://js.stripe.com/v3/"></script>
+</body>
+</html>
