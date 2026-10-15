@@ -1242,6 +1242,21 @@ def _run_pipeline_and_raise_points_multi(
                     pdf_target[0] if pdf_target else None,
                     {dt: [f for f, _, _ in docs] for dt, docs in by_type.items()},
                 )
+                # No comparison pair: analyse the first spreadsheet or PDF on its own
+                # so a single upload still produces validation and analytic findings.
+                single = next(((fn, data) for fn, data, cls in classified
+                               if fn.lower().endswith((".xlsx", ".xlsm", ".xls", ".csv", ".pdf"))), None)
+                if single is not None:
+                    fn_s, data_s = single
+                    p_s = tmp_path / _sanitise_fname(fn_s)
+                    p_s.write_bytes(data_s)
+                    s_pts, s_res = _pipeline_and_raise(p_s, fn_s, tmp_path)
+                    review_points.extend(s_pts)
+                    pipeline_result["single_document"] = {
+                        "filename": fn_s,
+                        "status": "failed" if s_res.get("error") else "ok",
+                        "error": s_res.get("error"),
+                    }
 
             # ── Stage 3: Reconciliation rules across all documents ────────────
             try:
@@ -1752,38 +1767,46 @@ def _pipeline_and_raise(
 
     try:
         from app.asgl_engine.pipeline import run_pipeline
-        import asyncio
 
-        loop = asyncio.new_event_loop()
-        try:
-            result = loop.run_until_complete(
-                run_pipeline(
-                    file_path=str(path_a),
-                    out_dir=str(tmp_path / "pipeline_out"),
-                )
-            )
-        except TypeError:
-            # run_pipeline may be sync
-            result = run_pipeline(
-                file_path=str(path_a),
-                out_dir=str(tmp_path / "pipeline_out"),
-            )
-        finally:
-            loop.close()
-
+        # run_pipeline(files=[(name, bytes)], ...) is synchronous and returns a dict.
+        result = run_pipeline(files=[(filename_a, Path(path_a).read_bytes())])
         pipeline_result = result or {}
 
-        # Convert DI violations to review points
-        for v in pipeline_result.get("di", {}).get("violations", []):
+        sev_map = {"error": "high", "warn": "medium", "warning": "medium"}
+
+        # Validation rule violations -> review points. In fact mode ASGL-C infers
+        # facts from KPIs at low confidence, so those violations are not real findings;
+        # only row-mode validation is raised.
+        _c_mode = ((pipeline_result.get("asgl_c") or {}).get("canonical") or {}).get("mode")
+        _viol = [] if _c_mode == "fact" else (
+            (pipeline_result.get("validation") or pipeline_result.get("validations") or {}).get("violations", []) or [])
+        for v in _viol:
+            detail = v.get("detail") or {}
             review_points.append({
-                "severity": v.get("severity", "medium"),
+                "severity": sev_map.get(str(v.get("level", "warn")).lower(), "medium"),
                 "category": "policy",
-                "title": v.get("rule_id", "Policy Violation")[:300],
-                "description": v.get("message", str(v))[:2000],
-                "section": v.get("field", "General"),
-                "audit_ref": v.get("regulation_ref"),
-                "field_name": v.get("field"),
-                "value_a": str(v.get("value", ""))[:500],
+                "title": str(v.get("rule", "Validation rule"))[:300],
+                "description": str(detail)[:2000],
+                "section": "General",
+                "audit_ref": None,
+                "field_name": None,
+                "value_a": None,
+                "value_b": None,
+                "delta": None,
+                "status": "open",
+            })
+
+        # ASGL-A analytic flags -> review points
+        for f in (pipeline_result.get("asgl_a") or {}).get("flags", []) or []:
+            review_points.append({
+                "severity": str(f.get("severity", "Medium")).lower(),
+                "category": "analytics",
+                "title": str(f.get("title", "Flag"))[:300],
+                "description": "; ".join(str(x) for x in (f.get("evidence") or []))[:2000],
+                "section": "General",
+                "audit_ref": None,
+                "field_name": None,
+                "value_a": None,
                 "value_b": None,
                 "delta": None,
                 "status": "open",

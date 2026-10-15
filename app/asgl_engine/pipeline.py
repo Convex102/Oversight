@@ -450,12 +450,14 @@ class Pipeline:
                         }
                         rows = [row]
                     rules = load_rules(str(self.rules_path))
-                    violations = validate_rows(self.schema.get("name", "unknown"), rows, rules) if rows else []
+                    vres = validate_rows(self.schema.get("name", "unknown"), rows, rules) if rows else []
+                    # validate_rows returns a summary dict {"violations": [...], ...}
+                    violations = vres.get("violations", []) if isinstance(vres, dict) else list(vres or [])
                     self.validation_result = {
                         "status": "ok",
                         "schema_name": self.schema.get("name", "unknown"),
                         "ruleset": "rules_v1",
-                        "violations_count": len(violations),
+                        "violations_count": (int(vres.get("errors", 0)) + int(vres.get("warnings", 0))) if isinstance(vres, dict) else len(violations),
                         "violations": violations[:250],
                     }
                 else:
@@ -663,13 +665,22 @@ def run_pipeline(
     """
     Synchronous entry point for the API. Runs the async pipeline and returns the result.
     """
-    # Run the async pipeline in a new event loop
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Run the async pipeline in a new event loop. If this thread already has a
+    # running loop (e.g. called from an async route), run in a worker thread.
+    def _run() -> Dict[str, Any]:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(
+                run_full_pipeline(files, options, progress_cb, template_payload)
+            )
+        finally:
+            loop.close()
+
     try:
-        result = loop.run_until_complete(
-            run_full_pipeline(files, options, progress_cb, template_payload)
-        )
-        return result
-    finally:
-        loop.close()
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return _run()
+    import concurrent.futures as _cf
+    with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+        return _ex.submit(_run).result()

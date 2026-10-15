@@ -12,16 +12,16 @@ except Exception:
 CANON = {
     "revenue": ["revenue","turnover","sales","fee income","income","total income"],
     "cogs": ["cost of sales","direct costs","costs of sales","cogs"],
-    "staff_costs": ["staff costs","wages","salaries","payroll","paye"],
-    "admin_expenses": ["admin expenses","overheads","general & admin","g&a","office costs"],
+    "staff_costs": ["staff costs","wages","salaries","payroll","employer ni","pension costs"],
+    "admin_expenses": ["admin expenses","overheads","general & admin","g&a","office costs","bank charges","rent","rates","insurance","telephone","professional fees","accountancy","legal fees","travel","advertising","repairs","motor expenses","subscriptions","printing","stationery"],
     "depreciation": ["depreciation","amortisation","amortization"],
     "interest": ["interest","finance costs","bank interest"],
     "tax": ["tax","corporation tax"],
     "other_income": ["other income","misc income","other revenue"],
     "other_expenses": ["other expenses","misc expenses","exceptional","one-off"],
     "cash": ["cash","bank","cash at bank","cash in hand"],
-    "receivables": ["debtors","accounts receivable","trade receivables"],
-    "payables": ["creditors","accounts payable","trade payables"],
+    "receivables": ["debtors","accounts receivable","trade receivables","prepayments","other debtors"],
+    "payables": ["creditors","accounts payable","trade payables","vat","paye","accruals","other payables"],
     "inventory": ["stock","inventory"],
     "debt": ["loan","borrowings","debt","notes payable"],
     "equity": ["equity","share capital","retained earnings","reserves"],
@@ -38,11 +38,15 @@ def _norm(s: str) -> str:
 
 def map_line_item(name: str) -> CoAMapResult:
     n = _norm(name)
-    # rule: direct keyword contains
+    # rule: whole word keyword match; the longest (most specific) keyword wins,
+    # so "cost of sales" beats "sales" and "bank charges" beats "bank".
+    best_cat, best_len = None, 0
     for cat, kws in CANON.items():
         for kw in kws:
-            if kw in n:
-                return CoAMapResult(cat, 0.90, "rule")
+            if len(kw) > best_len and re.search(r"(?<![a-z0-9])" + re.escape(kw) + r"(?![a-z0-9])", n):
+                best_cat, best_len = cat, len(kw)
+    if best_cat:
+        return CoAMapResult(best_cat, 0.90, "rule")
     # regex heuristics
     if re.search(r"\b(turnover|sales)\b", n):
         return CoAMapResult("revenue", 0.85, "regex")

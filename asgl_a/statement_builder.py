@@ -9,14 +9,25 @@ def _find_amount_cols(df: pd.DataFrame) -> List[str]:
     return num
 
 def _find_text_col(df: pd.DataFrame) -> Optional[str]:
-    # prefer obvious description/name columns
-    for c in df.columns:
-        lc = str(c).lower()
-        if any(k in lc for k in ["account","description","line","name","nominal"]):
+    # Prefer a descriptive name column over a code/number column
+    # ("Account Name" beats "Account Code").
+    cols = list(df.columns)
+    def lc(c): return str(c).lower()
+    for pref in (["name", "description", "narrative", "particulars"], ["line", "nominal", "account"]):
+        for c in cols:
+            l = lc(c)
+            if any(k in l for k in pref) and not any(x in l for x in ["code", "no.", "number", "ref", "id"]):
+                return c
+    for c in cols:
+        if any(k in lc(c) for k in ["account", "description", "line", "name", "nominal"]):
             return c
-    # fallback: first object col
     obj = df.select_dtypes(include=["object"]).columns.tolist()
     return obj[0] if obj else None
+
+def _find_debit_credit(df: pd.DataFrame, num_cols: List[str]) -> Optional[Tuple[str, str]]:
+    dr = next((c for c in num_cols if str(c).strip().lower() in ("debit", "debits", "dr")), None)
+    cr = next((c for c in num_cols if str(c).strip().lower() in ("credit", "credits", "cr")), None)
+    return (dr, cr) if dr and cr else None
 
 class StatementBuilder:
     def build(self, df: pd.DataFrame, asglc_schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -33,8 +44,18 @@ class StatementBuilder:
             pack.warnings.append("Could not identify line-item text column or numeric amount columns")
             return pack.__dict__
 
-        # choose primary amount column: if multiple, pick last (often current period)
-        amount_col = amt_cols[-1]
+        # Trial balance with Debit and Credit columns: use the magnitude of the net
+        # (category decides the sign meaning); otherwise pick the last numeric column
+        # (often current period).
+        drcr = _find_debit_credit(d, amt_cols)
+        if drcr:
+            dr_c, cr_c = drcr
+            d["__net__"] = (pd.to_numeric(d[dr_c], errors="coerce").fillna(0.0)
+                            - pd.to_numeric(d[cr_c], errors="coerce").fillna(0.0)).abs()
+            amount_col = "__net__"
+        else:
+            amt_cols = [c for c in amt_cols if not any(k in str(c).lower() for k in ("code", "no.", "number", "ref"))] or amt_cols
+            amount_col = amt_cols[-1]
         # drop rows without line item
         d = d.dropna(subset=[text_col]).copy()
         d[text_col] = d[text_col].astype(str)
@@ -84,7 +105,7 @@ class StatementBuilder:
             "interest": interest,
             "tax": tax,
             "net_profit": net,
-            "amount_column_used": amount_col,
+            "amount_column_used": ("Debit - Credit" if amount_col == "__net__" else amount_col),
             "line_item_column_used": text_col,
         }
 
