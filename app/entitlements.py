@@ -35,6 +35,30 @@ class UserProfile(Base):
     display_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
 
 
+class TenantProfile(Base):
+    __tablename__ = "tenant_profile"
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), primary_key=True)
+    display_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+def company_name(db: Session, tenant: Optional[Tenant]) -> Optional[str]:
+    """The name shown in the welcome line and workspace switcher (falls back to the tenant name)."""
+    if tenant is None:
+        return None
+    prof = db.get(TenantProfile, tenant.id)
+    return (prof.display_name.strip() if prof and prof.display_name and prof.display_name.strip() else tenant.name)
+
+
+def set_company_name(db: Session, tenant_id: int, name: Optional[str]) -> None:
+    name = (name or "").strip()[:120] or None
+    prof = db.get(TenantProfile, tenant_id)
+    if prof is None:
+        db.add(TenantProfile(tenant_id=tenant_id, display_name=name))
+    else:
+        prof.display_name = name
+    db.commit()
+
+
 def tenant_products(db: Session, tenant_id: int) -> List[str]:
     rows = db.query(TenantProduct).filter(TenantProduct.tenant_id == tenant_id).all()
     if not rows:
@@ -80,7 +104,7 @@ def identity(db: Session, user: Optional[User], tenant_id: int) -> dict:
     return {
         "name": name,
         "first_name": (name or "").split(" ")[0] if name else None,
-        "company": t.name if t else None,
+        "company": company_name(db, t),
         "products": [{"code": p, "name": PRODUCTS[p], "desc": PRODUCT_DESC[p]} for p in tenant_products(db, tenant_id)],
     }
 
@@ -100,7 +124,7 @@ from app.rbac import Principal, require_perm  # noqa: E402  (rbac imports this m
 def list_tenants(p: Principal = Depends(require_perm("tenants.manage")), db: Session = Depends(get_db)):
     out = []
     for t in db.query(Tenant).order_by(Tenant.id).all():
-        out.append({"id": t.id, "name": t.name, "active": t.is_active, "products": tenant_products(db, t.id),
+        out.append({"id": t.id, "name": t.name, "display_name": company_name(db, t), "active": t.is_active, "products": tenant_products(db, t.id),
                     "explicit": db.query(TenantProduct).filter(TenantProduct.tenant_id == t.id).count() > 0})
     return {"tenants": out}
 
@@ -114,3 +138,17 @@ def put_products(tenant_id: int, body: ProductsIn, p: Principal = Depends(requir
     if bad:
         raise HTTPException(400, "Unknown product. Allowed: A, P, F")
     return {"tenant_id": tenant_id, "products": set_products(db, tenant_id, body.products)}
+
+
+class ProfileIn(BaseModel):
+    display_name: str
+
+
+@router.put("/{tenant_id}/profile")
+def put_profile(tenant_id: int, body: ProfileIn, p: Principal = Depends(require_perm("tenants.manage")),
+                db: Session = Depends(get_db)):
+    t = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not t:
+        raise HTTPException(404, "Tenant not found")
+    set_company_name(db, tenant_id, body.display_name)
+    return {"tenant_id": tenant_id, "display_name": company_name(db, t)}

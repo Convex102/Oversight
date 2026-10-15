@@ -6125,7 +6125,7 @@ if (document.readyState === 'loading') {
                 var boxes = ['A', 'P', 'F'].map(function (c) {
                     return '<label style="margin-right:14px;font-size:13px"><input type="checkbox" class="ov-lic" data-tid="' + t.id + '" data-p="' + c + '"' + (t.products.indexOf(c) >= 0 ? ' checked' : '') + '> Oversight-' + c + '</label>';
                 }).join('');
-                return '<tr style="border-top:1px solid #E2E8F0"><td style="padding:10px 8px;font-weight:600">' + esc(t.name) + '<div style="font-size:11px;color:#64748B;font-weight:400">Company ' + t.id + (t.explicit ? '' : ' &middot; default licence (A only)') + '</div></td><td>' + boxes + '</td><td><button class="ov-lic-save btn-secondary" data-tid="' + t.id + '">Save</button></td></tr>';
+                return '<tr style="border-top:1px solid #E2E8F0"><td style="padding:10px 8px;font-weight:600"><input class="ov-lic-name" data-tid="' + t.id + '" value="' + esc(t.display_name || t.name) + '" style="border:1px solid #CBD5E1;border-radius:6px;padding:4px 8px;font-weight:600;min-width:200px"><div style="font-size:11px;color:#64748B;font-weight:400">Shown in the welcome line. Registered name: ' + esc(t.name) + '. Company ' + t.id + (t.explicit ? '' : ' &middot; default licence (A only)') + '</div></td><td>' + boxes + '</td><td><button class="ov-lic-save btn-secondary" data-tid="' + t.id + '">Save</button></td></tr>';
             }).join('');
             dc.innerHTML = '<div class="card p-6"><div style="font-size:18px;font-weight:700;margin-bottom:4px">Licences</div>' +
                 '<div style="color:#64748B;font-size:12px;margin-bottom:14px">Each company only sees and can only use the applications ticked here. Companies with no entry get Oversight-A only.</div>' +
@@ -6136,7 +6136,10 @@ if (document.readyState === 'loading') {
                     var tid = b.getAttribute('data-tid');
                     var picked = [];
                     document.querySelectorAll('.ov-lic[data-tid="' + tid + '"]').forEach(function (c) { if (c.checked) { picked.push(c.getAttribute('data-p')); } });
-                    api('PUT', '/api/v1/tenants/' + tid + '/products', { products: picked }).then(function (r) {
+                    var nm = document.querySelector('.ov-lic-name[data-tid="' + tid + '"]').value;
+                    api('PUT', '/api/v1/tenants/' + tid + '/profile', { display_name: nm }).then(function () {
+                        return api('PUT', '/api/v1/tenants/' + tid + '/products', { products: picked });
+                    }).then(function (r) {
                         document.getElementById('ov-lic-msg').textContent = 'Saved company ' + tid + ': ' + (r.products.join(', ') || 'none');
                     }).catch(function (e) { document.getElementById('ov-lic-msg').textContent = e.message; });
                 });
@@ -6228,6 +6231,7 @@ if (document.readyState === 'loading') {
     // Application launcher: only licensed applications
     function launch(code) {
         if (code === 'F') { renderF(); return; }
+        lsSet('ov_app', code);
         document.querySelectorAll('.ws-apps .nav-link').forEach(function (l) { l.classList.toggle('app-on', l.getAttribute('data-app') === code); });
         if (typeof setVertical === 'function') { setVertical(code); }
     }
@@ -6245,18 +6249,8 @@ if (document.readyState === 'loading') {
             dc.innerHTML = '<div class="card p-6">No application is licensed for ' + esc(ME.company) + '. Contact your administrator.</div>';
             return;
         }
-        if (list.length === 1) { launch(list[0]); return; }
-        var cards = ME.products.map(function (p) {
-            return '<div class="ov-app-card" data-launch="' + p.code + '"><div style="font-size:28px;margin-bottom:10px">' + (ICON[p.code] || '') + '</div>' +
-                '<div style="font-size:18px;font-weight:700;color:#1E293B">' + esc(p.name) + '</div>' +
-                '<div style="font-size:13px;color:#64748B;margin-top:2px">' + esc(p.desc) + '</div>' +
-                '<div style="margin-top:14px;font-size:13px;font-weight:600;color:#1A3C5E">Open ' + esc(p.name) + ' →</div></div>';
-        }).join('');
-        dc.innerHTML = heroHtml(list, 'Choose where to start.') +
-            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">' + cards + '</div>';
-        dc.querySelectorAll('[data-launch]').forEach(function (c) {
-            c.addEventListener('click', function () { launch(c.getAttribute('data-launch')); });
-        });
+        var last = lsGet('ov_app');
+        launch(last && list.indexOf(last) >= 0 ? last : list[0]);
     }
 
     // Sidebar: workspace switcher, application list, rail
