@@ -246,6 +246,66 @@
         .app-grid[data-collapsed] .app-footer { left: 0; }
         @media (max-width: 900px) { .app-footer { left: 0; } }
     </style>
+    <style id="ov-workstation-css">
+        /* Workstation layout (light theme kept): workspace switcher, icon rail, grouped navigation, welcome header */
+        .sidebar { display: flex; flex-direction: column; background: #fff; }
+        .sidebar > nav { flex: 1; overflow-y: auto; padding: 4px 0 16px !important; }
+        .ws-top { display: flex; align-items: center; gap: 6px; padding: 12px 10px 8px; }
+        .ws-switch { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; cursor: pointer; position: relative; background: none; border: none; text-align: left; }
+        .ws-switch:hover { background: var(--neutral-100); }
+        .ws-avatar { width: 30px; height: 30px; border-radius: 8px; background: var(--brand); color: #fff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ws-name { font-size: 13px; font-weight: 700; color: var(--neutral-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ws-sub { font-size: 10px; color: var(--neutral-400); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ws-icbtn { width: 30px; height: 30px; border-radius: 8px; border: none; background: none; color: #64748B; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ws-icbtn:hover { background: var(--neutral-100); color: var(--neutral-800); }
+        .ws-menu { display: none; position: absolute; left: 8px; right: 8px; top: 58px; background: #fff; border: 1px solid var(--neutral-200); border-radius: 12px; box-shadow: 0 12px 32px rgba(15,23,42,.14); z-index: 600; padding: 6px; }
+        .ws-menu.open { display: block; }
+        .ws-menu .ws-mi { display: block; width: 100%; text-align: left; font-size: 12px; padding: 8px 10px; border-radius: 8px; background: none; border: none; cursor: pointer; color: var(--neutral-800); }
+        .ws-menu .ws-mi:hover { background: var(--neutral-100); }
+        .ws-menu .ws-who { padding: 8px 10px; font-size: 11px; color: #64748B; border-bottom: 1px solid var(--neutral-100); margin-bottom: 4px; }
+        .ws-apps { padding: 2px 0 6px; border-bottom: 1px solid var(--neutral-100); margin-bottom: 4px; }
+        .sidebar .nav-link { margin: 1px 8px; padding: 0.5rem 0.75rem; border-radius: 8px; border-left: none; gap: 0.75rem; font-weight: 500; }
+        .sidebar .nav-link > span:first-child { width: 20px; text-align: center; flex-shrink: 0; font-size: 15px; }
+        .sidebar .nav-link:hover { background: var(--neutral-100); }
+        .sidebar .nav-link.active { background: var(--brand-light); color: var(--brand); font-weight: 600; border-left: none; }
+        .sidebar .nav-section-label { padding: 1rem 1.25rem 0.35rem; margin-top: 6px; border-top: 1px solid var(--neutral-100); }
+        .sidebar .nav-section-label:first-child { border-top: none; margin-top: 0; }
+        .ov-badge { margin-left: auto; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: #ECFCCB; color: #3F6212; text-transform: uppercase; letter-spacing: .04em; }
+        .header { height: 60px; }
+        .viewport { background: #F8FAFC; }
+        .ov-hero { background: #fff; border: 1px solid var(--neutral-200); border-radius: 16px; padding: 22px 26px; margin-bottom: 18px; display: flex; align-items: center; gap: 18px; box-shadow: var(--shadow-sm); }
+        .ov-hero h1 { font-size: 1.6rem; font-weight: 700; color: var(--neutral-800); letter-spacing: -0.02em; line-height: 1.25; }
+        .ov-hero h1 b { color: var(--brand); }
+        .ov-hero p { font-size: 13px; color: #64748B; margin-top: 4px; }
+        .ov-hero .ov-hero-ic { width: 48px; height: 48px; border-radius: 12px; background: var(--brand-light); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+        .ov-app-card { background: #fff; border: 1px solid var(--neutral-200); border-radius: 14px; padding: 22px; cursor: pointer; transition: box-shadow .15s, border-color .15s; text-align: left; }
+        .ov-app-card:hover { box-shadow: var(--shadow-md); border-color: #BFDBFE; }
+        /* Collapsed icon rail (desktop) */
+        @media (min-width: 901px) {
+            .ws-rail .app-grid { grid-template-columns: 64px 1fr !important; }
+            .ws-rail .app-footer { left: 64px !important; }
+            .sidebar.rail .ws-name, .sidebar.rail .ws-sub, .sidebar.rail .ws-chev, .sidebar.rail .nav-section-label, .sidebar.rail .ov-badge { display: none; }
+            .sidebar.rail .ws-top { flex-direction: column; padding: 12px 6px 8px; }
+            .sidebar.rail .ws-switch { padding: 4px; justify-content: center; flex: none; }
+            .sidebar.rail .nav-link { font-size: 0; justify-content: center; padding: 0.55rem 0; margin: 1px 10px; }
+            .sidebar.rail .nav-link > span:first-child { font-size: 17px; }
+            .sidebar.rail .nav-section-label + * { margin-top: 0; }
+            .sidebar.rail #nav-legacy-content, .sidebar.rail button[onclick*="_toggleLegacyNav"] { display: none; }
+            .sidebar.collapsed { width: auto !important; }
+        }
+        .ws-apps .nav-link.app-on { color: var(--brand); font-weight: 600; background: var(--brand-light); }
+        @media (max-width: 900px) {
+            .app-grid { grid-template-columns: minmax(0, 1fr) !important; }
+            .header, .viewport { min-width: 0; grid-column: 1; }
+            .header { gap: 8px; overflow: hidden; }
+            .header > div { min-width: 0; }
+            #vertical-badge { display: none !important; }
+            #api-status { max-width: 90px; white-space: normal; line-height: 1.15; }
+            .app-footer > span:first-child, .app-footer > span:last-child { display: none; }
+            .app-footer { justify-content: center; }
+        }
+        @media (max-width: 900px) { .ov-hero { flex-direction: column; align-items: flex-start; padding: 18px; } .ov-hero h1 { font-size: 1.3rem; } }
+    </style>
 </head>
 <body>
 <div class="app-grid">
@@ -2798,6 +2858,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
 
     // ── Launch screen ─────────────────────────────────────────────────────────
     async function renderLaunchScreen() {
+        if (window.OV_ME === undefined) { return; }  // the workstation script renders the licensed launch screen
         document.getElementById('dynamic-content').innerHTML = `
             <div class="max-w-5xl mx-auto space-y-8">
                 <div class="text-center mb-8">
@@ -5989,19 +6050,28 @@ if (document.readyState === 'loading') {
         });
         var nj = document.getElementById('new-job-btn');
         if (nj && !has('engagements.write')) { nj.style.display = 'none'; }
-        if (has('users.manage')) {
-            var anchor = document.getElementById('nav-engagements');
+        var navEl = document.querySelector('.sidebar nav');
+        if (navEl && (has('users.manage') || has('tenants.manage'))) {
+            var lab = document.createElement('div');
+            lab.className = 'nav-section-label'; lab.textContent = 'Workspace';
+            navEl.appendChild(lab);
+        }
+        function addNav(id, icon, label, fn) {
             var a = document.createElement('a');
-            a.id = 'nav-users'; a.className = 'nav-link';
-            a.innerHTML = '<span>👥</span> Users';
-            if (anchor && anchor.parentNode) { anchor.parentNode.insertBefore(a, anchor.nextSibling); }
+            a.id = id; a.className = 'nav-link';
+            a.title = label;
+            a.innerHTML = '<span>' + icon + '</span> ' + label;
+            navEl.appendChild(a);
             a.addEventListener('click', function (e) {
                 e.preventDefault();
                 document.querySelectorAll('.nav-link').forEach(function (l) { l.classList.remove('active'); });
                 a.classList.add('active');
-                renderUsers();
+                var sb = document.querySelector('.sidebar'); if (sb) { sb.classList.remove('mobile-open'); }
+                fn();
             });
         }
+        if (navEl && has('users.manage')) { addNav('nav-users', '\uD83D\uDC65', 'Users', renderUsers); }
+        if (navEl && has('tenants.manage')) { addNav('nav-licences', '\uD83D\uDD11', 'Licences', renderLicences); }
         var f = document.getElementById('footer-status');
         var who = document.createElement('span');
         who.id = 'ov-who';
@@ -6026,15 +6096,16 @@ if (document.readyState === 'loading') {
                     '<select data-uid="' + u.id + '" class="ov-role" style="border:1px solid #CBD5E1;border-radius:6px;padding:3px 6px">' + opts + '</select>';
                 var act = self ? '' : '<button data-uid="' + u.id + '" data-active="' + (u.is_active ? '1' : '0') + '" class="ov-toggle" style="border:1px solid #CBD5E1;border-radius:6px;padding:3px 10px;font-size:12px">' + (u.is_active ? 'Deactivate' : 'Activate') + '</button>';
                 var pw = self ? '' : ' <button data-uid="' + u.id + '" class="ov-pw" style="border:1px solid #CBD5E1;border-radius:6px;padding:3px 10px;font-size:12px">Reset password</button>';
-                return '<tr style="border-top:1px solid #E2E8F0"><td style="padding:8px">' + esc(u.email) + '</td><td>' + roleCell + '</td><td>' + (u.is_active ? 'Active' : 'Inactive') + '</td><td>' + act + pw + '</td></tr>';
+                return '<tr style="border-top:1px solid #E2E8F0"><td style="padding:8px"><div style="font-weight:600">' + esc(u.name || '') + '</div><div style="font-size:11px;color:#64748B">' + esc(u.email) + '</div></td><td>' + roleCell + '</td><td>' + (u.is_active ? 'Active' : 'Inactive') + '</td><td>' + act + pw + '</td></tr>';
             }).join('');
             var newRoles = roles.map(function (r) { return '<option value="' + r + '">' + esc(ROLE_LABEL[r]) + '</option>'; }).join('');
             dc.innerHTML =
                 '<div class="card p-6"><div style="font-size:18px;font-weight:700;margin-bottom:4px">Users</div>' +
                 '<div style="color:#64748B;font-size:12px;margin-bottom:14px">Roles decide what each person sees and can do. Accountants can run the pipeline; only admins can sign off.</div>' +
-                '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:#64748B"><th style="padding:8px">Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+                '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:#64748B"><th style="padding:8px">Person</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
                 '<div style="margin-top:18px;font-weight:600">Add a user</div>' +
                 '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">' +
+                '<input id="ov-new-name" placeholder="Full name" style="border:1px solid #CBD5E1;border-radius:6px;padding:6px 8px;min-width:160px">' +
                 '<input id="ov-new-email" placeholder="Email" style="border:1px solid #CBD5E1;border-radius:6px;padding:6px 8px;min-width:220px">' +
                 '<input id="ov-new-pw" type="password" placeholder="Password (8+ characters)" style="border:1px solid #CBD5E1;border-radius:6px;padding:6px 8px;min-width:200px">' +
                 '<select id="ov-new-role" style="border:1px solid #CBD5E1;border-radius:6px;padding:6px 8px">' + newRoles + '</select>' +
@@ -6042,6 +6113,35 @@ if (document.readyState === 'loading') {
                 '<div id="ov-users-msg" style="margin-top:10px;font-size:12px;color:#B91C1C"></div></div>';
             wireUsers();
         }).catch(function (e) { dc.innerHTML = '<div class="card p-6" style="color:#B91C1C">Could not load users: ' + esc(e.message) + '</div>'; });
+    }
+
+
+    function renderLicences() {
+        var dc = document.getElementById('dynamic-content');
+        if (!dc) { return; }
+        dc.innerHTML = '<div class="card p-6">Loading licences...</div>';
+        api('GET', '/api/v1/tenants').then(function (d) {
+            var rows = (d.tenants || []).map(function (t) {
+                var boxes = ['A', 'P', 'F'].map(function (c) {
+                    return '<label style="margin-right:14px;font-size:13px"><input type="checkbox" class="ov-lic" data-tid="' + t.id + '" data-p="' + c + '"' + (t.products.indexOf(c) >= 0 ? ' checked' : '') + '> Oversight-' + c + '</label>';
+                }).join('');
+                return '<tr style="border-top:1px solid #E2E8F0"><td style="padding:10px 8px;font-weight:600">' + esc(t.name) + '<div style="font-size:11px;color:#64748B;font-weight:400">Company ' + t.id + (t.explicit ? '' : ' &middot; default licence (A only)') + '</div></td><td>' + boxes + '</td><td><button class="ov-lic-save btn-secondary" data-tid="' + t.id + '">Save</button></td></tr>';
+            }).join('');
+            dc.innerHTML = '<div class="card p-6"><div style="font-size:18px;font-weight:700;margin-bottom:4px">Licences</div>' +
+                '<div style="color:#64748B;font-size:12px;margin-bottom:14px">Each company only sees and can only use the applications ticked here. Companies with no entry get Oversight-A only.</div>' +
+                '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:#64748B"><th style="padding:8px">Company</th><th>Applications</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+                '<div id="ov-lic-msg" style="margin-top:10px;font-size:12px;color:#64748B"></div></div>';
+            document.querySelectorAll('.ov-lic-save').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var tid = b.getAttribute('data-tid');
+                    var picked = [];
+                    document.querySelectorAll('.ov-lic[data-tid="' + tid + '"]').forEach(function (c) { if (c.checked) { picked.push(c.getAttribute('data-p')); } });
+                    api('PUT', '/api/v1/tenants/' + tid + '/products', { products: picked }).then(function (r) {
+                        document.getElementById('ov-lic-msg').textContent = 'Saved company ' + tid + ': ' + (r.products.join(', ') || 'none');
+                    }).catch(function (e) { document.getElementById('ov-lic-msg').textContent = e.message; });
+                });
+            });
+        }).catch(function (e) { dc.innerHTML = '<div class="card p-6" style="color:#B91C1C">Could not load licences: ' + esc(e.message) + '</div>'; });
     }
 
     function msg(t) { var m = document.getElementById('ov-users-msg'); if (m) { m.textContent = t || ''; } }
@@ -6069,6 +6169,7 @@ if (document.readyState === 'loading') {
         if (add) {
             add.addEventListener('click', function () {
                 api('POST', '/api/v1/users', {
+                    name: document.getElementById('ov-new-name').value,
                     email: document.getElementById('ov-new-email').value,
                     password: document.getElementById('ov-new-pw').value,
                     role: document.getElementById('ov-new-role').value
@@ -6081,6 +6182,159 @@ if (document.readyState === 'loading') {
         if (r.status === 401) { window.location.href = '/signin'; return null; }
         return r.json();
     }).then(function (d) { if (d) { ME = d; applyRole(); } }).catch(function () {});
+})();
+</script>
+
+<script id="ov-workstation-js">
+/* Oversight workstation layout. Light theme. Uses /auth/me for the person, company and licensed products.
+   A company only sees the applications it is licensed for (the server enforces this, this block only shapes the UI). */
+(function () {
+    var ME = null;
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+    var ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Admin', reviewer: 'Reviewer', accountant: 'Accountant', api: 'API key' };
+    var ICON = { A: '📊', P: '📈', F: '⚡' };
+
+    function codes() { return (ME && ME.products ? ME.products : []).map(function (p) { return p.code; }); }
+    function names(list) {
+        var n = list.map(function (c) { return 'Oversight-' + c; });
+        if (n.length <= 1) { return n.join(''); }
+        return n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1];
+    }
+    function heroHtml(list, sub) {
+        var first = ME.first_name || 'there';
+        return '<div class="ov-hero" id="ov-hero"><div class="ov-hero-ic">' + (ICON[list[0]] || '📊') + '</div><div>' +
+            '<h1>Welcome <b>' + esc(first) + '</b>, to ' + esc(names(list)) + ' for ' + esc(ME.company || 'your company') + '</h1>' +
+            '<p>' + esc(sub) + '</p></div></div>';
+    }
+    function currentCode() {
+        var a = document.querySelector('.nav-link.active');
+        return (a && a.id && a.id.indexOf('nav-p-') === 0) ? 'P' : 'A';
+    }
+
+    // Welcome header on the application dashboards
+    function ensureHero() {
+        var dc = document.getElementById('dynamic-content');
+        if (!dc || !ME || document.getElementById('ov-hero')) { return; }
+        var a = document.querySelector('.nav-link.active');
+        if (!a || (a.id !== 'nav-dashboard' && a.id !== 'nav-p-dashboard')) { return; }
+        var code = a.id === 'nav-p-dashboard' ? 'P' : 'A';
+        if (codes().indexOf(code) < 0) { return; }
+        var desc = (ME.products.filter(function (p) { return p.code === code; })[0] || {}).desc || '';
+        dc.insertAdjacentHTML('afterbegin', heroHtml([code], desc + ' · ' + (ROLE_LABEL[ME.role] || ME.role)));
+    }
+
+    // Application launcher: only licensed applications
+    function launch(code) {
+        if (code === 'F') { renderF(); return; }
+        document.querySelectorAll('.ws-apps .nav-link').forEach(function (l) { l.classList.toggle('app-on', l.getAttribute('data-app') === code); });
+        if (typeof setVertical === 'function') { setVertical(code); }
+    }
+    function renderF() {
+        document.querySelectorAll('.ws-apps .nav-link').forEach(function (l) { l.classList.toggle('app-on', l.getAttribute('data-app') === 'F'); });
+        document.querySelectorAll('.nav-link').forEach(function (l) { l.classList.remove('active'); });
+        var dc = document.getElementById('dynamic-content');
+        dc.innerHTML = heroHtml(['F'], 'Fusion') + '<div class="card p-6"><div style="font-size:16px;font-weight:700;margin-bottom:6px">Oversight-F</div>' +
+            '<div style="font-size:13px;color:#64748B">Oversight-F is licensed to ' + esc(ME.company) + '. Its workspace is not connected to this console yet.</div></div>';
+    }
+    function launchScreen() {
+        var dc = document.getElementById('dynamic-content');
+        var list = codes();
+        if (list.length === 0) {
+            dc.innerHTML = '<div class="card p-6">No application is licensed for ' + esc(ME.company) + '. Contact your administrator.</div>';
+            return;
+        }
+        if (list.length === 1) { launch(list[0]); return; }
+        var cards = ME.products.map(function (p) {
+            return '<div class="ov-app-card" data-launch="' + p.code + '"><div style="font-size:28px;margin-bottom:10px">' + (ICON[p.code] || '') + '</div>' +
+                '<div style="font-size:18px;font-weight:700;color:#1E293B">' + esc(p.name) + '</div>' +
+                '<div style="font-size:13px;color:#64748B;margin-top:2px">' + esc(p.desc) + '</div>' +
+                '<div style="margin-top:14px;font-size:13px;font-weight:600;color:#1A3C5E">Open ' + esc(p.name) + ' →</div></div>';
+        }).join('');
+        dc.innerHTML = heroHtml(list, 'Choose where to start.') +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">' + cards + '</div>';
+        dc.querySelectorAll('[data-launch]').forEach(function (c) {
+            c.addEventListener('click', function () { launch(c.getAttribute('data-launch')); });
+        });
+    }
+
+    // Sidebar: workspace switcher, application list, rail
+    function buildSidebar() {
+        var sb = document.querySelector('.sidebar');
+        if (!sb || document.getElementById('ws-top')) { return; }
+        var oldHead = sb.firstElementChild;                   // brand row
+        var gate = document.getElementById('vertical-gate');
+        if (oldHead) { oldHead.style.display = 'none'; }
+        if (gate) { gate.style.display = 'none'; }
+        var initial = (ME.company || 'O').trim().charAt(0).toUpperCase();
+        var top = document.createElement('div');
+        top.id = 'ws-top'; top.className = 'ws-top';
+        top.innerHTML =
+            '<button class="ws-switch" id="ws-switch" title="' + esc(ME.company) + '"><span class="ws-avatar">' + esc(initial) + '</span>' +
+            '<span style="min-width:0;flex:1"><div class="ws-name">' + esc(ME.company || 'Workspace') + '</div><div class="ws-sub">' + esc((ROLE_LABEL[ME.role] || ME.role)) + '</div></span>' +
+            '<svg class="ws-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.5"><polyline points="7,9 12,5 17,9"/><polyline points="7,15 12,19 17,15"/></svg></button>' +
+            '<button class="ws-icbtn" id="ws-collapse" title="Collapse sidebar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/></svg></button>' +
+            '<div class="ws-menu" id="ws-menu"><div class="ws-who">' + esc(ME.name || '') + '<br>' + esc(ME.email || '') + '</div>' +
+            '<button class="ws-mi" id="ws-signout">Sign out</button></div>';
+        sb.insertBefore(top, sb.firstChild);
+        var list = ME.products;
+        if (list.length > 1) {
+            var apps = document.createElement('div');
+            apps.className = 'ws-apps'; apps.id = 'ws-apps';
+            apps.innerHTML = list.map(function (p) {
+                return '<a class="nav-link" data-app="' + p.code + '" title="' + esc(p.name) + '"><span>' + (ICON[p.code] || '') + '</span> ' + esc(p.name) + '</a>';
+            }).join('');
+            top.insertAdjacentElement('afterend', apps);
+            apps.querySelectorAll('[data-app]').forEach(function (a) {
+                a.addEventListener('click', function () { launch(a.getAttribute('data-app')); });
+            });
+        }
+        // hide navigation groups that are not licensed
+        var gA = document.getElementById('nav-group-A'), gP = document.getElementById('nav-group-P');
+        if (codes().indexOf('A') < 0 && gA) { gA.remove(); }
+        if (codes().indexOf('P') < 0 && gP) { gP.remove(); }
+        // tooltips for the icon rail
+        sb.querySelectorAll('.nav-link').forEach(function (l) { if (!l.title) { l.title = (l.textContent || '').trim(); } });
+        // menu
+        var menu = document.getElementById('ws-menu');
+        document.getElementById('ws-switch').addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('open'); });
+        document.addEventListener('click', function () { menu.classList.remove('open'); });
+        document.getElementById('ws-signout').addEventListener('click', function () {
+            fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }).then(function () { window.location.href = '/signin'; });
+        });
+        document.getElementById('ws-collapse').addEventListener('click', toggleRail);
+        if (lsGet('ov_rail') === '1' && window.innerWidth > 900) { setRail(true); }
+    }
+    function setRail(on) {
+        var sb = document.querySelector('.sidebar');
+        if (!sb) { return; }
+        sb.classList.toggle('rail', on);
+        document.body.classList.toggle('ws-rail', on);
+        var grid = document.querySelector('.app-grid');
+        if (grid) { grid.style.gridTemplateColumns = ''; }
+        lsSet('ov_rail', on ? '1' : '0');
+    }
+    function toggleRail() {
+        if (window.innerWidth <= 900) { var sb = document.querySelector('.sidebar'); if (sb) { sb.classList.toggle('mobile-open'); } return; }
+        setRail(!document.querySelector('.sidebar').classList.contains('rail'));
+    }
+    // the existing hamburger and collapse handlers now use the rail on desktop
+    window._toggleMobileSidebar = toggleRail;
+
+    function boot(d) {
+        ME = d;
+        window.OV_ME = d;
+        buildSidebar();
+        window.renderLaunchScreen = function () { launchScreen(); return Promise.resolve(); };
+        var dc = document.getElementById('dynamic-content');
+        if (dc && window.MutationObserver) { new MutationObserver(ensureHero).observe(dc, { childList: true }); }
+        launchScreen();
+    }
+    fetch('/auth/me', { credentials: 'same-origin' }).then(function (r) {
+        if (r.status === 401) { window.location.href = '/signin'; return null; }
+        return r.json();
+    }).then(function (d) { if (d) { boot(d); } }).catch(function () {});
 })();
 </script>
 

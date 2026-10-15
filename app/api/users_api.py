@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import hash_password
 from app.auth_ext import set_must_change
+from app.entitlements import display_name, set_display_name
 from app.db.models import SessionToken, User
 from app.db.session import get_db
 from app.rbac import ASSIGNABLE, ROLES, Principal, require_perm
@@ -25,16 +26,21 @@ class NewUser(BaseModel):
     email: str
     password: str
     role: str = "reviewer"
+    name: Optional[str] = None
 
 
 class UpdateUser(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
+    name: Optional[str] = None
 
 
-def _row(u: User) -> dict:
-    return {"id": u.id, "email": u.email, "role": u.role, "is_active": u.is_active, "tenant_id": u.tenant_id}
+def _row(u: User, db: Optional[Session] = None) -> dict:
+    d = {"id": u.id, "email": u.email, "role": u.role, "is_active": u.is_active, "tenant_id": u.tenant_id}
+    if db is not None:
+        d["name"] = display_name(db, u)
+    return d
 
 
 def _check_role(p: Principal, role: str) -> None:
@@ -53,7 +59,7 @@ def _scope(db: Session, p: Principal):
 
 @router.get("")
 def list_users(p: Principal = Depends(require_perm("users.manage")), db: Session = Depends(get_db)):
-    return {"users": [_row(u) for u in _scope(db, p).order_by(User.id).all()]}
+    return {"users": [_row(u, db) for u in _scope(db, p).order_by(User.id).all()]}
 
 
 @router.post("", status_code=201)
@@ -72,7 +78,9 @@ def create_user(body: NewUser, p: Principal = Depends(require_perm("users.manage
     db.commit()
     db.refresh(u)
     set_must_change(db, u.id, True)
-    return _row(u)
+    if body.name:
+        set_display_name(db, u.id, body.name)
+    return _row(u, db)
 
 
 @router.patch("/{user_id}")
@@ -90,6 +98,8 @@ def update_user(user_id: int, body: UpdateUser, p: Principal = Depends(require_p
             raise HTTPException(403, "You cannot change a super admin")
         _check_role(p, body.role)
         u.role = body.role
+    if body.name is not None:
+        set_display_name(db, u.id, body.name)
     if body.is_active is not None:
         if is_self and body.is_active is False:
             raise HTTPException(403, "You cannot deactivate yourself")
@@ -110,4 +120,4 @@ def update_user(user_id: int, body: UpdateUser, p: Principal = Depends(require_p
     if reset_for is not None:
         set_must_change(db, reset_for, True)
     db.refresh(u)
-    return _row(u)
+    return _row(u, db)

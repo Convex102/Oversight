@@ -158,6 +158,9 @@ def group_guard(group: str) -> Callable[..., Optional[Principal]]:
         if path.endswith(PUBLIC_SUFFIXES):
             return None
         p = get_principal(request, db)
+        from app.entitlements import licensed  # local import: entitlements imports rbac
+        if not licensed(db, p.tenant_id, "A"):
+            raise HTTPException(status_code=403, detail="Your company is not licensed for Oversight-A")
         need = read_perm if request.method in SAFE_METHODS else write_perm
         for frag, methods, perm in OVERRIDES:
             if frag in path and (methods is None or request.method in methods):

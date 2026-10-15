@@ -56,6 +56,8 @@ app.state.limiter = limiter
 # Forced password change on first sign in, change password page, Google sign in (app/auth_ext.py)
 from app.auth_ext import install_auth_ext
 install_auth_ext(app)
+from app.entitlements import router as _tenants_router
+app.include_router(_tenants_router)
 
 # SECURITY-FIX 2026-10-15: with ENV=dev this used allow_origins=["*"] together with allow_credentials=True, and
 # Starlette answers a cookie carrying request by echoing back whatever Origin asked, so any website could
@@ -339,14 +341,17 @@ def login(
 
 
 @app.get("/auth/me", include_in_schema=False)
-def me(p: Principal = Depends(get_principal)):
-    """Who am I and what may I do. The UI uses perms to show or hide screens."""
-    return {
+def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Who am I, which company, which products are licensed, and what may I do. The UI uses it to show or hide screens."""
+    from app.entitlements import identity
+    out = identity(db, p.user, p.tenant_id)
+    out.update({
         "email": p.user.email if p.user else None,
         "role": p.role,
         "tenant_id": p.tenant_id,
         "perms": sorted(ROLE_PERMS.get(p.role, [])),
-    }
+    })
+    return out
 
 
 @app.post("/auth/logout", include_in_schema=False)
