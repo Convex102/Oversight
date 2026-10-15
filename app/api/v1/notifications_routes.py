@@ -19,14 +19,16 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.db.models import Notification
+from app.db.models import Notification, User
+from app.web_auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
 class NotificationCreate(BaseModel):
-    tenant_id: int = Field(1, ge=1)
+    # tenant_id is never accepted from the client — derived from the
+    # authenticated session. SECURITY-FIX 2026-10-15.
     type: str = Field("info", max_length=60)
     title: str = Field(..., max_length=300)
     message: str
@@ -57,20 +59,21 @@ def _notif_to_dict(n: Notification) -> dict:
 
 @router.get("", summary="List notifications")
 async def list_notifications(
-    tenant_id: int = 1,
     unread_only: bool = False,
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    q = db.query(Notification).filter(Notification.tenant_id == tenant_id)
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
+    q = db.query(Notification).filter(Notification.tenant_id == current_user.tenant_id)
     if unread_only:
         q = q.filter(Notification.is_read == False)  # noqa: E712
     total = q.count()
     notifs = q.order_by(Notification.created_at.desc()).offset(offset).limit(limit).all()
     unread_count = (
         db.query(Notification)
-        .filter(Notification.tenant_id == tenant_id, Notification.is_read == False)  # noqa: E712
+        .filter(Notification.tenant_id == current_user.tenant_id, Notification.is_read == False)  # noqa: E712
         .count()
     )
     return JSONResponse({
@@ -86,8 +89,10 @@ async def list_notifications(
 async def mark_read(
     notif_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    n = db.query(Notification).filter(Notification.id == notif_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    n = db.query(Notification).filter(Notification.id == notif_id, Notification.tenant_id == current_user.tenant_id).first()
     if not n:
         raise HTTPException(404, f"Notification {notif_id} not found")
     if not n.is_read:
@@ -99,13 +104,14 @@ async def mark_read(
 
 @router.post("/read-all", summary="Mark all notifications as read")
 async def mark_all_read(
-    tenant_id: int = 1,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
     now = dt.datetime.utcnow()
     updated = (
         db.query(Notification)
-        .filter(Notification.tenant_id == tenant_id, Notification.is_read == False)  # noqa: E712
+        .filter(Notification.tenant_id == current_user.tenant_id, Notification.is_read == False)  # noqa: E712
         .all()
     )
     count = len(updated)
@@ -120,9 +126,11 @@ async def mark_all_read(
 async def create_notification(
     req: NotificationCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never from the request body.
     n = Notification(
-        tenant_id=req.tenant_id,
+        tenant_id=current_user.tenant_id,
         type=req.type,
         title=req.title,
         message=req.message,

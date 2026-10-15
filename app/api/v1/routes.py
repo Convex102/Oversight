@@ -50,6 +50,8 @@ from app.api.v1.schemas import (
     DIRunRequest, DIRunResponse,
     ErrorResponse,
 )
+from app.db.models import User
+from app.web_auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -70,10 +72,11 @@ _JOBS: Dict[str, Dict[str, Any]] = {}
 _AUDIT_LOGS: Dict[str, Any] = {}  # run_id -> AuditLog instance
 
 
-def _new_job() -> str:
+def _new_job(tenant_id: str = "default") -> str:
     job_id = str(uuid.uuid4())
     _JOBS[job_id] = {
         "job_id": job_id,
+        "tenant_id": tenant_id,  # SECURITY-FIX 2026-10-15: ownership for status/results/list scoping
         "status": "queued",
         "stage": None,
         "progress": 0.0,
@@ -183,9 +186,11 @@ async def pipeline_run(
     enable_shap: bool = Form(True),
     enable_llm_summary: bool = Form(False),
     sync: bool = Form(False, description="If true, run synchronously and return full results"),
-    tenant_id: str = Form("default"),
     client_id: str = Form("default"),
+    current_user: User = Depends(get_current_user),
 ) -> JobRunResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
+    tenant_id = str(current_user.tenant_id)
     """Accept one or more uploaded files and run the full Oversight pipeline:
 
       1. Spreadsheet ingestion (AdvancedSpreadsheetIngestor)
@@ -213,7 +218,7 @@ async def pipeline_run(
         raise HTTPException(status_code=400, detail="No files provided")
 
     # ── Create job ────────────────────────────────────────────────────────
-    job_id = _new_job()
+    job_id = _new_job(tenant_id=tenant_id)
     run_id = job_id  # use same id for audit/governance correlation
 
     # ── Initialise audit log ──────────────────────────────────────────────
@@ -374,9 +379,10 @@ async def pipeline_run(
 
 
 @router.get("/pipeline/jobs/{job_id}", response_model=JobStatus, summary="Get job status")
-async def pipeline_job_status(job_id: str) -> JobStatus:
+async def pipeline_job_status(job_id: str, current_user: User = Depends(get_current_user)) -> JobStatus:
     job = _JOBS.get(job_id)
-    if not job:
+    # SECURITY-FIX 2026-10-15: a job belonging to another tenant looks like "not found".
+    if not job or job.get("tenant_id") != str(current_user.tenant_id):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     return JobStatus(
         job_id=job["job_id"],
@@ -391,9 +397,10 @@ async def pipeline_job_status(job_id: str) -> JobStatus:
 
 
 @router.get("/pipeline/jobs/{job_id}/results", response_model=JobResultsResponse, summary="Get job results")
-async def pipeline_job_results(job_id: str) -> JobResultsResponse:
+async def pipeline_job_results(job_id: str, current_user: User = Depends(get_current_user)) -> JobResultsResponse:
     job = _JOBS.get(job_id)
-    if not job:
+    # SECURITY-FIX 2026-10-15: a job belonging to another tenant looks like "not found".
+    if not job or job.get("tenant_id") != str(current_user.tenant_id):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     if job["status"] in ("queued", "running"):
         raise HTTPException(status_code=425, detail=f"Job {job_id} still running")
@@ -426,8 +433,12 @@ async def pipeline_job_results(job_id: str) -> JobResultsResponse:
 
 
 @router.get("/pipeline/jobs", summary="List recent jobs")
-async def pipeline_list_jobs(limit: int = Query(50, ge=1, le=500)) -> Dict[str, Any]:
-    items = list(_JOBS.values())
+async def pipeline_list_jobs(
+    limit: int = Query(50, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
+    # SECURITY-FIX 2026-10-15: previously returned every tenant's jobs unfiltered.
+    items = [j for j in _JOBS.values() if j.get("tenant_id") == str(current_user.tenant_id)]
     items.sort(key=lambda j: j.get("started_at") or "", reverse=True)
     return {"count": len(items), "items": items[:limit]}
 
@@ -617,11 +628,13 @@ async def columns_encode(req: ColumnEncodeRequest) -> ColumnEncodeResponse:
 
 @router.get("/flywheel/health", response_model=FlywheelHealthResponse, summary="Flywheel health and stats")
 async def flywheel_health(
-    tenant_id: str = Query("default"),
     client_id: Optional[str] = Query(None),
     run_id: Optional[str] = Query(None),
     vertical: str = Query("accountancy"),
+    current_user: User = Depends(get_current_user),
 ) -> FlywheelHealthResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
+    tenant_id = str(current_user.tenant_id)
     try:
         from app.flywheel.engine import FlywheelEngine
     except Exception as e:
@@ -647,14 +660,18 @@ async def flywheel_health(
 
 
 @router.post("/flywheel/capture", summary="Log a flywheel event")
-async def flywheel_capture(req: FlywheelCaptureRequest) -> Dict[str, Any]:
+async def flywheel_capture(
+    req: FlywheelCaptureRequest,
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
     try:
         from app.flywheel.engine import FlywheelEngine
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"flywheel unavailable: {e}")
 
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never from the request body.
     fw = FlywheelEngine(
-        tenant_id=req.tenant_id,
+        tenant_id=str(current_user.tenant_id),
         client_id=req.client_id,
         run_id=req.run_id,
         vertical=req.vertical,
@@ -683,13 +700,18 @@ async def flywheel_capture(req: FlywheelCaptureRequest) -> Dict[str, Any]:
 
 
 @router.post("/flywheel/confirm", summary="Confirm a mapping (active learning)")
-async def flywheel_confirm(req: FlywheelConfirmRequest) -> Dict[str, Any]:
+async def flywheel_confirm(
+    req: FlywheelConfirmRequest,
+    current_user: User = Depends(get_current_user),
+) -> Dict[str, Any]:
     """Confirm a canonical field mapping decision.
 
     This logs a supervised (column_signature → canonical_field) pair via the
     Phase 2 dataset logger and emits a flywheel event.  The accumulated
     confirmed mappings are what the Phase 2 ranker trains on.
     """
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never from the request body.
+    tenant_id = str(current_user.tenant_id)
     # Phase 2 dataset log
     try:
         from app.services.phase2_column_encoder import log_mapping_example
@@ -699,7 +721,7 @@ async def flywheel_confirm(req: FlywheelConfirmRequest) -> Dict[str, Any]:
             "sheet_names": req.preview.sheet_names or [],
         }
         log_mapping_example(
-            tenant_id=req.tenant_id,
+            tenant_id=tenant_id,
             workbook_name=req.workbook_name,
             preview=preview_dict,
             field_selections=req.field_selections,
@@ -713,7 +735,7 @@ async def flywheel_confirm(req: FlywheelConfirmRequest) -> Dict[str, Any]:
     try:
         from app.flywheel.engine import FlywheelEngine
         fw = FlywheelEngine(
-            tenant_id=req.tenant_id,
+            tenant_id=tenant_id,
             client_id=req.client_id,
             run_id=req.run_id,
             vertical=req.vertical,
@@ -746,9 +768,10 @@ async def flywheel_confirm(req: FlywheelConfirmRequest) -> Dict[str, Any]:
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.get("/governance/audit/{run_id}", summary="Audit events for a run")
-async def audit_events(run_id: str) -> Dict[str, Any]:
+async def audit_events(run_id: str, current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
     al = _AUDIT_LOGS.get(run_id)
-    if not al:
+    # SECURITY-FIX 2026-10-15: an audit log belonging to another tenant looks like "not found".
+    if not al or str(getattr(al, "tenant_id", None)) != str(current_user.tenant_id):
         raise HTTPException(status_code=404, detail=f"No audit log for run_id {run_id}")
     return {"run_id": run_id, "event_count": len(al.events), "events": al.events}
 
@@ -758,9 +781,10 @@ async def audit_events(run_id: str) -> Dict[str, Any]:
     response_model=AuditSummaryResponse,
     summary="Audit summary for a run",
 )
-async def audit_summary(run_id: str) -> AuditSummaryResponse:
+async def audit_summary(run_id: str, current_user: User = Depends(get_current_user)) -> AuditSummaryResponse:
     al = _AUDIT_LOGS.get(run_id)
-    if not al:
+    # SECURITY-FIX 2026-10-15: an audit log belonging to another tenant looks like "not found".
+    if not al or str(getattr(al, "tenant_id", None)) != str(current_user.tenant_id):
         raise HTTPException(status_code=404, detail=f"No audit log for run_id {run_id}")
     summary = al.summary()
     return AuditSummaryResponse(
@@ -780,14 +804,16 @@ async def audit_summary(run_id: str) -> AuditSummaryResponse:
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.post("/di/run", response_model=DIRunResponse, summary="Run DI v3 DAG orchestrator")
-async def di_run(req: DIRunRequest) -> DIRunResponse:
+async def di_run(req: DIRunRequest, current_user: User = Depends(get_current_user)) -> DIRunResponse:
     try:
         from app.di.orchestrator_v3 import run_di_v3
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"di orchestrator unavailable: {e}")
 
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never from the request body.
+    tenant_id = str(current_user.tenant_id)
     ctx: Dict[str, Any] = {
-        "tenant_id": req.tenant_id,
+        "tenant_id": tenant_id,
         "job_id": req.job_id,
         "schema_domain": req.schema_domain or "",
         "schema_id": req.schema_id or "",
@@ -820,7 +846,7 @@ async def di_run(req: DIRunRequest) -> DIRunResponse:
             node_results.append({"node": k, "result": v if isinstance(v, dict) else {"value": v}})
 
     return DIRunResponse(
-        tenant_id=req.tenant_id,
+        tenant_id=tenant_id,
         job_id=req.job_id,
         factbundle=factbundle,
         drift=drift,

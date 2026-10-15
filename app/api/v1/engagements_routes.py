@@ -36,8 +36,9 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.db.models import (
-    Engagement, ReviewPoint, EngagementRun, AuditEvent, Notification
+    Engagement, ReviewPoint, EngagementRun, AuditEvent, Notification, User
 )
+from app.web_auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["engagements"])
@@ -103,7 +104,8 @@ class EngagementCreate(BaseModel):
     preparer_name: Optional[str] = Field(None, max_length=200)
     engagement_ref: Optional[str] = Field(None, max_length=100)
     job_type: str = Field("comparison", max_length=50)
-    tenant_id: int = Field(1, ge=1)
+    # tenant_id is never accepted from the client — derived from the
+    # authenticated session (current_user.tenant_id). SECURITY-FIX 2026-10-15.
 
 
 class EngagementUpdate(BaseModel):
@@ -118,7 +120,8 @@ class EngagementUpdate(BaseModel):
 class SignOffRequest(BaseModel):
     partner_name: str = Field(..., min_length=1, max_length=200)
     notes: Optional[str] = None
-    tenant_id: int = Field(1, ge=1)
+    # tenant_id is never accepted from the client — derived from the
+    # authenticated session (current_user.tenant_id). SECURITY-FIX 2026-10-15.
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -259,13 +262,14 @@ def _recalc_point_counts(db: Session, engagement_id: int) -> None:
 
 @router.get("/engagements", summary="List engagements for a tenant")
 async def list_engagements(
-    tenant_id: int = 1,
     status: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    q = db.query(Engagement).filter(Engagement.tenant_id == tenant_id)
+    # SECURITY-FIX 2026-10-15: tenant_id no longer accepted from the client.
+    q = db.query(Engagement).filter(Engagement.tenant_id == current_user.tenant_id)
     if status:
         q = q.filter(Engagement.status == status)
     total = q.count()
@@ -282,9 +286,11 @@ async def list_engagements(
 async def create_engagement(
     req: EngagementCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id derived from the session, never from the request body.
     eng = Engagement(
-        tenant_id=req.tenant_id,
+        tenant_id=current_user.tenant_id,
         client_name=req.client_name.strip(),
         period=(req.period or "").strip() or None,
         regulatory_pack=req.regulatory_pack,
@@ -297,7 +303,7 @@ async def create_engagement(
     db.flush()
     _audit(db, eng.id, "created", actor="user",
            detail=f"Engagement created for {eng.client_name} / {eng.period}")
-    _emit_notification(db, req.tenant_id, "info", "Engagement Created",
+    _emit_notification(db, current_user.tenant_id, "info", "Engagement Created",
                        f"{eng.client_name} — {eng.period} engagement created.",
                        engagement_id=eng.id, client_name=eng.client_name)
     db.commit()
@@ -309,8 +315,10 @@ async def create_engagement(
 async def get_engagement(
     eng_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    eng = db.query(Engagement).filter(Engagement.id == eng_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant so eng_id cannot be enumerated cross-tenant.
+    eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
         raise HTTPException(404, f"Engagement {eng_id} not found")
 
@@ -351,8 +359,10 @@ async def update_engagement(
     eng_id: int,
     req: EngagementUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    eng = db.query(Engagement).filter(Engagement.id == eng_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
         raise HTTPException(404, f"Engagement {eng_id} not found")
     if eng.status == "signed_off":
@@ -395,6 +405,7 @@ async def submit_engagement(
     # Mapping gate — if True, skip the gate even on first run (mapping already confirmed)
     mapping_confirmed: bool = Form(False),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """Submit N documents for AI analysis.
 
@@ -418,7 +429,8 @@ async def submit_engagement(
     - `files[]` — multiple files (new multi-document interface)
     - `file_a` + `file_b` — two files (legacy interface, still supported)
     """
-    eng = db.query(Engagement).filter(Engagement.id == eng_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
         raise HTTPException(404, f"Engagement {eng_id} not found")
     if eng.status == "signed_off":
@@ -648,6 +660,7 @@ async def confirm_mapping(
     eng_id: int,
     req: ConfirmMappingRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """
     Confirm the field mapping for this engagement and run the deferred analysis.
@@ -663,7 +676,8 @@ async def confirm_mapping(
     not in the mapping are NOT raised as review points — this is how you
     avoid the 461-noise-point problem without hardcoding any accountancy rules.
     """
-    eng = db.query(Engagement).filter(Engagement.id == eng_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
         raise HTTPException(404, f"Engagement {eng_id} not found")
     if eng.status not in ("draft", "mapping_required"):
@@ -770,9 +784,11 @@ async def confirm_mapping(
 async def get_mapping(
     eng_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """Return the current confirmed mapping and auto-propose if none exists."""
-    eng = db.query(Engagement).filter(Engagement.id == eng_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
         raise HTTPException(404, f"Engagement {eng_id} not found")
 
@@ -1788,8 +1804,10 @@ async def sign_off(
     eng_id: int,
     req: SignOffRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    eng = db.query(Engagement).filter(Engagement.id == eng_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
         raise HTTPException(404, f"Engagement {eng_id} not found")
     if eng.status == "signed_off":
@@ -1841,8 +1859,10 @@ async def sign_off(
 async def audit_trail(
     eng_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    eng = db.query(Engagement).filter(Engagement.id == eng_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
         raise HTTPException(404, f"Engagement {eng_id} not found")
 
@@ -1874,8 +1894,15 @@ async def audit_trail(
 # REVIEW POINTS — status transitions
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _get_point_or_404(pt_id: int, db: Session) -> ReviewPoint:
-    pt = db.query(ReviewPoint).filter(ReviewPoint.id == pt_id).first()
+def _get_point_or_404(pt_id: int, tenant_id: int, db: Session) -> ReviewPoint:
+    # SECURITY-FIX 2026-10-15: join to Engagement so a review point can only
+    # be resolved by a caller whose session tenant owns the parent engagement.
+    pt = (
+        db.query(ReviewPoint)
+        .join(Engagement, Engagement.id == ReviewPoint.engagement_id)
+        .filter(ReviewPoint.id == pt_id, Engagement.tenant_id == tenant_id)
+        .first()
+    )
     if not pt:
         raise HTTPException(404, f"Review point {pt_id} not found")
     return pt
@@ -1891,8 +1918,9 @@ async def acknowledge_point(
     pt_id: int,
     acknowledged_by: str = Form("Reviewer"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    pt = _get_point_or_404(pt_id, db)
+    pt = _get_point_or_404(pt_id, current_user.tenant_id, db)
     _check_not_resolved(pt)
     pt.status = "acknowledged"
     _audit(db, pt.engagement_id, "point_acknowledged", actor=acknowledged_by,
@@ -1910,8 +1938,9 @@ async def correct_point(
     corrected_by: str = Form("Preparer"),
     correction_file: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    pt = _get_point_or_404(pt_id, db)
+    pt = _get_point_or_404(pt_id, current_user.tenant_id, db)
     _check_not_resolved(pt)
 
     pt.status = "corrected"
@@ -1952,8 +1981,9 @@ async def waive_point(
     waiver_reason: str = Form(...),
     waived_by: str = Form("Partner"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    pt = _get_point_or_404(pt_id, db)
+    pt = _get_point_or_404(pt_id, current_user.tenant_id, db)
     _check_not_resolved(pt)
 
     if not waiver_reason.strip():
@@ -1983,8 +2013,9 @@ async def escalate_point(
     escalated_to: str = Form("Partner"),
     escalated_by: str = Form("Reviewer"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    pt = _get_point_or_404(pt_id, db)
+    pt = _get_point_or_404(pt_id, current_user.tenant_id, db)
     if pt.status == "waived":
         raise HTTPException(409, "Waived points cannot be escalated")
 

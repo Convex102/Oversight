@@ -26,7 +26,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.db.models import CustomSchema
+from app.db.models import CustomSchema, User
+from app.web_auth import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["schemas"])
@@ -141,7 +142,8 @@ class SchemaCreate(BaseModel):
     description: Optional[str] = None
     fields: List[Dict[str, Any]] = Field(default_factory=list)
     rules: List[Dict[str, Any]] = Field(default_factory=list)
-    tenant_id: int = Field(1, ge=1)
+    # tenant_id is never accepted from the client — derived from the
+    # authenticated session. SECURITY-FIX 2026-10-15.
 
 
 class SchemaUpdate(BaseModel):
@@ -175,12 +177,13 @@ def _schema_to_dict(s: CustomSchema) -> Dict[str, Any]:
 
 @router.get("/schemas", summary="List schemas for a tenant")
 async def list_schemas(
-    tenant_id: int = 1,
     domain: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
     q = db.query(CustomSchema).filter(
-        CustomSchema.tenant_id == tenant_id,
+        CustomSchema.tenant_id == current_user.tenant_id,
         CustomSchema.is_active == True,  # noqa: E712
     )
     if domain:
@@ -196,9 +199,11 @@ async def list_schemas(
 async def create_schema(
     req: SchemaCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never from the request body.
     s = CustomSchema(
-        tenant_id=req.tenant_id,
+        tenant_id=current_user.tenant_id,
         name=req.name.strip(),
         domain=req.domain,
         description=(req.description or "").strip() or None,
@@ -224,15 +229,16 @@ async def list_presets() -> JSONResponse:
 )
 async def clone_preset(
     preset_id: str,
-    tenant_id: int = 1,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
     preset = _PRESET_MAP.get(preset_id)
     if not preset:
         raise HTTPException(404, f"Preset '{preset_id}' not found")
 
     s = CustomSchema(
-        tenant_id=tenant_id,
+        tenant_id=current_user.tenant_id,
         name=preset["name"],
         domain=preset["domain"],
         description=preset.get("description"),
@@ -250,7 +256,6 @@ async def clone_preset(
 async def infer_schema(
     file: UploadFile = File(...),
     schema_name: Optional[str] = Form(None),
-    tenant_id: int = Form(1),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Analyse uploaded CSV/Excel/PDF and infer a field schema from column headers and sample data."""
@@ -291,8 +296,10 @@ async def infer_schema(
 async def get_schema(
     schema_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id, CustomSchema.tenant_id == current_user.tenant_id).first()
     if not s:
         raise HTTPException(404, f"Schema {schema_id} not found")
     return JSONResponse(_schema_to_dict(s))
@@ -303,8 +310,10 @@ async def update_schema(
     schema_id: int,
     req: SchemaUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id, CustomSchema.tenant_id == current_user.tenant_id).first()
     if not s:
         raise HTTPException(404, f"Schema {schema_id} not found")
 
@@ -329,8 +338,10 @@ async def update_schema(
 async def delete_schema(
     schema_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
-    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id).first()
+    # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
+    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id, CustomSchema.tenant_id == current_user.tenant_id).first()
     if not s:
         raise HTTPException(404, f"Schema {schema_id} not found")
     s.is_active = False

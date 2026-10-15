@@ -15,16 +15,23 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, Request, HTTPException
+import hashlib
+
+from fastapi import FastAPI, Request, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.logging import configure_logging
 from app.ratelimit import limiter
-from app.db.session import engine, Base
+from app.db.session import engine, Base, get_db
+from app.db.models import Tenant, User, SessionToken, ApiKey
+from app.security import generate_api_key
+from app.auth import hash_password, verify_password, new_session_token, token_expiry
+from app.web_auth import get_current_user, COOKIE_NAME
 
 logger = configure_logging()
 
@@ -211,6 +218,89 @@ def signup(request: Request): return templates.TemplateResponse("signup.html", _
 
 @app.get("/signin",      response_class=HTMLResponse, include_in_schema=False)
 def signin(request: Request): return templates.TemplateResponse("signin.html", _ctx(request, "Sign In"))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTHENTICATION — SECURITY-FIX 2026-10-15
+# ══════════════════════════════════════════════════════════════════════════════
+# These routes were missing from this file entirely: signin.html posts to
+# /auth/login, which 404'd, so no one could ever establish a session and
+# every API route behind get_current_user would have 401'd. Restored here
+# (deduplicated) from app/main.py.corrupted, which had the real logic but
+# failed to import at all (a stray import above `from __future__ import
+# annotations`, invalid Python) and repeated its router-mount calls six times.
+
+@app.post("/auth/register", include_in_schema=False)
+def register(
+    request: Request,
+    tenant_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    plan: str = Form("standard"),
+    db: Session = Depends(get_db),
+):
+    email_n = (email or "").strip().lower()
+    if not email_n or "@" not in email_n:
+        raise HTTPException(400, "Invalid email")
+    if len(password or "") < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    tenant_name = (tenant_name or "").strip() or "Tenant"
+
+    existing = db.query(User).filter(User.email == email_n).first()
+    if existing:
+        raise HTTPException(400, "Account already exists")
+
+    tenant = Tenant(name=tenant_name, plan=plan, is_active=True)
+    db.add(tenant); db.commit(); db.refresh(tenant)
+
+    user = User(tenant_id=tenant.id, email=email_n, password_hash=hash_password(password), is_active=True, role="admin")
+    db.add(user); db.commit(); db.refresh(user)
+
+    raw, kh = generate_api_key(prefix="asgl")
+    db.add(ApiKey(tenant_id=tenant.id, key_hash=kh, name="default", is_active=True))
+    db.commit()
+
+    raw_tok, tok_hash = new_session_token()
+    sess = SessionToken(user_id=user.id, token_hash=tok_hash, expires_at=token_expiry())
+    db.add(sess); db.commit()
+
+    resp = RedirectResponse(url="/console", status_code=303)
+    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax")
+    resp.set_cookie("asgl_bootstrap_api_key", raw, httponly=False, samesite="lax", max_age=300)
+    return resp
+
+
+@app.post("/auth/login", include_in_schema=False)
+def login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    email_n = (email or "").strip().lower()
+    user = db.query(User).filter(User.email == email_n, User.is_active == True).first()
+    if not user or not verify_password(password, user.password_hash):
+        raise HTTPException(401, "Invalid credentials")
+
+    raw_tok, tok_hash = new_session_token()
+    sess = SessionToken(user_id=user.id, token_hash=tok_hash, expires_at=token_expiry())
+    db.add(sess); db.commit()
+
+    resp = RedirectResponse(url="/console", status_code=303)
+    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/auth/logout", include_in_schema=False)
+def logout(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    raw = request.cookies.get(COOKIE_NAME)
+    if raw:
+        th = hashlib.sha256(raw.encode()).hexdigest()
+        db.query(SessionToken).filter(SessionToken.token_hash == th).delete()
+        db.commit()
+    resp = RedirectResponse(url="/", status_code=303)
+    resp.delete_cookie(COOKIE_NAME)
+    return resp
 
 @app.get("/console",     response_class=HTMLResponse, include_in_schema=False)
 def console(request: Request): return templates.TemplateResponse("console.html", _ctx(request, "Console"))

@@ -17,11 +17,13 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
 # Reuse the job store from routes.py
 from app.api.v1.routes import _JOBS, _AUDIT_LOGS, _new_job, _update_job
+from app.db.models import User
+from app.web_auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +47,11 @@ async def version() -> Dict[str, Any]:
 # ── /pipeline/jobs/{job_id}/result  (alias for /results) ─────────────────────
 
 @router.get("/pipeline/jobs/{job_id}/result", summary="Get job result (alias)")
-async def pipeline_job_result_alias(job_id: str) -> Dict[str, Any]:
+async def pipeline_job_result_alias(job_id: str, current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
     """Alias for /pipeline/jobs/{job_id}/results — supports both spellings."""
     job = _JOBS.get(job_id)
-    if not job:
+    # SECURITY-FIX 2026-10-15: a job belonging to another tenant looks like "not found".
+    if not job or job.get("tenant_id") != str(current_user.tenant_id):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
     if job["status"] in ("queued", "running"):
         raise HTTPException(status_code=425, detail=f"Job {job_id} still running ({job['status']})")
@@ -83,20 +86,22 @@ async def pipeline_job_result_alias(job_id: str) -> Dict[str, Any]:
 # ── /flywheel/train ──────────────────────────────────────────────────────────
 
 class TrainRequest(BaseModel):
-    tenant_id: str = "default"
     vertical: str = "accountancy"
     model_id: str = "di_mapper"
     base_version: str = "v0"
     force: bool = False
     min_new_rows: int = 50
+    # tenant_id is never accepted from the client — derived from the
+    # authenticated session. SECURITY-FIX 2026-10-15.
 
 
 @router.post("/flywheel/train", summary="Trigger flywheel training")
-async def flywheel_train(req: TrainRequest) -> Dict[str, Any]:
+async def flywheel_train(req: TrainRequest, current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
+    tenant_id = str(current_user.tenant_id)
     try:
         from app.flywheel.engine import FlywheelEngine
         fw = FlywheelEngine(
-            tenant_id=req.tenant_id,
+            tenant_id=tenant_id,
             client_id="default",
             run_id=str(uuid.uuid4()),
             vertical=req.vertical,
@@ -104,7 +109,7 @@ async def flywheel_train(req: TrainRequest) -> Dict[str, Any]:
         )
         if req.force:
             job = fw.trainer.trigger(
-                tenant_id=req.tenant_id,
+                tenant_id=tenant_id,
                 vertical=req.vertical,
                 model_id=req.model_id,
                 base_version=req.base_version,
@@ -132,11 +137,13 @@ async def flywheel_train(req: TrainRequest) -> Dict[str, Any]:
 
 @router.get("/flywheel/queue", summary="Get active learning review queue")
 async def flywheel_queue(
-    tenant_id: str = Query("default"),
     vertical: str = Query("accountancy"),
     kind: Optional[str] = Query(None, description="Filter by kind e.g. ANOMALY_REVIEW"),
     limit: int = Query(50, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
+    tenant_id = str(current_user.tenant_id)
     try:
         from app.flywheel.queue import ActiveLearningQueue
         q = ActiveLearningQueue(logger=logger)
@@ -158,11 +165,13 @@ async def flywheel_queue(
 
 @router.get("/di/review-queue", summary="Get DI review queue")
 async def di_review_queue(
-    tenant_id: str = Query("default"),
     limit: int = Query(50, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Returns items in the DI review queue — mapping overrides, anomalies,
     rule violations — pending human review."""
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
+    tenant_id = str(current_user.tenant_id)
     try:
         # Try the v5 review queue first
         from app.di.review_queue import get_review_queue
@@ -189,11 +198,13 @@ async def di_review_queue(
 async def di_review_queue_resolve(
     item_id: str,
     confirmed: bool = Body(..., embed=True),
-    tenant_id: str = Body("default", embed=True),
     notes: Optional[str] = Body(None, embed=True),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Approve or reject a review queue item. Records the decision in the
     flywheel dataset for active learning."""
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
+    tenant_id = str(current_user.tenant_id)
     try:
         from app.di.review_queue import resolve_review_item
         result = resolve_review_item(
@@ -231,10 +242,12 @@ async def di_review_queue_resolve(
 
 @router.get("/di/ml/status", summary="DI ML model status")
 async def di_ml_status(
-    tenant_id: str = Query("default"),
     vertical: str = Query("accountancy"),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Status of trained ML models in the DI stack."""
+    # SECURITY-FIX 2026-10-15: tenant_id is derived from the session, never accepted from the client.
+    tenant_id = str(current_user.tenant_id)
     try:
         from app.flywheel.engine import FlywheelEngine
         fw = FlywheelEngine(
@@ -271,26 +284,33 @@ async def di_ml_status(
 class ExportRequest(BaseModel):
     run_id: str
     format: str = "json"
-    tenant_id: str = "default"
+    # tenant_id is never accepted from the client — derived from the
+    # authenticated session. SECURITY-FIX 2026-10-15.
 
 
 @router.post("/governance/export", summary="Export audit log as evidence pack")
-async def governance_export(req: ExportRequest) -> Dict[str, Any]:
+async def governance_export(req: ExportRequest, current_user: User = Depends(get_current_user)) -> Dict[str, Any]:
     """Export the audit log for a run as a JSON evidence pack.
 
     For PDF evidence packs, the full pipeline run generates these automatically
     via reportlab. This endpoint provides the structured JSON export for
     programmatic access and downstream reporting.
     """
+    tenant_id = str(current_user.tenant_id)
     al = _AUDIT_LOGS.get(req.run_id)
+    # SECURITY-FIX 2026-10-15: an audit log/job belonging to another tenant looks like "not found".
+    if al is not None and str(getattr(al, "tenant_id", None)) != tenant_id:
+        al = None
     if not al:
         # Try to find from job results
         job = _JOBS.get(req.run_id)
+        if job and job.get("tenant_id") != tenant_id:
+            job = None
         if job and job.get("results"):
             results = job["results"]
             return {
                 "run_id": req.run_id,
-                "tenant_id": req.tenant_id,
+                "tenant_id": tenant_id,
                 "format": req.format,
                 "exported_at": dt.datetime.utcnow().isoformat() + "Z",
                 "event_count": 0,
@@ -303,7 +323,7 @@ async def governance_export(req: ExportRequest) -> Dict[str, Any]:
     summary = al.summary()
     return {
         "run_id": req.run_id,
-        "tenant_id": req.tenant_id,
+        "tenant_id": tenant_id,
         "format": req.format,
         "exported_at": dt.datetime.utcnow().isoformat() + "Z",
         "event_count": len(al.events),
