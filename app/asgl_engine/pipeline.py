@@ -100,7 +100,8 @@ def load_json(path: Path) -> dict:
         return {}
 
 def safe_basename(name: str) -> str:
-    return Path(name).name or "untitled"
+    n = str(name or "").replace("\\", "/").replace("\x00", "").split("/")[-1].strip()
+    return "untitled" if n in ("", ".", "..") else n[:120]
 
 def pick_schema(pack_dir: Path, preferred: List[str]) -> dict:
     for filename in preferred:
@@ -221,6 +222,12 @@ class Pipeline:
             logger.debug("Failed to clean temp dir: %s", self.tmp_dir, exc_info=True)
 
     async def run(self):
+        try:
+            return await self._run_inner()
+        finally:
+            self.cleanup()
+
+    async def _run_inner(self):
         started = get_utc_now()
         await self.prepare_files()
         self.load_schema()
@@ -235,7 +242,6 @@ class Pipeline:
         self.generate_explainability()
         result = self.assemble_result(started)
         self.emit("pipeline_complete", 100, "Pipeline finished")
-        self.cleanup()
         return result
 
     async def prepare_files(self):

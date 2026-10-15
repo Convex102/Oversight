@@ -215,6 +215,14 @@ async def pipeline_run(
     GET /pipeline/jobs/{job_id} for status.
     """
     # ── Read files into memory ────────────────────────────────────────────
+    from app.config import settings as _st
+    if len(files) > 20:
+        raise HTTPException(status_code=413, detail="Too many files (maximum 20)")
+    _ok = _st.allowed_upload_exts_set
+    for f in files:
+        _ext = os.path.splitext(f.filename or "")[1].lower()
+        if _ok and _ext not in _ok:
+            raise HTTPException(status_code=415, detail=f"File type {_ext or '(none)'} is not allowed")
     file_payloads: List = []
     for f in files:
         content = await f.read()
@@ -368,7 +376,8 @@ async def pipeline_run(
                 )
 
     if sync:
-        execute_pipeline()
+        from starlette.concurrency import run_in_threadpool
+        await run_in_threadpool(execute_pipeline)
         job = jobstore.get(job_id) or {}
         return JobRunResponse(
             job_id=job_id,
