@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 
@@ -52,9 +53,16 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 
+# SECURITY-FIX 2026-10-15: with ENV=dev this used allow_origins=["*"] together with allow_credentials=True, and
+# Starlette answers a cookie carrying request by echoing back whatever Origin asked, so any website could
+# make credentialed calls as a signed in user. Origins are now an explicit list in every environment.
+_CORS_ORIGINS = [settings.PUBLIC_BASE_URL, "https://app.oversightlab.ai"]
+if settings.ENV == "dev":
+    _CORS_ORIGINS += ["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:8002", "http://127.0.0.1:8002"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.ENV == "dev" else [settings.PUBLIC_BASE_URL],
+    allow_origins=_CORS_ORIGINS,
     allow_headers=["*"],
     allow_methods=["*"],
     allow_credentials=True,
@@ -188,6 +196,11 @@ async def health():
 # HTML PAGES
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
+def _https(request: Request) -> bool:
+    """True when the browser reached us over https (nginx sets X-Forwarded-Proto)."""
+    return request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+
+
 def _page_principal(request: Request, db: Session):
     """Return the logged in Principal for a page request, or None (caller redirects to /signin)."""
     try:
@@ -263,6 +276,10 @@ def register(
     plan: str = Form("standard"),
     db: Session = Depends(get_db),
 ):
+    # Registration is invitation only unless ASGL_ALLOW_SIGNUP=1 is set in the server environment.
+    # Admins add people from the Users screen. This stops strangers creating tenants on a public URL.
+    if os.getenv("ASGL_ALLOW_SIGNUP", "0") != "1":
+        raise HTTPException(403, "Registration is by invitation. Ask your administrator to create your account.")
     email_n = (email or "").strip().lower()
     if not email_n or "@" not in email_n:
         raise HTTPException(400, "Invalid email")
@@ -289,7 +306,7 @@ def register(
     db.add(sess); db.commit()
 
     resp = RedirectResponse(url="/console", status_code=303)
-    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax")
+    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax", secure=_https(request))
     resp.set_cookie("asgl_bootstrap_api_key", raw, httponly=False, samesite="lax", max_age=300)
     return resp
 
@@ -311,7 +328,7 @@ def login(
     db.add(sess); db.commit()
 
     resp = RedirectResponse(url="/console", status_code=303)
-    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax")
+    resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax", secure=_https(request))
     return resp
 
 
