@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import Boolean, ForeignKey, Integer
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, Session, mapped_column
 from starlette.concurrency import run_in_threadpool
 
@@ -37,6 +37,25 @@ class UserSecurity(Base):
     __tablename__ = "user_security"
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    expires_at: Mapped[dt.datetime] = mapped_column(DateTime)
+    used: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+def make_reset_token(db: Session, user_id: int, hours: int = 72) -> str:
+    """Create a one time reset token (only its hash is stored) and return the raw token. Older unused tokens die."""
+    db.query(PasswordReset).filter(PasswordReset.user_id == user_id, PasswordReset.used == False).update({"used": True})  # noqa: E712
+    raw = secrets.token_urlsafe(32)
+    db.add(PasswordReset(user_id=user_id, token_hash=hashlib.sha256(raw.encode()).hexdigest(),
+                         expires_at=dt.datetime.utcnow() + dt.timedelta(hours=hours), used=False))
+    db.commit()
+    return raw
 
 
 def set_must_change(db: Session, user_id: int, value: bool = True) -> None:
@@ -154,6 +173,49 @@ def change_password(
     db.commit()
     set_must_change(db, u.id, False)
     return RedirectResponse(url="/", status_code=303)
+
+
+# ── reset by link ───────────────────────────────────────────────────────────
+# The link carries the token after a # so it is never sent to the server in a URL (no access log copy).
+# The page copies it into the form body and posts it.
+_RESET = _PAGE.split('<h2>')[0] + """<h2>Set your password</h2>
+<p>Choose a password for your Oversight account. At least __MIN__ characters.</p>__ERR__
+<form method="post" action="/auth/reset"><input type="hidden" name="token" id="t">
+<label>New password</label><input name="new_password" type="password" autocomplete="new-password" minlength="__MIN__" required>
+<label>Repeat new password</label><input name="confirm_password" type="password" autocomplete="new-password" minlength="__MIN__" required>
+<button type="submit">Set password and sign in</button></form>
+<script>var h=location.hash.replace("#","");document.getElementById("t").value=h;if(!h){document.querySelector("form").insertAdjacentHTML("beforebegin",'<div class="e">This link is incomplete. Open the whole link from your email.</div>');}
+if(h)history.replaceState(null,"",location.pathname);</script>
+</div></body></html>"""
+_RESET_ERRS = dict(_ERRS, token="This link is invalid, has expired or was already used. Ask for a new one.")
+
+
+@router.get("/auth/reset", response_class=HTMLResponse, include_in_schema=False)
+def reset_page(request: Request):
+    err = request.query_params.get("err", "")
+    html = _RESET.replace("__MIN__", str(MIN_LEN)).replace("__ERR__", '<div class="e">%s</div>' % _RESET_ERRS[err] if err in _RESET_ERRS else "")
+    return HTMLResponse(html, headers={"Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
+
+
+@router.post("/auth/reset", include_in_schema=False)
+def reset_submit(request: Request, token: str = Form(""), new_password: str = Form(...), confirm_password: str = Form(...),
+                 db: Session = Depends(get_db)):
+    th = hashlib.sha256(token.encode()).hexdigest()
+    row = db.query(PasswordReset).filter(PasswordReset.token_hash == th, PasswordReset.used == False,  # noqa: E712
+                                         PasswordReset.expires_at >= dt.datetime.utcnow()).first()
+    user = db.query(User).filter(User.id == row.user_id, User.is_active == True).first() if row else None  # noqa: E712
+    if not user:
+        return RedirectResponse(url="/auth/reset?err=token", status_code=303)
+    if new_password != confirm_password:
+        return RedirectResponse(url="/auth/reset?err=mismatch#" + token, status_code=303)
+    if len(new_password) < MIN_LEN:
+        return RedirectResponse(url="/auth/reset?err=short#" + token, status_code=303)
+    user.password_hash = hash_password(new_password)
+    row.used = True
+    db.query(SessionToken).filter(SessionToken.user_id == user.id).delete()
+    db.commit()
+    set_must_change(db, user.id, False)
+    return _start_session(request, db, user)
 
 
 # ── Google sign in ──────────────────────────────────────────────────────────
