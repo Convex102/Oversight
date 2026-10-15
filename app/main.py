@@ -50,8 +50,24 @@ app = FastAPI(
     title=settings.APP_NAME,
     version="13.5.0",
     lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 app.state.limiter = limiter
+
+
+# API docs and the schema list every route, so they are only served to signed in users.
+@app.get("/openapi.json", include_in_schema=False)
+def _openapi_for_users(user: User = Depends(get_current_user)):
+    from fastapi.openapi.utils import get_openapi
+    return JSONResponse(get_openapi(title=app.title, version=app.version, routes=app.routes))
+
+
+@app.get("/docs", include_in_schema=False)
+def _docs_for_users(user: User = Depends(get_current_user)):
+    from fastapi.openapi.docs import get_swagger_ui_html
+    return get_swagger_ui_html(openapi_url="/openapi.json", title=app.title + " API")
 
 # Forced password change on first sign in, change password page, Google sign in (app/auth_ext.py)
 from app.auth_ext import install_auth_ext
