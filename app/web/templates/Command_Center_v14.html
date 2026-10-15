@@ -509,7 +509,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
 
 
 <script>
-    const API_BASE = 'http://127.0.0.1:8000/api/v1';
+    const API_BASE = '/api/v1';
     var _llmCfg={p:localStorage.getItem('oc_p')||'gemini',k:localStorage.getItem('oc_k')||''};
     function _saveLlm(p,k){_llmCfg={p:p,k:k};localStorage.setItem('oc_p',p);localStorage.setItem('oc_k',k);}
     async function _llm(sys,user,max){
@@ -2471,7 +2471,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
                     _fd.append('key_fields', JSON.stringify(job._schema.fields.map(function(f){return f.source_label;})));
                     _fd.append('canonical_roles', JSON.stringify(job._schema.fields.map(function(f){return f.canonical_role;})));
                 }
-                var _resp = await fetch('http://127.0.0.1:8000/api/v1/compare/', { method: 'POST', body: _fd });
+                var _resp = await fetch('/api/v1/compare/', { method: 'POST', body: _fd });
                 if (!_resp.ok) { _logStep('⚠ ' + _secLabel + ' error ' + _resp.status + ', skipped'); continue; }
                 var _secResult = await _resp.json();
                 (_secResult.differences || []).forEach(function(d){ d._source_doc = _secLabel; });
@@ -3382,7 +3382,7 @@ document.getElementById('report-generate-btn').onclick = async () => {
 // Update footer status
 setInterval(async () => {
     try {
-        const r = await fetch('http://127.0.0.1:8000/api/v1/health');
+        const r = await fetch('/api/v1/health');
         const d = await r.json();
         document.getElementById('footer-status').textContent = d.ok ? '● API Online' : '○ API Degraded';
         document.getElementById('footer-status').style.color = d.ok ? '#10b981' : '#f59e0b';
@@ -3554,7 +3554,7 @@ setInterval(async () => {
                     <div style="display:flex;align-items:center;gap:10px">
                         ${r.run_number > 1 ? `<span style="font-size:11px;color:#059669">+${r.resolved_from_prev||0} resolved &#xB7; ${r.persisting_from_prev||0} persist</span>` : ''}
                         <span style="font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;${r.overall_status==='CLEAN'?'background:#D1FAE5;color:#065F46':r.overall_status==='REQUIRES REVIEW'?'background:#FEE2E2;color:#991B1B':'background:#FEF3C7;color:#92400E'}">${r.overall_status||r.status}</span>
-                        ${r.pdf_report_uri ? `<a href="http://127.0.0.1:8000${r.pdf_report_uri}" target="_blank" style="font-size:11px;color:#2563EB">&#x1F4C4; PDF</a>` : ''}
+                        ${r.pdf_report_uri ? `<a href="${r.pdf_report_uri}" target="_blank" style="font-size:11px;color:#2563EB">&#x1F4C4; PDF</a>` : ''}
                     </div>
                 </div>`).join('')}</div>
             </div>` : ''}
@@ -4331,7 +4331,7 @@ setInterval(async () => {
                     </div>
                     <div style="display:flex;gap:10px;align-items:center">
                         <span style="background:${sc};color:white;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700">${s.status}</span>
-                        ${data.report_url ? `<a href="http://127.0.0.1:8000${data.report_url}" target="_blank" style="background:#059669;color:white;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;text-decoration:none">📥 PDF Report</a>` : ''}
+                        ${data.report_url ? `<a href="${data.report_url}" target="_blank" style="background:#059669;color:white;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;text-decoration:none">📥 PDF Report</a>` : ''}
                     </div>
                 </div>
 
@@ -4674,7 +4674,7 @@ setInterval(async () => {
             if (ocrData.total_records_extracted > 0 && schemaId) {
                 updatePipelineLog('🔍 Running data quality checks on extracted records...');
                 // Fetch the extracted CSV and re-run through DQ
-                const dlRes = await fetch(`http://127.0.0.1:8000${ocrData.download_url}`);
+                const dlRes = await fetch(`${ocrData.download_url}`);
                 const dlBlob = await dlRes.blob();
                 const dlFile = new File([dlBlob], 'ocr_extracted.csv', {type:'text/csv'});
 
@@ -4694,7 +4694,7 @@ setInterval(async () => {
                     updatePipelineLog(`✓ Population checks: ${s.oade_anomaly_count||0} anomalies detected (${s.oade_anomaly_pct||0}%)`);
                     if (dqData.narrative) updatePipelineLog(`🧠 AI: ${dqData.narrative.slice(0,120)}...`);
                     if (dqData.review_points_created > 0) updatePipelineLog(`📋 ${dqData.review_points_created} review points created in engagement`);
-                    if (dqData.report_url) updatePipelineLog(`📄 <a href="http://127.0.0.1:8000${dqData.report_url}" target="_blank" style="color:#2563EB">Download DQ Report PDF</a>`);
+                    if (dqData.report_url) updatePipelineLog(`📄 <a href="${dqData.report_url}" target="_blank" style="color:#2563EB">Download DQ Report PDF</a>`);
                     job._dqResult = dqData;
                 }
             }
@@ -4703,7 +4703,7 @@ setInterval(async () => {
             if (files.length >= 2) {
                 updatePipelineLog('⚖️ Running document comparison...');
                 const cmpForm = new FormData();
-                const dlA = await fetch(`http://127.0.0.1:8000${ocrData.download_url}`);
+                const dlA = await fetch(`${ocrData.download_url}`);
                 const blobA = await dlA.blob();
                 cmpForm.append('file_a', new File([blobA], 'extracted_a.csv'));
                 cmpForm.append('file_b', new File([blobA], 'extracted_b.csv')); // same for now - in practice 2nd file
@@ -5078,7 +5078,7 @@ setInterval(async () => {
                 <div style="color:rgba(255,255,255,0.6);font-size:12px">${(s.total_rows||0).toLocaleString()} records · ${data.sources?.length||1} source(s) · ${s.schema_applied||'General DQ'}</div></div>
                 <div style="display:flex;gap:8px;align-items:center">
                     <span style="background:${sc};color:white;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700">${s.status}</span>
-                    ${data.report_url?`<a href="http://127.0.0.1:8000${data.report_url}" target="_blank" style="background:#059669;color:white;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;text-decoration:none">📥 PDF</a>`:''}
+                    ${data.report_url?`<a href="${data.report_url}" target="_blank" style="background:#059669;color:white;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;text-decoration:none">📥 PDF</a>`:''}
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(6,1fr);background:#F8FAFC;border-bottom:1px solid #E2E8F0">
@@ -5129,7 +5129,7 @@ setInterval(async () => {
                 updatePipelineLog(`<br><strong>Pipeline complete.</strong>`);
                 updatePipelineLog(`📥 ${ocr.total_records_extracted} records extracted from ${files.length} file(s)`);
                 if (ocr.download_url) {
-                    updatePipelineLog(`<a href="http://127.0.0.1:8000${ocr.download_url}" target="_blank" style="color:#2563EB;font-weight:700">⬇ Download structured records (${fmt.toUpperCase()})</a>`);
+                    updatePipelineLog(`<a href="${ocr.download_url}" target="_blank" style="color:#2563EB;font-weight:700">⬇ Download structured records (${fmt.toUpperCase()})</a>`);
                 }
                 if (engId) updatePipelineLog(`<span style="color:#059669;font-weight:700">✓ Review points created in Engagement #${engId}</span>`);
                 showToast('OCR pipeline complete', 'success');
@@ -5950,6 +5950,138 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', _checkMobileNav);
     setTimeout(_checkMobileNav, 100);
 
+</script>
+
+<script>
+/* SECURITY-FIX 2026-10-15: role aware Command Centre. The server enforces roles (app/rbac.py);
+   this block only hides what the signed in user cannot use and adds Users and Sign out. */
+(function () {
+    var NAV_PERMS = {
+        'nav-jobs': 'pipeline.read', 'nav-comparison': 'compare.run', 'nav-mapping': 'pipeline.run',
+        'nav-flywheel': 'pipeline.read', 'nav-di': 'pipeline.read', 'nav-governance': 'pipeline.read',
+        'nav-reports': 'reports.read', 'nav-engagements': 'engagements.read', 'nav-review-workflow': 'engagements.read',
+        'nav-anomaly-review': 'review.resolve', 'nav-anomaly-dashboard': 'analytics.read',
+        'nav-data-quality': 'dq.read', 'nav-rules-editor': 'schemas.write', 'nav-analytics': 'analytics.read'
+    };
+    var ROLE_LABEL = { super_admin: 'Super Admin', admin: 'Admin', reviewer: 'Reviewer', accountant: 'Accountant', api: 'API key' };
+    var ASSIGN = { super_admin: ['super_admin', 'admin', 'reviewer', 'accountant'], admin: ['admin', 'reviewer', 'accountant'] };
+    var ME = null;
+
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function has(p) { return !!(ME && ME.perms && ME.perms.indexOf(p) >= 0); }
+
+    function api(method, url, body) {
+        var opts = { method: method, credentials: 'same-origin', headers: { 'Accept': 'application/json' } };
+        if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+        return fetch(url, opts).then(function (r) {
+            if (r.status === 401) { window.location.href = '/signin'; throw new Error('401'); }
+            return r.json().catch(function () { return {}; }).then(function (d) {
+                if (!r.ok) { throw new Error(d.detail || ('HTTP ' + r.status)); }
+                return d;
+            });
+        });
+    }
+
+    function applyRole() {
+        Object.keys(NAV_PERMS).forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el && !has(NAV_PERMS[id])) { el.style.display = 'none'; }
+        });
+        var nj = document.getElementById('new-job-btn');
+        if (nj && !has('engagements.write')) { nj.style.display = 'none'; }
+        if (has('users.manage')) {
+            var anchor = document.getElementById('nav-engagements');
+            var a = document.createElement('a');
+            a.id = 'nav-users'; a.className = 'nav-link';
+            a.innerHTML = '<span>👥</span> Users';
+            if (anchor && anchor.parentNode) { anchor.parentNode.insertBefore(a, anchor.nextSibling); }
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-link').forEach(function (l) { l.classList.remove('active'); });
+                a.classList.add('active');
+                renderUsers();
+            });
+        }
+        var f = document.getElementById('footer-status');
+        var who = document.createElement('span');
+        who.id = 'ov-who';
+        who.style.cssText = 'margin-left:12px;font-weight:600';
+        who.innerHTML = esc(ME.email || 'API key') + ' &middot; ' + esc(ROLE_LABEL[ME.role] || ME.role) +
+            ' &middot; <a href="#" id="ov-signout" style="text-decoration:underline">Sign out</a>';
+        if (f && f.parentNode) { f.parentNode.insertBefore(who, f.nextSibling); }
+        var so = document.getElementById('ov-signout');
+        if (so) { so.addEventListener('click', function (e) { e.preventDefault(); fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }).then(function () { window.location.href = '/signin'; }); }); }
+    }
+
+    function renderUsers() {
+        var dc = document.getElementById('dynamic-content');
+        if (!dc) { return; }
+        dc.innerHTML = '<div class="card p-6">Loading users...</div>';
+        api('GET', '/api/v1/users').then(function (d) {
+            var roles = ASSIGN[ME.role] || [];
+            var rows = (d.users || []).map(function (u) {
+                var self = ME.email && u.email === ME.email;
+                var opts = roles.map(function (r) { return '<option value="' + r + '"' + (r === u.role ? ' selected' : '') + '>' + esc(ROLE_LABEL[r]) + '</option>'; }).join('');
+                var roleCell = (self || roles.indexOf(u.role) < 0) ? esc(ROLE_LABEL[u.role] || u.role) :
+                    '<select data-uid="' + u.id + '" class="ov-role" style="border:1px solid #CBD5E1;border-radius:6px;padding:3px 6px">' + opts + '</select>';
+                var act = self ? '' : '<button data-uid="' + u.id + '" data-active="' + (u.is_active ? '1' : '0') + '" class="ov-toggle" style="border:1px solid #CBD5E1;border-radius:6px;padding:3px 10px;font-size:12px">' + (u.is_active ? 'Deactivate' : 'Activate') + '</button>';
+                var pw = self ? '' : ' <button data-uid="' + u.id + '" class="ov-pw" style="border:1px solid #CBD5E1;border-radius:6px;padding:3px 10px;font-size:12px">Reset password</button>';
+                return '<tr style="border-top:1px solid #E2E8F0"><td style="padding:8px">' + esc(u.email) + '</td><td>' + roleCell + '</td><td>' + (u.is_active ? 'Active' : 'Inactive') + '</td><td>' + act + pw + '</td></tr>';
+            }).join('');
+            var newRoles = roles.map(function (r) { return '<option value="' + r + '">' + esc(ROLE_LABEL[r]) + '</option>'; }).join('');
+            dc.innerHTML =
+                '<div class="card p-6"><div style="font-size:18px;font-weight:700;margin-bottom:4px">Users</div>' +
+                '<div style="color:#64748B;font-size:12px;margin-bottom:14px">Roles decide what each person sees and can do. Accountants can run the pipeline; only admins can sign off.</div>' +
+                '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:#64748B"><th style="padding:8px">Email</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+                '<div style="margin-top:18px;font-weight:600">Add a user</div>' +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">' +
+                '<input id="ov-new-email" placeholder="Email" style="border:1px solid #CBD5E1;border-radius:6px;padding:6px 8px;min-width:220px">' +
+                '<input id="ov-new-pw" type="password" placeholder="Password (8+ characters)" style="border:1px solid #CBD5E1;border-radius:6px;padding:6px 8px;min-width:200px">' +
+                '<select id="ov-new-role" style="border:1px solid #CBD5E1;border-radius:6px;padding:6px 8px">' + newRoles + '</select>' +
+                '<button id="ov-new-add" class="btn-primary text-white px-5 py-2 rounded-lg text-xs font-semibold">Add user</button></div>' +
+                '<div id="ov-users-msg" style="margin-top:10px;font-size:12px;color:#B91C1C"></div></div>';
+            wireUsers();
+        }).catch(function (e) { dc.innerHTML = '<div class="card p-6" style="color:#B91C1C">Could not load users: ' + esc(e.message) + '</div>'; });
+    }
+
+    function msg(t) { var m = document.getElementById('ov-users-msg'); if (m) { m.textContent = t || ''; } }
+
+    function wireUsers() {
+        document.querySelectorAll('.ov-role').forEach(function (s) {
+            s.addEventListener('change', function () {
+                api('PATCH', '/api/v1/users/' + s.getAttribute('data-uid'), { role: s.value }).then(renderUsers).catch(function (e) { msg(e.message); renderUsers(); });
+            });
+        });
+        document.querySelectorAll('.ov-toggle').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var on = b.getAttribute('data-active') === '1';
+                api('PATCH', '/api/v1/users/' + b.getAttribute('data-uid'), { is_active: !on }).then(renderUsers).catch(function (e) { msg(e.message); });
+            });
+        });
+        document.querySelectorAll('.ov-pw').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var p = window.prompt('New password for this user (8+ characters). Their sessions will end.');
+                if (!p) { return; }
+                api('PATCH', '/api/v1/users/' + b.getAttribute('data-uid'), { password: p }).then(function () { msg('Password changed.'); }).catch(function (e) { msg(e.message); });
+            });
+        });
+        var add = document.getElementById('ov-new-add');
+        if (add) {
+            add.addEventListener('click', function () {
+                api('POST', '/api/v1/users', {
+                    email: document.getElementById('ov-new-email').value,
+                    password: document.getElementById('ov-new-pw').value,
+                    role: document.getElementById('ov-new-role').value
+                }).then(renderUsers).catch(function (e) { msg(e.message); });
+            });
+        }
+    }
+
+    fetch('/auth/me', { credentials: 'same-origin' }).then(function (r) {
+        if (r.status === 401) { window.location.href = '/signin'; return null; }
+        return r.json();
+    }).then(function (d) { if (d) { ME = d; applyRole(); } }).catch(function () {});
+})();
 </script>
 
 </body>
