@@ -533,9 +533,13 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 def _get_job(job_id: str, tenant_id: str, db: Session) -> Job:
+    try:
+        tid = int(tenant_id)
+    except (TypeError, ValueError):
+        raise HTTPException(404, f"Job {job_id} not found")
     job = db.query(Job).filter(
         Job.id == job_id,
-        Job.tenant_id == tenant_id,
+        Job.tenant_id == tid,
     ).first()
     if not job:
         raise HTTPException(404, f"Job {job_id} not found")
@@ -563,6 +567,7 @@ async def run_changepoint(
         systematic changes in posting behaviour.
     """
     t0 = time.time()
+    tenant_id = str(tenant.id)  # SECURITY-FIX 2026-10-15: was an undefined name (NameError, HTTP 500)
     try:
         job     = _get_job(req.job_id, tenant_id, db)
         records = await run_in_threadpool(_extract_canonical_records, job)
@@ -703,6 +708,7 @@ async def run_hurst(
       - H < 0.35: mean-reverting — values oscillate around a mean. Usually OK.
     """
     t0 = time.time()
+    tenant_id = str(tenant.id)  # SECURITY-FIX 2026-10-15: was an undefined name (NameError, HTTP 500)
     try:
         job     = _get_job(req.job_id, tenant_id, db)
         records = await run_in_threadpool(_extract_canonical_records, job)
@@ -824,6 +830,7 @@ async def run_entropy(
         is statistically unlike the rest of the dataset.
     """
     t0 = time.time()
+    tenant_id = str(tenant.id)  # SECURITY-FIX 2026-10-15: was an undefined name (NameError, HTTP 500)
     try:
         job     = _get_job(req.job_id, tenant_id, db)
         records = await run_in_threadpool(_extract_canonical_records, job)
@@ -933,10 +940,13 @@ async def run_entropy(
 @router.get("/status/{job_id}", summary="Retrieve stored analytics for a job")
 async def analytics_status(
     job_id: str,
-    tenant_id: str = "default",
+    tenant=Depends(get_tenant),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Return all analytics results stored for a completed job."""
+    # SECURITY-FIX 2026-10-15: tenant_id was a client supplied query parameter, so any caller could read
+    # any tenant's analytics by passing ?tenant_id=. It now comes from the authenticated tenant.
+    tenant_id = str(tenant.id)
     job = _get_job(job_id, tenant_id, db)
     artifacts = getattr(job, "artifacts", None) or {}
     if isinstance(artifacts, str):

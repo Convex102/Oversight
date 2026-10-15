@@ -1,0 +1,6 @@
+# CI lint gate: only rules that catch real breakage (syntax errors and undefined names).
+# The wider default rule set reports about 5000 style findings across legacy code and is not a gate.
+extend-exclude = ["_backups", "_patches"]
+
+[lint]
+select = ["E9", "F63", "F7", "F82"]

@@ -1285,6 +1285,7 @@ def _run_pipeline_and_raise_points(
     label_b: str,
     materiality_pct: float,
     run_number: int,
+    key_fields: Optional[List[str]] = None,
 ) -> tuple[List[Dict], Optional[str], Dict]:
     """Run the full pipeline:
     Stage 1 — Classify each document (Sage TB, CT600, working papers, etc.)

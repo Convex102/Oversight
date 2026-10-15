@@ -27,7 +27,7 @@ jobs:
       - name: Run tests
         run: |
           set +e
-          pytest -q -p no:cacheprovider > /tmp/pytest.out 2>&1
+          python -m pytest -q -p no:cacheprovider > /tmp/pytest.out 2>&1
           rc=$?
           cat /tmp/pytest.out
           if [ $rc -ne 0 ]; then
