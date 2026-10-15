@@ -229,3 +229,31 @@ def install_hardening(app) -> None:
     app.add_middleware(UploadLimit)
     app.add_middleware(OriginCheck)
     app.add_middleware(SecurityHeaders)
+
+
+# ── Upload validation shared by every upload route ────────────────────────
+MAX_FILES = 20
+
+
+def safe_filename(name) -> str:
+    n = str(name or "").replace("\\", "/").replace("\x00", "").split("/")[-1].strip()
+    return "untitled" if n in ("", ".", "..") else n[:120]
+
+
+def check_uploads(*files) -> None:
+    """Reject too many files or disallowed extensions (HTTPException 413 / 415)."""
+    import os
+    from fastapi import HTTPException
+    from app.config import settings
+    flat = []
+    for f in files:
+        if f is None:
+            continue
+        flat.extend(f if isinstance(f, (list, tuple)) else [f])
+    if len(flat) > MAX_FILES:
+        raise HTTPException(status_code=413, detail=f"Too many files (maximum {MAX_FILES})")
+    ok = settings.allowed_upload_exts_set
+    for f in flat:
+        ext = os.path.splitext(getattr(f, "filename", "") or "")[1].lower()
+        if ok and ext not in ok:
+            raise HTTPException(status_code=415, detail=f"File type {ext or '(none)'} is not allowed")

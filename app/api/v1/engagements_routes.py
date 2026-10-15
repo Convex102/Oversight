@@ -429,6 +429,8 @@ async def submit_engagement(
     - `files[]` — multiple files (new multi-document interface)
     - `file_a` + `file_b` — two files (legacy interface, still supported)
     """
+    from app.hardening import check_uploads
+    check_uploads(files, file_a, file_b)
     # SECURITY-FIX 2026-10-15: scoped to the caller's tenant.
     eng = db.query(Engagement).filter(Engagement.id == eng_id, Engagement.tenant_id == current_user.tenant_id).first()
     if not eng:
@@ -1966,6 +1968,8 @@ async def correct_point(
 ) -> JSONResponse:
     pt = _get_point_or_404(pt_id, current_user.tenant_id, db)
     _check_not_resolved(pt)
+    from app.hardening import check_uploads
+    check_uploads(correction_file)
 
     pt.status = "corrected"
     pt.resolved_at = dt.datetime.utcnow()
@@ -1976,9 +1980,10 @@ async def correct_point(
         # Store correction file bytes (path-based storage)
         try:
             from app.storage import storage
+            from app.hardening import safe_filename
             data = await correction_file.read()
             uri = storage.put(
-                f"engagements/{pt.engagement_id}/corrections/{pt_id}_{correction_file.filename}",
+                f"engagements/{pt.engagement_id}/corrections/{pt_id}_{safe_filename(correction_file.filename)}",
                 data,
                 correction_file.content_type or "application/octet-stream",
             )

@@ -59,6 +59,8 @@ async def dq_ocr(
 ) -> JSONResponse:
     if not files:
         raise HTTPException(400, "At least one file required")
+    from app.hardening import check_uploads
+    check_uploads(files)
 
     tenant_id = principal.tenant_id
     schema = _load_schema(schema_id, db, tenant_id) if schema_id else None
@@ -165,6 +167,8 @@ async def dq_run(
 ) -> JSONResponse:
     if not files:
         raise HTTPException(400, "At least one file required")
+    from app.hardening import check_uploads
+    check_uploads(files)
 
     tenant_id = principal.tenant_id
     schema = _load_schema(schema_id, db, tenant_id) if schema_id else None
