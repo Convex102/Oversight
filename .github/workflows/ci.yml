@@ -25,7 +25,16 @@ jobs:
         run: python -m compileall app
 
       - name: Run tests
-        run: pytest -q
+        run: |
+          set +e
+          pytest -q -p no:cacheprovider > /tmp/pytest.out 2>&1
+          rc=$?
+          cat /tmp/pytest.out
+          if [ $rc -ne 0 ]; then
+            msg=$(grep -v -i "warn" /tmp/pytest.out | tail -c 1500 | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=pytest exit $rc::$msg"
+          fi
+          exit $rc
 
       - name: Lint (ruff)
         run: ruff check .
