@@ -32,6 +32,7 @@ from app.db.models import Tenant, User, SessionToken, ApiKey
 from app.security import generate_api_key
 from app.auth import hash_password, verify_password, new_session_token, token_expiry
 from app.web_auth import get_current_user, COOKIE_NAME
+from app.rbac import group_guard, get_principal, Principal, ROLE_PERMS
 
 logger = configure_logging()
 
@@ -80,9 +81,12 @@ def _ctx(request: Request, title: str = "") -> Dict[str, Any]:
 # SAFE ROUTER MOUNT HELPER
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-def _mount(router, prefix: str = "", tags=None):
+def _mount(router, prefix: str = "", tags=None, group: str = None):
     try:
-        app.include_router(router, prefix=prefix, tags=tags or [])
+        # SECURITY-FIX 2026-10-15: group makes every route in the router require a login (session or
+        # tenant API key) and the role permission for that group, see app/rbac.py.
+        deps = [Depends(group_guard(group))] if group else None
+        app.include_router(router, prefix=prefix, tags=tags or [], dependencies=deps)
         logger.info("âœ“ Router mounted: %s", prefix or "(root)")
     except Exception as exc:
         logger.error("âœ— Router mount failed [%s]: %s", prefix or "(root)", exc)
@@ -94,16 +98,16 @@ def _mount(router, prefix: str = "", tags=None):
 
 # 1. Core pipeline, normalise, flywheel, governance, DI â€” the main v1 router
 from app.api.v1.routes import router as v1_router
-_mount(v1_router, prefix="/api/v1", tags=["v1"])
+_mount(v1_router, prefix="/api/v1", tags=["v1"], group="pipeline")
 
 # 2. Add-on routes (version, flywheel train, DI review queue, governance export)
 from app.api.v1.routes_addon import router as v1_addon_router
-_mount(v1_addon_router, prefix="/api/v1", tags=["v1"])
+_mount(v1_addon_router, prefix="/api/v1", tags=["v1"], group="pipeline")
 
 # 3. Compare â€” canonical implementation (asgla_compare pipeline, full DiffRow output)
 try:
     from app.api.v1.compare_routes import router as compare_router
-    _mount(compare_router, prefix="/api/v1", tags=["comparison"])
+    _mount(compare_router, prefix="/api/v1", tags=["comparison"], group="compare")
 except Exception as _compare_exc:
     import traceback as _tb
     logger.error("COMPARE ROUTES LOAD FAILED: %s", _compare_exc)
@@ -112,34 +116,38 @@ except Exception as _compare_exc:
 
 # 4. Engagements + Review Points lifecycle
 from app.api.v1.engagements_routes import router as engagements_router
-_mount(engagements_router, prefix="/api/v1", tags=["engagements"])
+_mount(engagements_router, prefix="/api/v1", tags=["engagements"], group="engagements")
 
 # 5. Notifications
 from app.api.v1.notifications_routes import router as notifications_router
-_mount(notifications_router, prefix="/api/v1", tags=["notifications"])
+_mount(notifications_router, prefix="/api/v1", tags=["notifications"], group="notifications")
 
 # 6. Custom Schemas
 from app.api.v1.schemas_routes import router as schemas_router
-_mount(schemas_router, prefix="/api/v1", tags=["schemas"])
+_mount(schemas_router, prefix="/api/v1", tags=["schemas"], group="schemas")
 
 # 7. Data Quality / OCR
 from app.api.v1.dq_routes import router as dq_router
-_mount(dq_router, prefix="/api/v1", tags=["dq"])
+_mount(dq_router, prefix="/api/v1", tags=["dq"], group="dq")
 
 # 8. Quality â€” prefix /quality (router has prefix="/quality", mounted at /api/v1)
 from app.quality.routes import router as quality_router
-_mount(quality_router, prefix="/api/v1", tags=["quality"])
+_mount(quality_router, prefix="/api/v1", tags=["quality"], group="quality")
 
 # 5. Reporting â€” evidence packs
 from app.reporting.report_routes import router as reports_router
-_mount(reports_router, prefix="/api/v1", tags=["reporting"])
+_mount(reports_router, prefix="/api/v1", tags=["reporting"], group="reports")
 
 # 6. Analytics â€” prefix /analytics (router has prefix="/analytics", mounted at /api/v1)
 from app.analytics.routes import router as analytics_router
-_mount(analytics_router, prefix="/api/v1", tags=["analytics"])
+_mount(analytics_router, prefix="/api/v1", tags=["analytics"], group="analytics")
 
 
 # â”€â”€ OPTIONAL ROUTERS (defensive â€” failure doesn't crash startup) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+# 9. User management (admin and super_admin only, enforced inside the router)
+from app.api.users_api import router as users_router
+_mount(users_router, tags=["users"])
 
 _optional = [
     ("app.api.health_api",            "router", None),
@@ -180,8 +188,19 @@ async def health():
 # HTML PAGES
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
+def _page_principal(request: Request, db: Session):
+    """Return the logged in Principal for a page request, or None (caller redirects to /signin)."""
+    try:
+        return get_principal(request, db)
+    except HTTPException:
+        return None
+
+
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def root(request: Request):
+async def root(request: Request, db: Session = Depends(get_db)):
+    # SECURITY-FIX 2026-10-15: the Command Centre was served to anyone. Now it needs a session.
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
     for name in ["Command_Center_v14.html", "Command_Center_v13.html", "Command_Center_v12.html", "Command_Center_v11.html", "Command_Center_v9.html", "templates/Command Center.html", "Command Center.html", "index.html"]:
         try:
             return templates.TemplateResponse(name, {"request": request})
@@ -191,7 +210,9 @@ async def root(request: Request):
 
 
 @app.get("/comparison_only", response_class=HTMLResponse, include_in_schema=False)
-async def comparison_only(request: Request):
+async def comparison_only(request: Request, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
     return templates.TemplateResponse("comparison_only.html", {"request": request})
 
 
@@ -211,7 +232,10 @@ def contact(request: Request): return templates.TemplateResponse("contact.html",
 def demo(request: Request): return templates.TemplateResponse("demo.html", _ctx(request, "Demo"))
 
 @app.get("/runner",      response_class=HTMLResponse, include_in_schema=False)
-def runner(request: Request): return templates.TemplateResponse("runner.html", _ctx(request, "Runner"))
+def runner(request: Request, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
+    return templates.TemplateResponse("runner.html", _ctx(request, "Runner"))
 
 @app.get("/signup",      response_class=HTMLResponse, include_in_schema=False)
 def signup(request: Request): return templates.TemplateResponse("signup.html", _ctx(request, "Sign Up"))
@@ -291,6 +315,17 @@ def login(
     return resp
 
 
+@app.get("/auth/me", include_in_schema=False)
+def me(p: Principal = Depends(get_principal)):
+    """Who am I and what may I do. The UI uses perms to show or hide screens."""
+    return {
+        "email": p.user.email if p.user else None,
+        "role": p.role,
+        "tenant_id": p.tenant_id,
+        "perms": sorted(ROLE_PERMS.get(p.role, [])),
+    }
+
+
 @app.post("/auth/logout", include_in_schema=False)
 def logout(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     raw = request.cookies.get(COOKIE_NAME)
@@ -303,21 +338,38 @@ def logout(request: Request, user: User = Depends(get_current_user), db: Session
     return resp
 
 @app.get("/console",     response_class=HTMLResponse, include_in_schema=False)
-def console(request: Request): return templates.TemplateResponse("console.html", _ctx(request, "Console"))
+def console(request: Request, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
+    return templates.TemplateResponse("console.html", _ctx(request, "Console"))
 
 @app.get("/console/usage",response_class=HTMLResponse, include_in_schema=False)
-def console_usage(request: Request): return templates.TemplateResponse("console_usage.html", _ctx(request, "Usage"))
+def console_usage(request: Request, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
+    return templates.TemplateResponse("console_usage.html", _ctx(request, "Usage"))
 
 @app.get("/console/jobs", response_class=HTMLResponse, include_in_schema=False)
-def console_jobs(request: Request): return templates.TemplateResponse("console_jobs.html", _ctx(request, "Jobs"))
+def console_jobs(request: Request, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
+    return templates.TemplateResponse("console_jobs.html", _ctx(request, "Jobs"))
 
 @app.get("/console/jobs/{job_id}", response_class=HTMLResponse, include_in_schema=False)
-def console_job_detail(request: Request, job_id: int):
+def console_job_detail(request: Request, job_id: int, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
     return templates.TemplateResponse("console_job_detail.html", {**_ctx(request, "Job"), "job_id": job_id})
 
 @app.get("/console/api-keys", response_class=HTMLResponse, include_in_schema=False)
-def console_api_keys(request: Request): return templates.TemplateResponse("console_api_keys.html", _ctx(request, "API Keys"))
+def console_api_keys(request: Request, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
+    return templates.TemplateResponse("console_api_keys.html", _ctx(request, "API Keys"))
 
 @app.get("/template-picker", response_class=HTMLResponse, include_in_schema=False)
-def template_picker(request: Request): return templates.TemplateResponse("template_picker.html", _ctx(request, "Template Picker"))
+def template_picker(request: Request, db: Session = Depends(get_db)):
+    if _page_principal(request, db) is None:
+        return RedirectResponse(url="/signin", status_code=303)
+    return templates.TemplateResponse("template_picker.html", _ctx(request, "Template Picker"))
 

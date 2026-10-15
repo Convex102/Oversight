@@ -31,6 +31,12 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.db.models import DQJob, DQFile, DQViolation, CustomSchema, Engagement, ReviewPoint
+from app.rbac import Principal, get_principal
+
+# SECURITY-FIX 2026-10-15: tenant_id used to be a client supplied form field (default 1), and the
+# download and report routes served any job's file to anyone who guessed the integer id. The tenant
+# now comes from the login, schemas and engagements must belong to it, and a job's files are only
+# served to the tenant that ran it (another tenant's job looks like not found).
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["dq"])
@@ -48,13 +54,15 @@ async def dq_ocr(
     schema_id: Optional[int] = Form(default=None),
     engagement_id: Optional[int] = Form(default=None),
     output_format: str = Form(default="csv"),
-    tenant_id: int = Form(default=1),
     db: Session = Depends(get_db),
+    principal: Principal = Depends(get_principal),
 ) -> JSONResponse:
     if not files:
         raise HTTPException(400, "At least one file required")
 
-    schema = _load_schema(schema_id, db) if schema_id else None
+    tenant_id = principal.tenant_id
+    schema = _load_schema(schema_id, db, tenant_id) if schema_id else None
+    _check_engagement(engagement_id, db, tenant_id)
 
     dq_job = DQJob(
         tenant_id=tenant_id,
@@ -152,13 +160,15 @@ async def dq_run(
     engagement_id: Optional[int] = Form(default=None),
     run_oade: bool = Form(default=True),
     create_review_points: bool = Form(default=False),
-    tenant_id: int = Form(default=1),
     db: Session = Depends(get_db),
+    principal: Principal = Depends(get_principal),
 ) -> JSONResponse:
     if not files:
         raise HTTPException(400, "At least one file required")
 
-    schema = _load_schema(schema_id, db) if schema_id else None
+    tenant_id = principal.tenant_id
+    schema = _load_schema(schema_id, db, tenant_id) if schema_id else None
+    _check_engagement(engagement_id, db, tenant_id)
 
     dq_job = DQJob(
         tenant_id=tenant_id,
@@ -305,10 +315,24 @@ async def dq_run(
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _load_schema(schema_id: int, db: Session) -> Optional[Dict]:
-    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id).first()
+def _check_engagement(engagement_id: Optional[int], db: Session, tenant_id: int) -> None:
+    if engagement_id is None:
+        return
+    ok = db.query(Engagement).filter(Engagement.id == engagement_id, Engagement.tenant_id == tenant_id).first()
+    if not ok:
+        raise HTTPException(404, "Engagement not found")
+
+
+def _owned_job(job_id: int, db: Session, tenant_id: int) -> None:
+    j = db.query(DQJob).filter(DQJob.id == job_id, DQJob.tenant_id == tenant_id).first()
+    if not j:
+        raise HTTPException(404, "Job not found")
+
+
+def _load_schema(schema_id: int, db: Session, tenant_id: int) -> Optional[Dict]:
+    s = db.query(CustomSchema).filter(CustomSchema.id == schema_id, CustomSchema.tenant_id == tenant_id).first()
     if not s:
-        return None
+        raise HTTPException(404, "Schema not found")
     return {"name": s.name, "fields": s.fields or [], "rules": s.rules or []}
 
 
@@ -635,7 +659,8 @@ def _write_violation_csv(job_id: int, violations: List[Dict]) -> str:
 
 
 @router.get("/dq/download/{job_id}", summary="Download extracted records CSV")
-async def dq_download(job_id: int, db: Session = Depends(get_db)) -> FileResponse:
+async def dq_download(job_id: int, db: Session = Depends(get_db), principal: Principal = Depends(get_principal)) -> FileResponse:
+    _owned_job(job_id, db, principal.tenant_id)
     path = Path(f"data/dq_exports/ocr_extracted_{job_id}.csv")
     if not path.exists():
         raise HTTPException(404, "Extracted file not found — run /dq/ocr first")
@@ -643,7 +668,8 @@ async def dq_download(job_id: int, db: Session = Depends(get_db)) -> FileRespons
 
 
 @router.get("/dq/report/{job_id}", summary="Download DQ violation report CSV")
-async def dq_report(job_id: int, db: Session = Depends(get_db)) -> FileResponse:
+async def dq_report(job_id: int, db: Session = Depends(get_db), principal: Principal = Depends(get_principal)) -> FileResponse:
+    _owned_job(job_id, db, principal.tenant_id)
     path = Path(f"data/dq_exports/dq_violations_{job_id}.csv")
     if not path.exists():
         raise HTTPException(404, "Report not found — run /dq/run first")
