@@ -3,13 +3,19 @@ from __future__ import annotations
 import logging
 from typing import Dict, Any, Optional, List
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse, Response
 
 from app.pipeline.pensions_pipeline import run_pensions_pack, TEMPLATE_STORE
 from app.packs.pensions.policy import TemplatePolicyStore, TemplatePolicy
 from app.packs.pensions.pdf import render_trustee_evidence_pdf
 from app.telemetry.client import track
+from app.db.models import User
+from app.web_auth import get_current_user
+
+# SECURITY-FIX 2026-10-15: every page here was public and took tenant_id from the query string or form,
+# so anyone could read another tenant's templates, save its policies or run its pack. Each route now
+# needs a session (app.web_auth.get_current_user) and the tenant is always str(current_user.tenant_id).
 
 logger = logging.getLogger("asgl.ui.pensions")
 
@@ -261,7 +267,7 @@ def _page(title: str, body: str, *, subtitle: str = "", active: str = "dashboard
         </div>
         <div class="actions">
           <a class="btn" href="/api/v1/packs">Pack Registry</a>
-          <a class="btn primary" href="/api/v1/pensions/templates?tenant_id=am">API: Templates</a>
+          <a class="btn primary" href="/api/v1/pensions/templates">API: Templates</a>
         </div>
       </div>
       {body}
@@ -272,7 +278,7 @@ def _page(title: str, body: str, *, subtitle: str = "", active: str = "dashboard
 
 
 @router.get("", response_class=HTMLResponse)
-def pensions_dashboard():
+def pensions_dashboard(current_user: User = Depends(get_current_user)):
     # Lightweight dashboard (no DB access needed)
     body = """
       <div class="grid">
@@ -311,7 +317,7 @@ def pensions_dashboard():
 
 
 @router.get("/runner", response_class=HTMLResponse)
-def pensions_runner():
+def pensions_runner(current_user: User = Depends(get_current_user)):
     body = """
     <div class="grid">
       <div class="card" style="grid-column: span 7;">
@@ -319,7 +325,6 @@ def pensions_runner():
         <div class="muted">Paste DI-mapped rows JSON to simulate the ingestion → pack run pathway. Intended for local demos and UI wiring.</div>
         <form method="post" action="/ui/pensions/runner/run">
           <div class="form-row" style="margin-top:12px;">
-            <div class="field"><label>Tenant ID</label><input name="tenant_id" value="am"/></div>
             <div class="field"><label>Scheme ID</label><input name="scheme_id" value="SCHEME123"/></div>
             <div class="field"><label>Template Name</label><input name="template_name" value="GMP Equalisation v3"/></div>
           </div>
@@ -356,9 +361,9 @@ def pensions_runner():
 
 
 @router.post("/runner/run", response_class=HTMLResponse)
-async def pensions_runner_run(request: Request):
+async def pensions_runner_run(request: Request, current_user: User = Depends(get_current_user)):
     form = await request.form()
-    tenant_id = str(form.get("tenant_id", "am"))
+    tenant_id = str(current_user.tenant_id)
     scheme_id = str(form.get("scheme_id", "SCHEME123"))
     template_name = str(form.get("template_name", "unknown"))
     sheet_name = str(form.get("sheet_name", "")) or None
@@ -420,7 +425,8 @@ async def pensions_runner_run(request: Request):
 
 
 @router.get("/review", response_class=HTMLResponse)
-def pensions_review_queue(tenant_id: str = "am"):
+def pensions_review_queue(current_user: User = Depends(get_current_user)):
+    tenant_id = str(current_user.tenant_id)
     # In Phase 8 we show a simulated queue using template library; real queue comes from telemetry + storage.
     templates = TEMPLATE_STORE.list(tenant_id, limit=50)
     rows = ""
@@ -444,7 +450,8 @@ def pensions_review_queue(tenant_id: str = "am"):
 
 
 @router.get("/drift", response_class=HTMLResponse)
-def pensions_drift_monitor(tenant_id: str = "am"):
+def pensions_drift_monitor(current_user: User = Depends(get_current_user)):
+    tenant_id = str(current_user.tenant_id)
     templates = TEMPLATE_STORE.list(tenant_id, limit=30)
     body = f"""
       <div class="grid">
@@ -465,7 +472,8 @@ def pensions_drift_monitor(tenant_id: str = "am"):
 
 
 @router.get("/templates", response_class=HTMLResponse)
-def pensions_templates_ui(tenant_id: str = "am"):
+def pensions_templates_ui(current_user: User = Depends(get_current_user)):
+    tenant_id = str(current_user.tenant_id)
     templates = TEMPLATE_STORE.list(tenant_id, limit=200)
     body = f"""
       <div class="grid">
@@ -485,7 +493,8 @@ def pensions_templates_ui(tenant_id: str = "am"):
 
 
 @router.get("/policy", response_class=HTMLResponse)
-def pensions_policy_ui(tenant_id: str = "am", fp_key: Optional[str] = None):
+def pensions_policy_ui(fp_key: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    tenant_id = str(current_user.tenant_id)
     pol = POLICY_STORE.get(tenant_id=tenant_id, fp_key=fp_key) if fp_key else None
     pol = pol or TemplatePolicy(tenant_id=tenant_id, fp_key=fp_key or "", autopilot_enabled=False, autopilot_min_score=0.92, lock_template=False, require_manual_review=True)
     body = f"""
@@ -550,9 +559,9 @@ def pensions_policy_ui(tenant_id: str = "am", fp_key: Optional[str] = None):
 
 
 @router.post("/policy/save", response_class=HTMLResponse)
-async def pensions_policy_save(request: Request):
+async def pensions_policy_save(request: Request, current_user: User = Depends(get_current_user)):
     form = await request.form()
-    tenant_id = str(form.get("tenant_id", "am"))
+    tenant_id = str(current_user.tenant_id)
     fp_key = str(form.get("fp_key", ""))
     if not fp_key:
         return _page("Policy Error", '<div class="card"><h3>Missing fingerprint key</h3><div class="muted">Paste a fingerprint key from Template Library.</div></div>', subtitle="", active="policy")
@@ -576,12 +585,13 @@ async def pensions_policy_save(request: Request):
 
 
 @router.get("/evidence/pdf")
-def pensions_evidence_pdf(tenant_id: str, scheme_id: str, fingerprint_key: str, template_name: str = "unknown"):
+def pensions_evidence_pdf(scheme_id: str, fingerprint_key: str, template_name: str = "unknown", current_user: User = Depends(get_current_user)):
     """
     Phase 8: generate a deterministic trustee evidence PDF from the last pack result
     (caller provides evidence payload by rerunning pack if needed).
     For demo simplicity we run an empty payload if no stored snapshot exists.
     """
+    tenant_id = str(current_user.tenant_id)
     try:
         # In production, evidence bundles are stored; for now, this endpoint expects rerun from UI runner or external call.
         # Minimal safe PDF render of "header + metadata" if no bundle provided.

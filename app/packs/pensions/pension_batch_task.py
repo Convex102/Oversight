@@ -239,7 +239,12 @@ Or paste the router directly into pensions_api.py.
 """
 
 try:
-    from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+    from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
+    from app.db.models import User
+    from app.web_auth import get_current_user
+    # SECURITY-FIX 2026-10-15: all five routes below were unauthenticated and any caller could poll or
+    # download any run's results by run_id. Now every route needs a session, and a run is only visible
+    # to the tenant that started it (another tenant's run looks like not found).
     from fastapi.responses import FileResponse
     from pydantic import BaseModel, Field
 
@@ -259,6 +264,7 @@ try:
         scheme_id: str = Form(...),
         run_id: Optional[str] = Form(None),
         files: List[UploadFile] = File(...),
+        current_user: User = Depends(get_current_user),
     ):
         """
         Upload batch of pension member documents for async processing.
@@ -267,13 +273,18 @@ try:
         """
         import uuid
         _run_id = run_id or f"P-{uuid.uuid4().hex[:8].upper()}"
-        _job_store[_run_id] = {"status": "queued", "scheme_id": scheme_id}
+        _owner = str(current_user.tenant_id)
+        if _run_id in _job_store and _job_store[_run_id].get("tenant_id") != _owner:
+            raise HTTPException(status_code=409, detail="run_id already in use")
+        _job_store[_run_id] = {"status": "queued", "scheme_id": scheme_id, "tenant_id": _owner}
 
         # Save uploaded files to temp dir
         tmp_dir = tempfile.mkdtemp(prefix=f"oversight_p_{_run_id}_")
         file_paths = []
         for uf in files:
-            dest = os.path.join(tmp_dir, uf.filename or f"file_{len(file_paths)}")
+            # SECURITY-FIX 2026-10-15: basename only, a crafted filename such as ../../x could
+            # previously write outside the temp folder.
+            dest = os.path.join(tmp_dir, os.path.basename(uf.filename or "") or f"file_{len(file_paths)}")
             with open(dest, "wb") as f:
                 f.write(await uf.read())
             file_paths.append(dest)
@@ -288,9 +299,9 @@ try:
                     run_id=_run_id,
                     output_dir=output_dir,
                 )
-                _job_store[_run_id] = {"status": "complete", "result": result}
+                _job_store[_run_id] = {"status": "complete", "result": result, "tenant_id": _owner}
             except Exception as e:
-                _job_store[_run_id] = {"status": "error", "error": str(e)}
+                _job_store[_run_id] = {"status": "error", "error": str(e), "tenant_id": _owner}
 
         background_tasks.add_task(run_async)
 
@@ -302,6 +313,7 @@ try:
         run_id: Optional[str] = Form(None),
         scheme_rules_json: Optional[str] = Form(None),
         files: List[UploadFile] = File(...),
+        current_user: User = Depends(get_current_user),
     ):
         """
         Synchronous batch run (small batches only — use /batch-upload for >100 records).
@@ -311,7 +323,9 @@ try:
         tmp_dir = tempfile.mkdtemp(prefix=f"oversight_p_{_run_id}_")
         file_paths = []
         for uf in files:
-            dest = os.path.join(tmp_dir, uf.filename or f"file_{len(file_paths)}")
+            # SECURITY-FIX 2026-10-15: basename only, a crafted filename such as ../../x could
+            # previously write outside the temp folder.
+            dest = os.path.join(tmp_dir, os.path.basename(uf.filename or "") or f"file_{len(file_paths)}")
             with open(dest, "wb") as f:
                 f.write(await uf.read())
             file_paths.append(dest)
@@ -333,18 +347,18 @@ try:
         return result
 
     @pension_batch_router.get("/batch/{run_id}")
-    def batch_status(run_id: str):
+    def batch_status(run_id: str, current_user: User = Depends(get_current_user)):
         """Poll batch job status."""
         job = _job_store.get(run_id)
-        if not job:
+        if not job or job.get("tenant_id") != str(current_user.tenant_id):
             raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
         return job
 
     @pension_batch_router.get("/batch/{run_id}/pdf")
-    def batch_pdf(run_id: str):
+    def batch_pdf(run_id: str, current_user: User = Depends(get_current_user)):
         """Download PDF evidence pack for completed batch run."""
         job = _job_store.get(run_id)
-        if not job or job.get("status") != "complete":
+        if not job or job.get("tenant_id") != str(current_user.tenant_id) or job.get("status") != "complete":
             raise HTTPException(status_code=404, detail="Job not complete or not found")
         pdf_path = job.get("result", {}).get("pdf_path")
         if not pdf_path or not os.path.exists(pdf_path):
@@ -356,7 +370,7 @@ try:
         )
 
     @pension_batch_router.post("/ingest-record")
-    async def ingest_single_record(file: UploadFile = File(...), scheme_id: str = Form("unknown")):
+    async def ingest_single_record(file: UploadFile = File(...), scheme_id: str = Form("unknown"), current_user: User = Depends(get_current_user)):
         """
         Sync single-record ingestion — for testing and UI demo.
         Returns canonical member record + any anomaly flags.

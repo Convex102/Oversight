@@ -3,11 +3,18 @@ from __future__ import annotations
 import logging
 from typing import Dict, Any, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 
 from app.pipeline.pensions_pipeline import run_pensions_pack, TEMPLATE_STORE
 from app.telemetry.client import track
+from app.db.models import User
+from app.web_auth import get_current_user
+
+# SECURITY-FIX 2026-10-15: every route here ran with no session check and took tenant_id from the
+# client, so any caller could run the pack or list templates for any tenant. Same fix as commit
+# 02df4bb: require app.web_auth.get_current_user and derive the tenant from the session. Pensions
+# stores key tenants by string, so the key is str(current_user.tenant_id).
 
 logger = logging.getLogger("asgl.api.pensions")
 
@@ -15,7 +22,7 @@ router = APIRouter(prefix="/api/v1/pensions", tags=["pensions"])
 
 
 class PensionsRunRequest(BaseModel):
-    tenant_id: str = Field(..., description="Tenant/customer identifier")
+    tenant_id: Optional[str] = Field(None, description="Ignored, the tenant comes from the session")
     scheme_id: str = Field(..., description="Scheme identifier")
     template_name: str = "unknown"
     sheet_name: Optional[str] = None
@@ -25,11 +32,12 @@ class PensionsRunRequest(BaseModel):
 
 
 @router.post("/run")
-def pensions_run(req: PensionsRunRequest):
+def pensions_run(req: PensionsRunRequest, current_user: User = Depends(get_current_user)):
     """
     Phase 7: API entrypoint to run ASGL-P pack end-to-end.
     Intended for UI runner to call after ingestion + DI mapping.
     """
+    req.tenant_id = str(current_user.tenant_id)
     try:
         out = run_pensions_pack(
             tenant_id=req.tenant_id,
@@ -48,10 +56,11 @@ def pensions_run(req: PensionsRunRequest):
 
 
 @router.get("/templates")
-def pensions_templates(tenant_id: str, limit: int = 100):
+def pensions_templates(limit: int = 100, current_user: User = Depends(get_current_user)):
     """
     List known template fingerprints for the tenant (Phase 7).
     """
+    tenant_id = str(current_user.tenant_id)
     try:
         return {"tenant_id": tenant_id, "templates": TEMPLATE_STORE.list(tenant_id, limit=limit), "count": TEMPLATE_STORE.count(tenant_id)}
     except Exception as e:
