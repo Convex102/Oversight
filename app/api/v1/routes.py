@@ -331,6 +331,10 @@ async def pipeline_run(
                 template_payload=template_payload,
                 progress_cb=progress_cb,
             )
+            _ing = (result or {}).get("ingestion") or {}
+            _aa = (result or {}).get("asgl_a") or {}
+            if str(_ing.get("status")) == "failed" and str(_aa.get("status")) == "failed":
+                raise ValueError("No readable data found in the uploaded file(s)")
             _update_job(
                 job_id,
                 status="completed",

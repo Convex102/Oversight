@@ -1774,6 +1774,18 @@ def _pipeline_and_raise(
         result = run_pipeline(files=[(filename_a, Path(path_a).read_bytes())])
         pipeline_result = result or {}
 
+        # An unreadable file must never look like a clean pass.
+        if (str((pipeline_result.get("ingestion") or {}).get("status")) == "failed"
+                and str((pipeline_result.get("asgl_a") or {}).get("status")) == "failed"):
+            review_points.append({
+                "severity": "high", "category": "ingestion",
+                "title": "File could not be read",
+                "description": f"No readable data was found in {filename_a}. Re-export it as .xlsx or .csv and resubmit.",
+                "section": "General", "audit_ref": None, "field_name": None,
+                "value_a": None, "value_b": None, "delta": None, "status": "open",
+            })
+            return review_points, pipeline_result
+
         sev_map = {"error": "high", "warn": "medium", "warning": "medium"}
 
         # Validation rule violations -> review points. In fact mode ASGL-C infers
