@@ -2079,3 +2079,45 @@ async def escalate_point(
     db.commit()
     db.refresh(pt)
     return JSONResponse(_point_to_dict(pt))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UK GDPR: erasure of one engagement's client content, and job artifact retention (admin only)
+# ══════════════════════════════════════════════════════════════════════════════
+import os as _os
+from app.rbac import Principal, require_perm
+
+
+class ErasureRequest(BaseModel):
+    confirm: str = Field(..., description='Type ERASE followed by the engagement id, for example "ERASE 12"')
+    reason: str = ""
+
+
+@router.post("/engagements/{eng_id}/erase", summary="Erase the client content of an engagement (admin only)")
+async def erase_engagement_route(
+    eng_id: int,
+    body: ErasureRequest,
+    db: Session = Depends(get_db),
+    p: Principal = Depends(require_perm("users.manage")),
+) -> JSONResponse:
+    from app.gdpr import erase_engagement
+    if body.confirm.strip() != f"ERASE {eng_id}":
+        raise HTTPException(400, f'Confirmation text required: "ERASE {eng_id}"')
+    actor = (getattr(p.user, "email", None) if p.user else None) or "api key"
+    result = erase_engagement(db, p.tenant_id, eng_id, actor, body.reason or "")
+    if result is None:
+        raise HTTPException(404, f"Engagement {eng_id} not found")
+    db.commit()
+    return JSONResponse(result)
+
+
+@router.post("/admin/retention/purge", summary="Delete this company's old job files (admin only)")
+async def retention_purge(
+    days: Optional[int] = None,
+    p: Principal = Depends(require_perm("users.manage")),
+) -> JSONResponse:
+    from app.gdpr import purge_old_job_artifacts
+    d = days if days is not None else int(_os.getenv("ASGL_RETENTION_DAYS", "30") or 30)
+    if d < 7:
+        raise HTTPException(400, "days must be 7 or more")
+    return JSONResponse(purge_old_job_artifacts(p.tenant_id, d))

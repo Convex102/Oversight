@@ -257,3 +257,21 @@ def check_uploads(*files) -> None:
         ext = os.path.splitext(getattr(f, "filename", "") or "")[1].lower()
         if ok and ext not in ok:
             raise HTTPException(status_code=415, detail=f"File type {ext or '(none)'} is not allowed")
+
+
+# ── error text redaction (UK GDPR): exception messages can carry client data ─────────────────────
+import re as _re_red
+
+_RED_SECRET = _re_red.compile(
+    r"(?i)(bearer\s+[A-Za-z0-9._\-]{12,}|(?:password|passwd|secret|token|api[_\- ]?key)\s*[=:]\s*\S+|sk-[A-Za-z0-9_\-]{16,}|eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,})")
+_RED_EMAIL = _re_red.compile(r"[\w.+\-]+@[\w\-]+\.[\w.\-]+")
+_RED_NUMBER = _re_red.compile(r"\d[\d,. ]{5,}\d")
+
+
+def redact_error(text, limit: int = 500) -> str:
+    """Remove secrets, email addresses and long numbers from error text, then cut it to `limit` characters."""
+    t = str(text if text is not None else "")
+    t = _RED_SECRET.sub("[redacted]", t)
+    t = _RED_EMAIL.sub("[email]", t)
+    t = _RED_NUMBER.sub("[number]", t)
+    return t[:limit]

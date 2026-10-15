@@ -14,6 +14,7 @@ from app.worker import celery_app
 from app.db.session import SessionLocal
 from app.db.models import Job, Upload, Template
 from app.storage import storage
+from app.hardening import redact_error
 from app.di_learning import load_priors
 from app.di_review_queue import build_items
 from app.asgl_engine.pipeline import run_pipeline, build_pdf
@@ -239,7 +240,7 @@ def run_job(job_id: int):
         job = db.query(Job).filter(Job.id == job_id).first()
         tenant_id = int(job.tenant_id) if job else 0
 
-        tb = traceback.format_exc()
+        tb = redact_error(traceback.format_exc(), 6000)
         logger.exception("job_failed", job_id=job_id)
 
         err_uri = None
@@ -257,21 +258,21 @@ def run_job(job_id: int):
                 tenant_id=tenant_id,
                 job_id=job_id,
                 event="job_failed",
-                message=str(e),
+                message=redact_error(str(e)),
                 progress=100.0,
-                meta={"error_type": type(e).__name__, "error": str(e), "error_artifact": err_uri},
+                meta={"error_type": type(e).__name__, "error": redact_error(str(e)), "error_artifact": err_uri},
             )
         except Exception:
             pass
 
         if job:
             job.status = "failed"
-            job.error = f"{type(e).__name__}: {e}"
+            job.error = redact_error(f"{type(e).__name__}: {e}")
             job.finished_at = dt.datetime.utcnow()
             # store a minimal error envelope (avoid breaking clients that expect dict)
             cur = job.result or {}
-            cur["progress"] = {"ts": _now_z(), "event": "job_failed", "message": str(e), "pct": 100.0}
-            cur["error"] = {"type": type(e).__name__, "message": str(e)}
+            cur["progress"] = {"ts": _now_z(), "event": "job_failed", "message": redact_error(str(e)), "pct": 100.0}
+            cur["error"] = {"type": type(e).__name__, "message": redact_error(str(e))}
             job.result = cur
             job.artifacts = (job.artifacts or {}) | ({"error_txt": err_uri} if err_uri else {})
             db.commit()

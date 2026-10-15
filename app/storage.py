@@ -86,6 +86,30 @@ class Storage:
 
         raise ValueError("Unsupported storage URI")
 
+    def delete(self, uri: str) -> bool:
+        """Delete one stored object. Only objects inside this storage (the local root or the configured bucket) can be deleted.
+        Returns True when something was removed, False when it did not exist."""
+        if uri.startswith("s3://"):
+            if self.backend != "s3":
+                raise ValueError("Refusing to delete an s3 object on a local backend")
+            assert self.s3 is not None and self.bucket is not None
+            bucket, key = _parse_s3_uri(uri)
+            if bucket != self.bucket:
+                raise ValueError("Refusing to delete outside the configured bucket")
+            self.s3.delete_object(Bucket=bucket, Key=key)
+            return True
+        if uri.startswith("file://"):
+            path = Path(uri.replace("file://", "", 1)).resolve()
+            try:
+                path.relative_to(self.local_root)
+            except ValueError:
+                raise ValueError("Refusing to delete outside the storage root")
+            if not path.is_file():
+                return False
+            path.unlink()
+            return True
+        raise ValueError("Unsupported storage URI")
+
     def presigned_get(self, uri: str, expires_in: int = 3600) -> Optional[PresignedUrl]:
         if not uri.startswith("s3://"):
             return None
