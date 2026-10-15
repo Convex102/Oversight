@@ -14,5 +14,8 @@ def new_session_token():
     h = hashlib.sha256(raw.encode()).hexdigest()
     return raw, h
 
-def token_expiry(hours=24*14):
+SESSION_HOURS = 12          # idle window, refreshed while the user is active
+SESSION_MAX_DAYS = 7        # absolute lifetime regardless of activity
+
+def token_expiry(hours=SESSION_HOURS):
     return dt.datetime.utcnow() + dt.timedelta(hours=hours)
