@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth import hash_password
+from app.auth_ext import set_must_change
 from app.db.models import SessionToken, User
 from app.db.session import get_db
 from app.rbac import ASSIGNABLE, ROLES, Principal, require_perm
@@ -70,6 +71,7 @@ def create_user(body: NewUser, p: Principal = Depends(require_perm("users.manage
     db.add(u)
     db.commit()
     db.refresh(u)
+    set_must_change(db, u.id, True)
     return _row(u)
 
 
@@ -80,6 +82,7 @@ def update_user(user_id: int, body: UpdateUser, p: Principal = Depends(require_p
     if not u:
         raise HTTPException(404, "User not found")
     is_self = p.user is not None and p.user.id == u.id
+    reset_for = None
     if body.role is not None:
         if is_self:
             raise HTTPException(403, "You cannot change your own role")
@@ -102,6 +105,9 @@ def update_user(user_id: int, body: UpdateUser, p: Principal = Depends(require_p
             raise HTTPException(403, "You cannot change a super admin")
         u.password_hash = hash_password(body.password)
         db.query(SessionToken).filter(SessionToken.user_id == u.id).delete()
+        reset_for = u.id if not is_self else None
     db.commit()
+    if reset_for is not None:
+        set_must_change(db, reset_for, True)
     db.refresh(u)
     return _row(u)

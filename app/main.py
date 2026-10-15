@@ -53,6 +53,10 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 
+# Forced password change on first sign in, change password page, Google sign in (app/auth_ext.py)
+from app.auth_ext import install_auth_ext
+install_auth_ext(app)
+
 # SECURITY-FIX 2026-10-15: with ENV=dev this used allow_origins=["*"] together with allow_credentials=True, and
 # Starlette answers a cookie carrying request by echoing back whatever Origin asked, so any website could
 # make credentialed calls as a signed in user. Origins are now an explicit list in every environment.
@@ -321,6 +325,8 @@ def login(
     email_n = (email or "").strip().lower()
     user = db.query(User).filter(User.email == email_n, User.is_active == True).first()
     if not user or not verify_password(password, user.password_hash):
+        if "text/html" in request.headers.get("accept", ""):
+            return RedirectResponse(url="/signin?err=invalid", status_code=303)
         raise HTTPException(401, "Invalid credentials")
 
     raw_tok, tok_hash = new_session_token()

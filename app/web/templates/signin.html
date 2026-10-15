@@ -88,6 +88,16 @@ table.data-table tr:hover td{background:#F8FAFC}
       <input class="input" name="password" type="password" placeholder="Password" required>
       <button class="btn btn-primary" type="submit" style="width:100%;margin-top:1.25rem;justify-content:center;padding:12px">Sign in</button>
     </form>
+    <div id="msg" style="display:none;margin-top:12px;padding:8px 12px;border-radius:8px;background:#FEE2E2;color:#991B1B;font-size:13px"></div>
+    <a id="gbtn" href="/auth/google/start" class="btn" style="display:none;width:100%;margin-top:10px;padding:12px">Sign in with Google</a>
+    <script>
+    (function(){
+      var m={invalid:"Email or password is not correct.",google_noaccount:"No Oversight account exists for that Google email. Ask your administrator.",google_fail:"Google sign in failed. Try again.",google_state:"Google sign in expired. Try again.",google_off:"Google sign in is not enabled yet."};
+      var e=new URLSearchParams(location.search).get("err");
+      if(e&&m[e]){var b=document.getElementById("msg");b.textContent=m[e];b.style.display="block";}
+      fetch("/auth/providers").then(function(r){return r.json()}).then(function(j){if(j.google)document.getElementById("gbtn").style.display="flex";}).catch(function(){});
+    })();
+    </script>
     <div style="text-align:center;margin-top:1rem;font-size:13px;color:#64748B">
       Don't have an account? <a href="/signup" style="color:#2563EB;font-weight:600">Create one →</a>
     </div>
