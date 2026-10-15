@@ -38,7 +38,7 @@ REVIEWER = WORK_READ | {
     "dq.run", "compare.run", "analytics.run",
 }
 ACCOUNTANT = WORK_READ | {
-    "engagements.write", "reports.generate", "compare.run", "billing.read",
+    "pipeline.run", "engagements.write", "reports.generate", "compare.run", "billing.read",
 }
 ADMIN_WORK = REVIEWER | {"schemas.write", "engagements.signoff", "billing.read"}
 ADMIN = ADMIN_WORK | {"users.manage", "keys.manage"}
