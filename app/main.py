@@ -331,7 +331,7 @@ def register(
 
     resp = RedirectResponse(url="/console", status_code=303)
     resp.set_cookie(COOKIE_NAME, raw_tok, httponly=True, samesite="lax", secure=_https(request))
-    resp.set_cookie("asgl_bootstrap_api_key", raw, httponly=False, samesite="lax", max_age=300)
+    # The raw API key is no longer put in a script readable cookie. Nothing read it. Create keys from the Users screen.
     return resp
 
 
