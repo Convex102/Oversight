@@ -15,9 +15,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+
+from app.rbac import Principal, get_principal
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["reports"])
@@ -25,6 +27,22 @@ router = APIRouter(tags=["reports"])
 # ── Report store (path map: run_id → PDF path) ────────────────────────────────
 _REPORTS: Dict[str, str] = {}
 _REPORTS_DIR = Path(os.getenv("LOCAL_STORAGE_PATH", "./data")) / "exports"
+
+# SECURITY-FIX 2026-10-15: reports were global. Each PDF now has a sidecar file recording the tenant that
+# generated it, and download and list only serve a tenant its own reports (another tenant's report looks
+# like not found). Reports with no sidecar (made before this change) are visible to super_admin only.
+def _owner_file(run_id: str) -> Path:
+    return _REPORTS_DIR / f"oversight_report_{run_id}.tenant"
+
+
+def _may_see(run_id: str, p: Principal) -> bool:
+    if p.role == "super_admin":
+        return True
+    f = _owner_file(run_id)
+    try:
+        return f.exists() and f.read_text().strip() == str(p.tenant_id)
+    except Exception:
+        return False
 
 
 # ── Request model ─────────────────────────────────────────────────────────────
@@ -41,7 +59,7 @@ class ReportRequest(BaseModel):
 
 # ── POST /generate ────────────────────────────────────────────────────────────
 @router.post("/reports/generate", summary="Generate a client evidence pack PDF")
-async def generate_report(req: ReportRequest) -> Dict[str, Any]:
+async def generate_report(req: ReportRequest, principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
     """
     Given a completed pipeline job_id, generates a branded, accountant-readable
     PDF evidence pack for the named client.
@@ -57,7 +75,7 @@ async def generate_report(req: ReportRequest) -> Dict[str, Any]:
     from app.api.v1.routes import _JOBS, _AUDIT_LOGS
 
     job = _JOBS.get(req.job_id)
-    if not job:
+    if not job or (principal.role != "super_admin" and job.get("tenant_id") != str(principal.tenant_id)):
         raise HTTPException(
             status_code=404,
             detail=f"Job {req.job_id} not found. Run a pipeline first via POST /api/v1/pipeline/run"
@@ -173,6 +191,8 @@ async def generate_report(req: ReportRequest) -> Dict[str, Any]:
         )
 
         _REPORTS[req.job_id] = pdf_path
+        _REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        _owner_file(req.job_id).write_text(str(principal.tenant_id))
         size_kb = int(Path(pdf_path).stat().st_size / 1024)
 
         return {
@@ -207,8 +227,10 @@ async def generate_report(req: ReportRequest) -> Dict[str, Any]:
 
 # ── GET /download/{run_id} ─────────────────────────────────────────────────────
 @router.get("/reports/download/{run_id}", summary="Download a generated evidence pack PDF")
-async def download_report(run_id: str):
+async def download_report(run_id: str, principal: Principal = Depends(get_principal)):
     """Download the PDF evidence pack for the given run_id."""
+    if not _may_see(run_id, principal):
+        raise HTTPException(status_code=404, detail=f"No report found for run_id {run_id}. Generate one first via POST /api/v1/reports/generate")
     # Check in-memory registry first
     pdf_path = _REPORTS.get(run_id)
 
@@ -236,12 +258,14 @@ async def download_report(run_id: str):
 
 # ── GET /list ──────────────────────────────────────────────────────────────────
 @router.get("/reports/list", summary="List available evidence pack reports")
-async def list_reports() -> Dict[str, Any]:
+async def list_reports(principal: Principal = Depends(get_principal)) -> Dict[str, Any]:
     """Returns a list of all generated reports."""
     _REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     reports = []
     for pdf in sorted(_REPORTS_DIR.glob("oversight_report_*.pdf"), key=lambda p: p.stat().st_mtime, reverse=True):
         run_id = pdf.stem.replace("oversight_report_", "")
+        if not _may_see(run_id, principal):
+            continue
         reports.append({
             "run_id": run_id,
             "filename": pdf.name,
