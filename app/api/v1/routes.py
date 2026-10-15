@@ -68,30 +68,37 @@ router = APIRouter(tags=["v1"])
 # the API.  Each entry is keyed by job_id (uuid4).
 #
 
-_JOBS: Dict[str, Dict[str, Any]] = {}
+from app import jobstore  # noqa: E402  (jobs live in the database so every worker sees them)
+
 _AUDIT_LOGS: Dict[str, Any] = {}  # run_id -> AuditLog instance
 
 
+class _JobsView:
+    """Read only dict like view over the shared job store, for modules that still import _JOBS."""
+
+    def get(self, job_id, default=None):
+        return jobstore.get(str(job_id)) or default
+
+    def __getitem__(self, job_id):
+        j = jobstore.get(str(job_id))
+        if j is None:
+            raise KeyError(job_id)
+        return j
+
+    def __contains__(self, job_id):
+        return jobstore.get(str(job_id)) is not None
+
+
+_JOBS = _JobsView()
+
+
 def _new_job(tenant_id: str = "default") -> str:
-    job_id = str(uuid.uuid4())
-    _JOBS[job_id] = {
-        "job_id": job_id,
-        "tenant_id": tenant_id,  # SECURITY-FIX 2026-10-15: ownership for status/results/list scoping
-        "status": "queued",
-        "stage": None,
-        "progress": 0.0,
-        "message": "Job created",
-        "started_at": None,
-        "completed_at": None,
-        "results": None,
-        "error": None,
-    }
-    return job_id
+    # SECURITY-FIX 2026-10-15: ownership (tenant_id) is stored with the job for status/results/list scoping
+    return jobstore.create(tenant_id)
 
 
 def _update_job(job_id: str, **kwargs: Any) -> None:
-    if job_id in _JOBS:
-        _JOBS[job_id].update(kwargs)
+    jobstore.update(job_id, **kwargs)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -362,7 +369,7 @@ async def pipeline_run(
 
     if sync:
         execute_pipeline()
-        job = _JOBS[job_id]
+        job = jobstore.get(job_id) or {}
         return JobRunResponse(
             job_id=job_id,
             status=job["status"],
@@ -380,7 +387,7 @@ async def pipeline_run(
 
 @router.get("/pipeline/jobs/{job_id}", response_model=JobStatus, summary="Get job status")
 async def pipeline_job_status(job_id: str, current_user: User = Depends(get_current_user)) -> JobStatus:
-    job = _JOBS.get(job_id)
+    job = jobstore.get(job_id)
     # SECURITY-FIX 2026-10-15: a job belonging to another tenant looks like "not found".
     if not job or job.get("tenant_id") != str(current_user.tenant_id):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
@@ -398,7 +405,7 @@ async def pipeline_job_status(job_id: str, current_user: User = Depends(get_curr
 
 @router.get("/pipeline/jobs/{job_id}/results", response_model=JobResultsResponse, summary="Get job results")
 async def pipeline_job_results(job_id: str, current_user: User = Depends(get_current_user)) -> JobResultsResponse:
-    job = _JOBS.get(job_id)
+    job = jobstore.get(job_id)
     # SECURITY-FIX 2026-10-15: a job belonging to another tenant looks like "not found".
     if not job or job.get("tenant_id") != str(current_user.tenant_id):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
@@ -438,9 +445,8 @@ async def pipeline_list_jobs(
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     # SECURITY-FIX 2026-10-15: previously returned every tenant's jobs unfiltered.
-    items = [j for j in _JOBS.values() if j.get("tenant_id") == str(current_user.tenant_id)]
-    items.sort(key=lambda j: j.get("started_at") or "", reverse=True)
-    return {"count": len(items), "items": items[:limit]}
+    items = jobstore.list_for_tenant(str(current_user.tenant_id), limit=limit)
+    return {"count": len(items), "items": items}
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -292,7 +292,7 @@ async def create_engagement(
     eng = Engagement(
         tenant_id=current_user.tenant_id,
         client_name=req.client_name.strip(),
-        period=(req.period or "").strip() or None,
+        period=(req.period or "").strip() or "Unspecified",
         regulatory_pack=req.regulatory_pack,
         preparer_name=(req.preparer_name or "").strip() or None,
         engagement_ref=(req.engagement_ref or "").strip() or None,

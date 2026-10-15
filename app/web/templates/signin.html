@@ -92,7 +92,7 @@ table.data-table tr:hover td{background:#F8FAFC}
     <a id="gbtn" href="/auth/google/start" class="btn" style="display:none;width:100%;margin-top:10px;padding:12px">Sign in with Google</a>
     <script>
     (function(){
-      var m={invalid:"Email or password is not correct.",google_noaccount:"No Oversight account exists for that Google email. Ask your administrator.",google_fail:"Google sign in failed. Try again.",google_state:"Google sign in expired. Try again.",google_off:"Google sign in is not enabled yet."};
+      var m={invalid:"Email or password is not correct.",google_noaccount:"No Oversight account exists for that Google email. Ask your administrator.",google_fail:"Google sign in failed. Try again.",google_state:"Google sign in expired. Try again.",google_off:"Google sign in is not enabled yet.",locked:"Too many attempts. Try again in 15 minutes or reset your password."};
       var e=new URLSearchParams(location.search).get("err");
       if(e&&m[e]){var b=document.getElementById("msg");b.textContent=m[e];b.style.display="block";}
       fetch("/auth/providers").then(function(r){return r.json()}).then(function(j){if(j.google)document.getElementById("gbtn").style.display="flex";}).catch(function(){});

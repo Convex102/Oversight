@@ -81,7 +81,8 @@ def _flagged(raw: str) -> bool:
 
 
 def _https(request: Request) -> bool:
-    return request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+    from app.hardening import is_https
+    return is_https(request)
 
 
 def _start_session(request: Request, db: Session, user: User, to: str = "/") -> RedirectResponse:
@@ -159,7 +160,12 @@ def change_password(
     if p.user is None:
         raise HTTPException(403, "Sign in as a user to change a password")
     u = p.user
+    from app import hardening
+    counters = hardening.login_keys(u.email, request)
+    if hardening.locked_for(db, [k for k, _ in counters]):
+        return RedirectResponse(url="/change-password?err=current", status_code=303)
     if not verify_password(current_password, u.password_hash):
+        hardening.record_failure(db, counters)
         return RedirectResponse(url="/change-password?err=current", status_code=303)
     if new_password != confirm_password:
         return RedirectResponse(url="/change-password?err=mismatch", status_code=303)
@@ -200,11 +206,16 @@ def reset_page(request: Request):
 @router.post("/auth/reset", include_in_schema=False)
 def reset_submit(request: Request, token: str = Form(""), new_password: str = Form(...), confirm_password: str = Form(...),
                  db: Session = Depends(get_db)):
+    from app import hardening
+    ipk = hardening.ip_key(request)
+    if hardening.locked_for(db, [ipk]):
+        return RedirectResponse(url="/auth/reset?err=token", status_code=303)
     th = hashlib.sha256(token.encode()).hexdigest()
     row = db.query(PasswordReset).filter(PasswordReset.token_hash == th, PasswordReset.used == False,  # noqa: E712
                                          PasswordReset.expires_at >= dt.datetime.utcnow()).first()
     user = db.query(User).filter(User.id == row.user_id, User.is_active == True).first() if row else None  # noqa: E712
     if not user:
+        hardening.record_failure(db, [(ipk, hardening.LIMIT_PER_IP)])
         return RedirectResponse(url="/auth/reset?err=token", status_code=303)
     if new_password != confirm_password:
         return RedirectResponse(url="/auth/reset?err=mismatch#" + token, status_code=303)

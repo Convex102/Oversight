@@ -55,6 +55,8 @@ app = FastAPI(
     openapi_url=None,
 )
 app.state.limiter = limiter
+from app.hardening import install_hardening
+install_hardening(app)
 
 
 # API docs and the schema list every route, so they are only served to signed in users.
@@ -219,8 +221,8 @@ async def health():
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def _https(request: Request) -> bool:
-    """True when the browser reached us over https (nginx sets X-Forwarded-Proto)."""
-    return request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+    from app.hardening import is_https
+    return is_https(request)
 
 
 def _page_principal(request: Request, db: Session):
@@ -333,6 +335,9 @@ def register(
     return resp
 
 
+_DUMMY_HASH = hash_password("not-a-real-password-for-timing")
+
+
 @app.post("/auth/login", include_in_schema=False)
 def login(
     request: Request,
@@ -340,12 +345,23 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
+    from app import hardening
     email_n = (email or "").strip().lower()
+    counters = hardening.login_keys(email_n, request)
+    wait = hardening.locked_for(db, [k for k, _ in counters])
+    if wait:
+        if "text/html" in request.headers.get("accept", ""):
+            return RedirectResponse(url="/signin?err=locked", status_code=303)
+        raise HTTPException(429, "Too many attempts. Try again later.", headers={"Retry-After": str(wait)})
     user = db.query(User).filter(User.email == email_n, User.is_active == True).first()
-    if not user or not verify_password(password, user.password_hash):
+    # Always run one password hash so an unknown email takes as long as a wrong password.
+    ok = verify_password(password, user.password_hash if user else _DUMMY_HASH)
+    if not user or not ok:
+        hardening.record_failure(db, counters)
         if "text/html" in request.headers.get("accept", ""):
             return RedirectResponse(url="/signin?err=invalid", status_code=303)
         raise HTTPException(401, "Invalid credentials")
+    hardening.clear(db, counters[0][0])
 
     raw_tok, tok_hash = new_session_token()
     sess = SessionToken(user_id=user.id, token_hash=tok_hash, expires_at=token_expiry())
