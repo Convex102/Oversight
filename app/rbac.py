@@ -70,6 +70,10 @@ GROUPS: Dict[str, tuple] = {
     "quality": ("dq.read", "dq.run"),
     "reports": ("reports.read", "reports.generate"),
     "analytics": ("analytics.read", "analytics.run"),
+    # Decision Intelligence admin, active learning and telemetry (Oversight-A): resolving needs review rights.
+    "di": ("pipeline.read", "review.resolve"),
+    # Pensions batch routes belong to Oversight-P: third item is the product licence required.
+    "pensions": ("pipeline.read", "pipeline.run", "P"),
 }
 
 # (path fragment, method set or None for any, permission) first match wins, overrides the group.
@@ -151,7 +155,8 @@ def group_guard(group: str) -> Callable[..., Optional[Principal]]:
     Read methods need the group's read permission, everything else its write permission, with
     OVERRIDES for sign off and review actions. Liveness paths pass with no credentials.
     """
-    read_perm, write_perm = GROUPS[group]
+    read_perm, write_perm, *_rest = GROUPS[group]
+    product = _rest[0] if _rest else "A"
 
     def _dep(request: Request, db: Session = Depends(get_db)) -> Optional[Principal]:
         path = request.url.path
@@ -159,8 +164,8 @@ def group_guard(group: str) -> Callable[..., Optional[Principal]]:
             return None
         p = get_principal(request, db)
         from app.entitlements import licensed  # local import: entitlements imports rbac
-        if not licensed(db, p.tenant_id, "A"):
-            raise HTTPException(status_code=403, detail="Your company is not licensed for Oversight-A")
+        if not licensed(db, p.tenant_id, product):
+            raise HTTPException(status_code=403, detail=f"Your company is not licensed for Oversight-{product}")
         need = read_perm if request.method in SAFE_METHODS else write_perm
         for frag, methods, perm in OVERRIDES:
             if frag in path and (methods is None or request.method in methods):

@@ -31,6 +31,6 @@ if router:
             item_id=str(payload.get("item_id")),
             chosen_canonical_field=str(payload.get("chosen_canonical_field")),
             note=payload.get("note"),
-            reviewer=payload.get("reviewer"),
+            reviewer=current_user.email,  # from the session, never from the request body
         )
         return {"ok": ok}

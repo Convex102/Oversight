@@ -49,7 +49,9 @@ class Storage:
         # prevent path traversal
         key = key.lstrip("/").replace("..", "")
         p = (self.local_root / key).resolve()
-        if not str(p).startswith(str(self.local_root)):
+        try:
+            p.relative_to(self.local_root)
+        except ValueError:
             raise ValueError("Invalid storage key")
         p.parent.mkdir(parents=True, exist_ok=True)
         return p
@@ -96,49 +98,48 @@ class Storage:
         )
         return PresignedUrl(method="GET", url=url, expires_in=int(expires_in))
 
-    
-def list_uris(self, prefix: str) -> list[str]:
-    """List objects under a prefix.
+    def list_uris(self, prefix: str) -> list[str]:
+        """List objects under a prefix.
 
-    - Local backend: walks LOCAL_STORAGE_PATH/prefix recursively.
-    - S3 backend: uses ListObjectsV2 with the given prefix.
+        - Local backend: walks LOCAL_STORAGE_PATH/prefix recursively.
+        - S3 backend: uses ListObjectsV2 with the given prefix.
 
-    Returns a list of URIs (file://... or s3://...).
-    """
-    prefix = (prefix or "").lstrip("/")
+        Returns a list of URIs (file://... or s3://...).
+        """
+        prefix = (prefix or "").lstrip("/")
 
-    if self.backend == "s3":
-        assert self.s3 is not None and self.bucket is not None
+        if self.backend == "s3":
+            assert self.s3 is not None and self.bucket is not None
+            uris: list[str] = []
+            continuation = None
+            while True:
+                kwargs = {"Bucket": self.bucket, "Prefix": prefix}
+                if continuation:
+                    kwargs["ContinuationToken"] = continuation
+                resp = self.s3.list_objects_v2(**kwargs)
+                for obj in resp.get("Contents", []) or []:
+                    key = obj.get("Key")
+                    if key:
+                        uris.append(f"s3://{self.bucket}/{key}")
+                if resp.get("IsTruncated"):
+                    continuation = resp.get("NextContinuationToken")
+                else:
+                    break
+            return uris
+
+        # local
+        base = self._local_path(prefix)
+        if base.is_file():
+            return ["file://" + str(base)]
+        if not base.exists():
+            return []
         uris: list[str] = []
-        continuation = None
-        while True:
-            kwargs = {"Bucket": self.bucket, "Prefix": prefix}
-            if continuation:
-                kwargs["ContinuationToken"] = continuation
-            resp = self.s3.list_objects_v2(**kwargs)
-            for obj in resp.get("Contents", []) or []:
-                key = obj.get("Key")
-                if key:
-                    uris.append(f"s3://{self.bucket}/{key}")
-            if resp.get("IsTruncated"):
-                continuation = resp.get("NextContinuationToken")
-            else:
-                break
+        for p in base.rglob("*"):
+            if p.is_file():
+                uris.append("file://" + str(p))
         return uris
 
-    # local
-    base = self._local_path(prefix)
-    if base.is_file():
-        return ["file://" + str(base)]
-    if not base.exists():
-        return []
-    uris: list[str] = []
-    for p in base.rglob("*"):
-        if p.is_file():
-            uris.append("file://" + str(p))
-    return uris
-
-def presigned_put(self, key: str, expires_in: int = 3600, content_type: str = "application/octet-stream") -> Optional[PresignedUrl]:
+    def presigned_put(self, key: str, expires_in: int = 3600, content_type: str = "application/octet-stream") -> Optional[PresignedUrl]:
         if self.backend != "s3":
             return None
         assert self.s3 is not None and self.bucket is not None
@@ -148,6 +149,42 @@ def presigned_put(self, key: str, expires_in: int = 3600, content_type: str = "a
             ExpiresIn=int(expires_in),
         )
         return PresignedUrl(method="PUT", url=url, expires_in=int(expires_in))
+
+    # ── key based helpers used by services (telemetry, active learning, vector store ...) ──
+    def read(self, key: str) -> Optional[bytes]:
+        """Return the bytes stored under a key, or None when it does not exist."""
+        if self.backend == "s3":
+            assert self.s3 is not None and self.bucket is not None
+            try:
+                return self.s3.get_object(Bucket=self.bucket, Key=key.lstrip("/"))["Body"].read()
+            except Exception as exc:  # NoSuchKey and friends
+                if "NoSuchKey" in type(exc).__name__ or "NoSuchKey" in str(exc) or "404" in str(exc):
+                    return None
+                raise
+        path = self._local_path(key)
+        return path.read_bytes() if path.exists() else None
+
+    def write(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+        return self.put(key, data, content_type)
+
+    def read_json(self, key: str):
+        import json
+        raw = self.read(key)
+        if not raw:
+            return None
+        try:
+            return json.loads(raw.decode("utf-8"))
+        except Exception:
+            return None
+
+    def write_json(self, key: str, obj) -> str:
+        import json
+        return self.put(key, json.dumps(obj, ensure_ascii=False).encode("utf-8"), "application/json")
+
+    def append_jsonl(self, key: str, obj) -> str:
+        import json
+        line = (json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8")
+        return self.put(key, (self.read(key) or b"") + line, "application/x-ndjson")
 
 
 storage = Storage()

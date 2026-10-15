@@ -180,26 +180,26 @@ from app.api.users_api import router as users_router
 _mount(users_router, tags=["users"])
 
 _optional = [
-    ("app.api.health_api",            "router", None),
-    ("app.api.pensions_api",          "router", None),
-    ("app.packs.pensions.pension_batch_task", "pension_batch_router", None),
-    ("app.api.pensions_ui_api",       "router", None),
-    ("app.api.packs_api",             "router", None),
-    ("app.api.di_health_api",         "router", None),
-    ("app.api.di_admin_api",          "router", None),
-    ("app.api.di_learning_api",       "router", None),
-    ("app.api.active_learning_routes","router", None),
-    ("app.api.telemetry_routes",      "router", None),
-    ("app.api.governance_ui_api",     "router", None),
+    ("app.api.health_api",            "router", None, None),
+    ("app.api.pensions_api",          "router", None, "pensions"),
+    ("app.packs.pensions.pension_batch_task", "pension_batch_router", None, "pensions"),
+    ("app.api.pensions_ui_api",       "router", None, "pensions"),
+    ("app.api.packs_api",             "router", None, "pensions"),
+    ("app.api.di_health_api",         "router", None, "di"),
+    ("app.api.di_admin_api",          "router", None, "di"),
+    ("app.api.di_learning_api",       "router", None, "di"),
+    ("app.api.active_learning_routes","router", None, "di"),
+    ("app.api.telemetry_routes",      "router", None, "di"),
+    ("app.api.governance_ui_api",     "router", None, "di"),
 ]
 
-for _mod, _attr, _prefix in _optional:
+for _mod, _attr, _prefix, _group in _optional:
     try:
         import importlib as _il
         _m = _il.import_module(_mod)
         _r = getattr(_m, _attr, None)
         if _r is not None:
-            _mount(_r, prefix=_prefix or "", tags=[_mod.split(".")[-1]])
+            _mount(_r, prefix=_prefix or "", tags=[_mod.split(".")[-1]], group=_group)
     except Exception as _exc:
         logger.debug("Optional router [%s] skipped: %s", _mod, _exc)
 
