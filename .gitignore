@@ -24,3 +24,14 @@ docs/artifacts/conversation_patches/
 *.patch
 *_repo.zip
 *_merged.zip
+
+# --- Runtime data, secrets and logs must never be committed ---
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+logs/
+*.log
